@@ -158,16 +158,29 @@ export default function AdminProductsPage() {
   return (
     <AdminLayout>
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Gestion des produits</h1>
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg">
+            <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold">Gestion des produits</h1>
+            <p className="text-gray-600 mt-1">{products.length} produit{products.length > 1 ? 's' : ''} au total</p>
+          </div>
+        </div>
         <button
           onClick={() => {
             setShowForm(true);
             setEditingProduct(null);
             resetForm();
           }}
-          className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
+          className="inline-flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-xl font-bold hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl"
         >
-          + Nouveau produit
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+          Nouveau produit
         </button>
       </div>
 
@@ -414,46 +427,114 @@ export default function AdminProductsPage() {
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left">Nom</th>
-                <th className="px-6 py-3 text-left">Marque</th>
-                <th className="px-6 py-3 text-left">Prix</th>
-                <th className="px-6 py-3 text-left">Stock</th>
-                <th className="px-6 py-3 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((product) => (
-              <tr key={product._id} className="border-t">
-                <td className="px-6 py-4">
-                  <Link href={`/produit/${product.slug}`} className="text-green-600 hover:underline">
-                    {product.name}
-                  </Link>
-                </td>
-                <td className="px-6 py-4">{product.brand}</td>
-                <td className="px-6 py-4">{product.price.toFixed(2)} €</td>
-                <td className="px-6 py-4">{product.stock}</td>
-                <td className="px-6 py-4">
-                  <button
-                    onClick={() => handleEdit(product)}
-                    className="text-blue-600 hover:underline mr-4"
-                  >
-                    Modifier
-                  </button>
-                  <button
-                    onClick={() => handleDelete(product._id)}
-                    className="text-red-600 hover:underline"
-                  >
-                    Supprimer
-                  </button>
-                </td>
-              </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+          <div className="divide-y divide-gray-100">
+            {products.map((product) => {
+              const primaryImage = product.images?.find((img: any) => img.isPrimary) || product.images?.[0];
+              return (
+                <div 
+                  key={product._id} 
+                  className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors group"
+                >
+                  {/* Miniature image */}
+                  <div className="w-16 h-16 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
+                    {primaryImage ? (
+                      <img
+                        src={`http://localhost:5000${primaryImage.url}`}
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Informations principales */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <Link 
+                          href={`/produit/${product.slug}`}
+                          className="font-bold text-gray-900 hover:text-green-600 transition-colors block truncate"
+                        >
+                          {product.name}
+                        </Link>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          {product.brand && (
+                            <span className="text-xs text-gray-500">{product.brand}</span>
+                          )}
+                          {product.category && (
+                            <>
+                              <span className="text-gray-300">•</span>
+                              <span className="text-xs text-gray-500 truncate">
+                                {product.category.name}
+                                {product.subCategory && ` / ${product.subCategory.name}`}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 flex-shrink-0">
+                        {/* Prix */}
+                        <div className="text-right">
+                          <p className="font-bold text-green-600">{product.price.toFixed(2)} €</p>
+                          {product.compareAtPrice && (
+                            <p className="text-xs text-gray-400 line-through">{product.compareAtPrice.toFixed(2)} €</p>
+                          )}
+                        </div>
+                        {/* Stock */}
+                        <div className="text-right w-16">
+                          <p className="text-xs text-gray-500">Stock</p>
+                          <p className={`font-semibold ${product.isInStock ? 'text-green-600' : 'text-red-600'}`}>
+                            {product.stock}
+                          </p>
+                        </div>
+                        {/* Badges */}
+                        <div className="flex flex-col gap-1">
+                          {product.isFeatured && (
+                            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded whitespace-nowrap">
+                              ⭐
+                            </span>
+                          )}
+                          {!product.isInStock && (
+                            <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded whitespace-nowrap">
+                              Rupture
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => handleEdit(product)}
+                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Modifier"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => handleDelete(product._id)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Supprimer"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </AdminLayout>

@@ -95,16 +95,29 @@ export default function AdminCategoriesPage() {
   return (
     <AdminLayout>
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Gestion des catégories</h1>
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg">
+            <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+            </svg>
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold">Gestion des catégories</h1>
+            <p className="text-gray-600 mt-1">{categories.length} catégorie{categories.length > 1 ? 's' : ''} au total</p>
+          </div>
+        </div>
         <button
           onClick={() => {
             setShowForm(true);
             setEditingCategory(null);
             resetForm();
           }}
-          className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
+          className="inline-flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-xl font-bold hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl"
         >
-          + Nouvelle catégorie
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+          Nouvelle catégorie
         </button>
       </div>
 
@@ -187,9 +200,16 @@ export default function AdminCategoriesPage() {
         </div>
       )}
 
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div>
-          <h2 className="text-2xl font-bold mb-4">Catégories principales</h2>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold">Catégories principales</h2>
+          </div>
           {mainCategories.length === 0 && !showForm ? (
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-12 text-center">
               <div className="max-w-md mx-auto">
@@ -218,44 +238,69 @@ export default function AdminCategoriesPage() {
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left">Nom</th>
-                    <th className="px-6 py-3 text-left">Ordre</th>
-                    <th className="px-6 py-3 text-left">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mainCategories.map((category) => (
-                  <tr key={category._id} className="border-t">
-                    <td className="px-6 py-4">{category.name}</td>
-                    <td className="px-6 py-4">{category.order}</td>
-                    <td className="px-6 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {mainCategories.map((category) => (
+                <div 
+                  key={category._id}
+                  className="bg-white rounded-2xl shadow-lg border-2 border-green-100 overflow-hidden hover:shadow-xl hover:border-green-300 transition-all duration-300"
+                >
+                  <div className="bg-gradient-to-br from-green-50 to-green-100 px-6 py-5 border-b-2 border-green-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
+                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-900">{category.name}</h3>
+                          <p className="text-xs text-gray-500">Catégorie principale</p>
+                        </div>
+                      </div>
+                      <span className="px-3 py-1 bg-green-600 text-white text-xs font-bold rounded-full">
+                        #{category.order}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="p-5">
+                    {category.description && (
+                      <p className="text-sm text-gray-600 mb-4 line-clamp-2">{category.description}</p>
+                    )}
+                    <div className="flex gap-2">
                       <button
                         onClick={() => handleEdit(category)}
-                        className="text-blue-600 hover:underline mr-4"
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-50 text-blue-700 rounded-xl font-semibold hover:bg-blue-100 transition-colors"
                       >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
                         Modifier
                       </button>
                       <button
                         onClick={() => handleDelete(category._id)}
-                        className="text-red-600 hover:underline"
+                        className="flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 text-red-700 rounded-xl font-semibold hover:bg-red-100 transition-colors"
                       >
-                        Supprimer
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
                       </button>
-                    </td>
-                  </tr>
-                  ))}
-                </tbody>
-              </table>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
 
         <div>
-          <h2 className="text-2xl font-bold mb-4">Sous-catégories</h2>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold">Sous-catégories</h2>
+          </div>
           {subCategories.length === 0 ? (
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-12 text-center">
               <div className="max-w-md mx-auto">
@@ -286,40 +331,63 @@ export default function AdminCategoriesPage() {
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left">Nom</th>
-                    <th className="px-6 py-3 text-left">Catégorie parente</th>
-                    <th className="px-6 py-3 text-left">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {subCategories.map((category) => (
-                  <tr key={category._id} className="border-t">
-                    <td className="px-6 py-4">{category.name}</td>
-                    <td className="px-6 py-4">
-                      {category.parentCategory?.name || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {subCategories.map((category) => (
+                <div 
+                  key={category._id}
+                  className="bg-white rounded-2xl shadow-lg border-2 border-blue-100 overflow-hidden hover:shadow-xl hover:border-blue-300 transition-all duration-300"
+                >
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 px-6 py-5 border-b-2 border-blue-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-900">{category.name}</h3>
+                          <p className="text-xs text-gray-500">Sous-catégorie</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-5">
+                    {category.parentCategory && (
+                      <div className="mb-3">
+                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-lg">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                          </svg>
+                          {category.parentCategory.name}
+                        </span>
+                      </div>
+                    )}
+                    {category.description && (
+                      <p className="text-sm text-gray-600 mb-4 line-clamp-2">{category.description}</p>
+                    )}
+                    <div className="flex gap-2">
                       <button
                         onClick={() => handleEdit(category)}
-                        className="text-blue-600 hover:underline mr-4"
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-50 text-blue-700 rounded-xl font-semibold hover:bg-blue-100 transition-colors"
                       >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
                         Modifier
                       </button>
                       <button
                         onClick={() => handleDelete(category._id)}
-                        className="text-red-600 hover:underline"
+                        className="flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 text-red-700 rounded-xl font-semibold hover:bg-red-100 transition-colors"
                       >
-                        Supprimer
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
                       </button>
-                    </td>
-                  </tr>
-                  ))}
-                </tbody>
-              </table>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
