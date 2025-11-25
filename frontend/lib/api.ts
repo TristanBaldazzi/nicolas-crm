@@ -39,6 +39,14 @@ export const authApi = {
     api.post('/auth/register', data),
   me: () =>
     api.get('/auth/me'),
+  getUsers: (params?: any) =>
+    api.get('/auth/users', { params }),
+  getUserById: (id: string) =>
+    api.get(`/auth/users/${id}`),
+  getUserStats: () =>
+    api.get('/auth/users/stats'),
+  updateUser: (id: string, data: any) =>
+    api.put(`/auth/users/${id}`, data),
 };
 
 // Products
@@ -47,6 +55,8 @@ export const productsApi = {
     api.get('/products', { params }),
   getBySlug: (slug: string) =>
     api.get(`/products/${slug}`),
+  getRecommended: (id: string) =>
+    api.get(`/products/recommended/${id}`),
   create: (data: any) =>
     api.post('/products', data),
   update: (id: string, data: any) =>
@@ -126,6 +136,26 @@ export const uploadApi = {
   },
   deleteImage: (filename: string) =>
     api.delete(`/upload/image/${filename}`),
+};
+
+// Carts
+export const cartsApi = {
+  create: (data: any) =>
+    api.post('/carts', data),
+  getMy: () =>
+    api.get('/carts/my'),
+  getAll: (params?: any) =>
+    api.get('/carts', { params }),
+  getById: (id: string) =>
+    api.get(`/carts/${id}`),
+  getUserCarts: (userId: string) =>
+    api.get(`/carts/user/${userId}`),
+  update: (id: string, data: any) =>
+    api.put(`/carts/${id}`, data),
+  updateStatus: (id: string, status: string) =>
+    api.put(`/carts/${id}/status`, { status }),
+  delete: (id: string) =>
+    api.delete(`/carts/${id}`),
 };
 
 export default api;

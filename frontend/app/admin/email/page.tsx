@@ -117,7 +117,7 @@ export default function AdminEmailPage() {
             setEditingCampaign(null);
             resetForm();
           }}
-          className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
+          className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
         >
           + Nouvelle campagne
         </button>
@@ -214,7 +214,7 @@ export default function AdminEmailPage() {
             <div className="flex gap-4">
               <button
                 type="submit"
-                className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
+                className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
               >
                 {editingCampaign ? 'Modifier' : 'Créer'}
               </button>
@@ -234,19 +234,47 @@ export default function AdminEmailPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left">Nom</th>
-              <th className="px-6 py-3 text-left">Sujet</th>
-              <th className="px-6 py-3 text-left">Statut</th>
-              <th className="px-6 py-3 text-left">Envoyés</th>
-              <th className="px-6 py-3 text-left">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {campaigns.map((campaign) => (
+      {campaigns.length === 0 && !showForm ? (
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-16 text-center">
+          <div className="max-w-md mx-auto">
+            <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-purple-200 rounded-3xl flex items-center justify-center mx-auto mb-6">
+              <svg className="w-12 h-12 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-3">Créez votre première campagne</h3>
+            <p className="text-gray-600 mb-8">
+              Commencez à communiquer avec vos clients en créant votre première campagne email marketing.
+            </p>
+            <button
+              onClick={() => {
+                setShowForm(true);
+                setEditingCampaign(null);
+                resetForm();
+              }}
+              className="inline-flex items-center gap-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-purple-700 hover:to-purple-800 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Créer votre première campagne
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left">Nom</th>
+                <th className="px-6 py-3 text-left">Sujet</th>
+                <th className="px-6 py-3 text-left">Statut</th>
+                <th className="px-6 py-3 text-left">Envoyés</th>
+                <th className="px-6 py-3 text-left">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {campaigns.map((campaign) => (
               <tr key={campaign._id} className="border-t">
                 <td className="px-6 py-4">{campaign.name}</td>
                 <td className="px-6 py-4">{campaign.subject}</td>
@@ -289,10 +317,11 @@ export default function AdminEmailPage() {
                   </button>
                 </td>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </AdminLayout>
   );
 }

@@ -14,6 +14,7 @@ import categoryRoutes from './routes/categories.js';
 import clientRoutes from './routes/clients.js';
 import emailRoutes from './routes/email.js';
 import uploadRoutes from './routes/upload.js';
+import cartRoutes from './routes/carts.js';
 
 dotenv.config();
 
@@ -33,7 +34,7 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limite chaque IP à 100 requêtes par windowMs
+  max: 10000 // limite chaque IP à 100 requêtes par windowMs
 });
 app.use('/api/', limiter);
 
@@ -51,6 +52,7 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/carts', cartRoutes);
 
 // Route de santé
 app.get('/api/health', (req, res) => {

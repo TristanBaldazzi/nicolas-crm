@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import Product from '../models/Product.js';
 import Category from '../models/Category.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
@@ -63,6 +64,97 @@ router.get('/', async (req, res) => {
         pages: Math.ceil(total / parseInt(limit))
       }
     });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Récupérer les produits recommandés pour un produit
+router.get('/recommended/:id', async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'ID invalide' });
+    }
+    
+    const product = await Product.findById(req.params.id)
+      .populate('category', '_id')
+      .populate('subCategory', '_id');
+
+    if (!product) {
+      return res.status(404).json({ error: 'Produit non trouvé' });
+    }
+
+    const limit = 8; // Nombre de produits recommandés à retourner
+    const recommended = [];
+
+    // 1. D'abord les produits de la même sous-catégorie
+    if (product.subCategory) {
+      const subCategoryProducts = await Product.find({
+        _id: { $ne: product._id },
+        subCategory: product.subCategory._id,
+        isActive: true
+      })
+        .populate('category', 'name slug')
+        .populate('subCategory', 'name slug')
+        .limit(limit)
+        .sort({ createdAt: -1 });
+
+      recommended.push(...subCategoryProducts);
+    }
+
+    // 2. Si pas assez, ajouter les produits de la même catégorie
+    if (recommended.length < limit && product.category) {
+      const categoryProducts = await Product.find({
+        _id: { $ne: product._id },
+        category: product.category._id,
+        isActive: true,
+        ...(product.subCategory ? { subCategory: { $ne: product.subCategory._id } } : {})
+      })
+        .populate('category', 'name slug')
+        .populate('subCategory', 'name slug')
+        .limit(limit - recommended.length)
+        .sort({ createdAt: -1 });
+
+      recommended.push(...categoryProducts);
+    }
+
+    // 3. Si pas assez, ajouter les produits de la même marque
+    if (recommended.length < limit && product.brand) {
+      const existingIds = recommended.map(p => p._id.toString());
+      existingIds.push(product._id.toString());
+
+      const brandProducts = await Product.find({
+        _id: { $nin: existingIds },
+        brand: product.brand,
+        isActive: true
+      })
+        .populate('category', 'name slug')
+        .populate('subCategory', 'name slug')
+        .limit(limit - recommended.length)
+        .sort({ createdAt: -1 });
+
+      recommended.push(...brandProducts);
+    }
+
+    // 4. Si pas assez, ajouter des produits aléatoires
+    if (recommended.length < limit) {
+      const existingIds = recommended.map(p => p._id.toString());
+      existingIds.push(product._id.toString());
+
+      const randomProducts = await Product.find({
+        _id: { $nin: existingIds },
+        isActive: true
+      })
+        .populate('category', 'name slug')
+        .populate('subCategory', 'name slug')
+        .limit(limit - recommended.length)
+        .sort({ createdAt: -1 });
+
+      recommended.push(...randomProducts);
+    }
+
+    // Limiter à exactement 'limit' produits
+    res.json({ products: recommended.slice(0, limit) });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

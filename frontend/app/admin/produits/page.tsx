@@ -165,7 +165,7 @@ export default function AdminProductsPage() {
             setEditingProduct(null);
             resetForm();
           }}
-          className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
+          className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
         >
           + Nouveau produit
         </button>
@@ -366,7 +366,7 @@ export default function AdminProductsPage() {
             <div className="flex gap-4">
               <button
                 type="submit"
-                className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
+                className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
               >
                 {editingProduct ? 'Modifier' : 'Créer'}
               </button>
@@ -386,22 +386,50 @@ export default function AdminProductsPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left">Nom</th>
-              <th className="px-6 py-3 text-left">Marque</th>
-              <th className="px-6 py-3 text-left">Prix</th>
-              <th className="px-6 py-3 text-left">Stock</th>
-              <th className="px-6 py-3 text-left">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((product) => (
+      {products.length === 0 && !showForm ? (
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-16 text-center">
+          <div className="max-w-md mx-auto">
+            <div className="w-24 h-24 bg-gradient-to-br from-green-100 to-green-200 rounded-3xl flex items-center justify-center mx-auto mb-6">
+              <svg className="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-3">Commencez votre catalogue</h3>
+            <p className="text-gray-600 mb-8">
+              Vous n'avez pas encore de produits. Créez votre premier produit pour commencer à construire votre catalogue.
+            </p>
+            <button
+              onClick={() => {
+                setShowForm(true);
+                setEditingProduct(null);
+                resetForm();
+              }}
+              className="inline-flex items-center gap-3 bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Créer votre premier produit
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left">Nom</th>
+                <th className="px-6 py-3 text-left">Marque</th>
+                <th className="px-6 py-3 text-left">Prix</th>
+                <th className="px-6 py-3 text-left">Stock</th>
+                <th className="px-6 py-3 text-left">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.map((product) => (
               <tr key={product._id} className="border-t">
                 <td className="px-6 py-4">
-                  <Link href={`/produit/${product.slug}`} className="text-primary-600 hover:underline">
+                  <Link href={`/produit/${product.slug}`} className="text-green-600 hover:underline">
                     {product.name}
                   </Link>
                 </td>
@@ -423,10 +451,11 @@ export default function AdminProductsPage() {
                   </button>
                 </td>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </AdminLayout>
   );
 }

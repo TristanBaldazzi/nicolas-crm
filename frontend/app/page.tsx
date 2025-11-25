@@ -29,246 +29,319 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen">
-      {/* Hero Section Premium */}
-      <section className="relative bg-gradient-to-br from-slate-900 via-primary-900 to-slate-900 text-white overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
+    <div className="min-h-screen bg-white">
+      {/* Hero Section - Ultra Moderne */}
+      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-gray-900 via-green-950 to-gray-900">
+        {/* Animated Background */}
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(34,197,94,0.1),transparent_50%)]"></div>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(16,185,129,0.08),transparent_50%)]"></div>
           <div className="absolute inset-0" style={{
-            backgroundImage: `radial-gradient(circle at 2px 2px, white 1px, transparent 0)`,
-            backgroundSize: '40px 40px'
+            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0)`,
+            backgroundSize: '50px 50px'
           }}></div>
         </div>
-        
-        <div className="container mx-auto px-4 py-24 relative z-10">
-          {/* Contact Info Cards */}
-          <div className="grid md:grid-cols-3 gap-6 mb-16 animate-fade-in">
-            <div className="glass rounded-2xl p-6 text-center backdrop-blur-xl border border-white/20 hover:border-white/30 transition-all card-hover">
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Besoin d'aide ?</h3>
-              <a href="tel:+352691775623" className="text-xl font-bold text-gold-400 hover:text-gold-300 transition-colors">
-                (+352) 691 775 623
-              </a>
-            </div>
-            
-            <div className="glass rounded-2xl p-6 text-center backdrop-blur-xl border border-white/20 hover:border-white/30 transition-all card-hover">
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Nos horaires</h3>
-              <p className="text-lg">Uniquement sur rendez-vous</p>
-            </div>
-            
-            <div className="glass rounded-2xl p-6 text-center backdrop-blur-xl border border-white/20 hover:border-white/30 transition-all card-hover">
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Contact</h3>
-              <a href="mailto:contact@rcmplay-reparation.lu" className="text-lg hover:text-gold-400 transition-colors">
-                contact@rcmplay-reparation.lu
-              </a>
-            </div>
-          </div>
-          
+
+        {/* Floating Orbs */}
+        <div className="absolute top-20 left-10 w-72 h-72 bg-green-500/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+
+        <div className="container mx-auto px-4 py-20 relative z-10">
           {/* Main Hero Content */}
-          <div className="text-center max-w-5xl mx-auto animate-slide-up">
-            <h1 className="text-6xl md:text-7xl lg:text-8xl font-black mb-8 leading-tight">
-              <span className="block">RCMPLAY</span>
-              <span className="block bg-gradient-to-r from-gold-400 via-gold-300 to-gold-500 bg-clip-text text-transparent">
+          <div className="text-center max-w-6xl mx-auto">
+            <div className="inline-block mb-8">
+              <span className="px-6 py-2 bg-green-500/20 backdrop-blur-xl border border-green-400/30 rounded-full text-green-300 text-sm font-semibold">
+                Votre partenaire de confiance au Luxembourg
+              </span>
+            </div>
+            
+            <h1 className="text-7xl md:text-8xl lg:text-9xl font-black mb-8 leading-[0.9] tracking-tight">
+              <span className="block text-white">RCMPLAY</span>
+              <span className="block bg-gradient-to-r from-emerald-400 via-emerald-300 to-emerald-500 bg-clip-text text-transparent">
                 REPARATION
               </span>
             </h1>
-            <p className="text-2xl md:text-3xl mb-12 text-gray-200 font-light max-w-3xl mx-auto leading-relaxed">
-              Votre partenaire de confiance pour les produits professionnels au Luxembourg
+            
+            <p className="text-2xl md:text-3xl mb-16 text-gray-300 font-light max-w-4xl mx-auto leading-relaxed">
+              Excellence en produits professionnels et pièces détachées
             </p>
             
-            {/* Badges */}
-            <div className="flex flex-wrap justify-center gap-4 mb-12">
+            {/* CTA Buttons */}
+            <div className="flex flex-wrap justify-center gap-6 mb-20">
+              <Link
+                href="/catalogue"
+                className="group relative px-10 py-5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-2xl font-bold text-lg overflow-hidden shadow-2xl shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all duration-300 transform hover:scale-105"
+              >
+                <span className="relative z-10 flex items-center gap-3">
+                  Découvrir le catalogue
+                  <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </span>
+                <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-emerald-700 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              </Link>
+              <Link
+                href="/notre-societe"
+                className="px-10 py-5 bg-white/10 backdrop-blur-xl border-2 border-white/30 text-white rounded-2xl font-bold text-lg hover:bg-white/20 hover:border-white/50 transition-all duration-300"
+              >
+                Notre société
+              </Link>
+            </div>
+
+            {/* Value Propositions */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
               {[
-                { title: 'PRODUITS', desc: 'Toutes marques' },
-                { title: 'GARANTIE', desc: '100% garantie' },
-                { title: 'EXPERTISE', desc: 'Qualifié à votre service' },
-                { title: 'RAPIDITÉ', desc: 'Service rapide et sérieux' }
-              ].map((badge, idx) => (
+                { 
+                  icon: (
+                    <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                  ), 
+                  title: 'Garantie', 
+                  desc: '100%' 
+                },
+                { 
+                  icon: (
+                    <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  ), 
+                  title: 'Rapidité', 
+                  desc: 'Service express' 
+                },
+                { 
+                  icon: (
+                    <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  ), 
+                  title: 'Expertise', 
+                  desc: 'Qualifiée' 
+                },
+                { 
+                  icon: (
+                    <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                    </svg>
+                  ), 
+                  title: 'Qualité', 
+                  desc: 'Premium' 
+                }
+              ].map((item, idx) => (
                 <div
                   key={idx}
-                  className="glass rounded-xl px-6 py-4 backdrop-blur-xl border border-white/20 hover:border-white/30 transition-all card-hover"
+                  className="group p-6 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl hover:bg-white/10 hover:border-white/20 transition-all duration-300"
                 >
-                  <p className="font-bold text-sm mb-1">{badge.title}</p>
-                  <p className="text-xs text-gray-300">{badge.desc}</p>
+                  <div className="text-white mb-3 flex justify-center">{item.icon}</div>
+                  <div className="text-white font-bold text-lg mb-1">{item.title}</div>
+                  <div className="text-gray-400 text-sm">{item.desc}</div>
                 </div>
               ))}
             </div>
-            
-            <Link
-              href="/catalogue"
-              className="inline-block bg-gradient-to-r from-gold-500 to-gold-600 text-white px-12 py-5 rounded-xl font-bold text-lg hover:from-gold-600 hover:to-gold-700 transition-all shadow-2xl hover:shadow-gold-500/50 transform hover:scale-105"
-            >
-              Découvrir le catalogue
-            </Link>
           </div>
+        </div>
+
+        {/* Scroll Indicator */}
+        <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce">
+          <svg className="w-6 h-6 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          </svg>
         </div>
       </section>
 
-      {/* Marques Partenaires - Premium */}
-      <section className="py-24 bg-gradient-to-b from-white to-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-5xl font-black text-gray-900 mb-4">
-              Nos <span className="gradient-text">marques partenaires</span>
+      {/* Marques Partenaires - Section Moderne */}
+      <section className="py-32 bg-gradient-to-b from-white via-gray-50 to-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="text-center mb-20">
+            <h2 className="text-5xl md:text-6xl font-black text-gray-900 mb-6">
+              Nos <span className="bg-gradient-to-r from-green-600 to-green-400 bg-clip-text text-transparent">marques</span>
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Des partenariats exclusifs avec les leaders du marché
+              Partenariats exclusifs avec les leaders du marché
             </p>
           </div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {['Nematic', 'Prinus', 'Bosch', 'Electro Lux'].map((brand, idx) => (
-              <div
+              <Link
                 key={brand}
-                className="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 card-hover"
+                href={`/catalogue?brand=${brand}`}
+                className="group relative p-10 bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-100 overflow-hidden"
               >
-                <div className="w-24 h-24 bg-gradient-to-br from-primary-100 to-primary-200 rounded-2xl mx-auto mb-6 flex items-center justify-center transform group-hover:scale-110 group-hover:rotate-3 transition-all">
-                  <span className="text-4xl font-black text-primary-700">{brand.charAt(0)}</span>
+                <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative z-10">
+                  <div className="w-28 h-28 bg-gradient-to-br from-green-500 to-green-700 rounded-3xl mx-auto mb-6 flex items-center justify-center transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-xl">
+                    <span className="text-5xl font-black text-white">{brand.charAt(0)}</span>
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3 text-center group-hover:text-green-600 transition-colors">{brand}</h3>
+                  <p className="text-gray-600 text-center mb-6">Produits professionnels</p>
+                  <div className="flex items-center justify-center text-green-600 font-semibold group-hover:gap-2 transition-all">
+                    <span>Découvrir</span>
+                    <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                  </div>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3 text-center">{brand}</h3>
-                <p className="text-gray-600 text-center mb-6">Produits professionnels de qualité</p>
-                <Link
-                  href={`/catalogue?brand=${brand}`}
-                  className="block text-center text-primary-600 font-semibold hover:text-primary-700 transition-colors group-hover:underline"
-                >
-                  Voir les produits →
-                </Link>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Process Section - Premium */}
-      <section className="py-24 bg-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary-50/50 to-transparent"></div>
+      {/* Avantages Section - Design Moderne */}
+      <section className="py-32 bg-gradient-to-b from-white to-gray-50 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
         <div className="container mx-auto px-4 relative z-10">
-          <div className="text-center mb-20">
-            <h2 className="text-5xl font-black text-gray-900 mb-6">
-              Avec RCMPLAY, l'achat devient <span className="gradient-text">facile</span> !
+          <div className="max-w-4xl mx-auto text-center mb-20">
+            <h2 className="text-5xl md:text-6xl font-black text-gray-900 mb-6">
+              Pourquoi choisir <span className="bg-gradient-to-r from-green-600 to-green-400 bg-clip-text text-transparent">RCMPLAY</span> ?
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              Nous vous accompagnons dans le choix de vos produits professionnels avec un service de qualité exceptionnelle
+            <p className="text-xl text-gray-600">
+              Des avantages qui font la différence
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
             {[
               {
-                num: '01',
-                title: 'PAS DE SURPRISE',
-                desc: 'Consultez notre catalogue en ligne. Nous vous apportons toutes les informations nécessaires et des prix transparents.',
-                icon: '📋'
+                title: 'Prix transparents',
+                desc: 'Consultez notre catalogue en ligne avec toutes les informations et prix transparents, sans surprise.',
+                gradient: 'from-blue-500 to-cyan-500'
               },
               {
-                num: '02',
-                title: 'SOLUTION RAPIDE',
-                desc: 'Nos équipes sont spécialisées dans la vente de produits professionnels. Nous vous proposons des solutions adaptées rapidement.',
-                icon: '⚡'
+                title: 'Service rapide',
+                desc: 'Nos équipes spécialisées vous proposent des solutions adaptées rapidement pour répondre à vos besoins.',
+                gradient: 'from-amber-500 to-orange-500'
               },
               {
-                num: '03',
-                title: 'INFO CONSTANTE',
+                title: 'Suivi personnalisé',
                 desc: 'Nous vous tenons informés de la disponibilité de vos produits et vous prévenons dès que votre commande est prête.',
-                icon: '📱'
+                gradient: 'from-emerald-500 to-teal-500'
               },
               {
-                num: '04',
-                title: 'QUALITÉ GARANTIE',
+                title: 'Qualité garantie',
                 desc: 'Tous nos produits sont garantis. Nous travaillons uniquement avec des marques reconnues pour leur qualité.',
-                icon: '✅'
+                gradient: 'from-violet-500 to-purple-500'
               }
-            ].map((step, idx) => (
+            ].map((item, idx) => (
               <div
                 key={idx}
-                className="bg-gradient-to-br from-white to-gray-50 p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 card-hover group"
+                className="group relative"
               >
-                <div className="relative mb-6">
-                  <div className="w-20 h-20 bg-gradient-to-br from-primary-600 to-primary-800 text-white rounded-2xl flex items-center justify-center text-2xl font-black mx-auto transform group-hover:scale-110 group-hover:rotate-3 transition-all shadow-lg">
-                    {step.num}
+                <div className={`absolute -inset-0.5 bg-gradient-to-r ${item.gradient} rounded-3xl opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500`}></div>
+                <div className="relative bg-white p-10 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 border border-gray-100 h-full">
+                  <div className={`w-16 h-16 bg-gradient-to-br ${item.gradient} rounded-2xl flex items-center justify-center mb-6 transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-lg`}>
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
                   </div>
-                  <div className="absolute -top-2 -right-2 text-4xl opacity-20 group-hover:opacity-30 transition-opacity">
-                    {step.icon}
-                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-4">{item.title}</h3>
+                  <p className="text-gray-600 leading-relaxed text-lg">{item.desc}</p>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">{step.title}</h3>
-                <p className="text-gray-600 text-center leading-relaxed">{step.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Pièces détachées - Premium */}
-      <section className="py-24 bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 text-white relative overflow-hidden">
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
-            backgroundSize: '30px 30px'
-          }}></div>
-        </div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="grid md:grid-cols-2 gap-16 items-center">
-            <div className="animate-slide-up">
-              <h2 className="text-5xl font-black mb-8 leading-tight">
-                Vente de <span className="text-gold-400">pièces détachées</span>
-              </h2>
-              <p className="text-xl text-gray-300 mb-6 leading-relaxed">
-                En contact avec les grossistes du secteur, RCMPLAY est spécialisée dans la vente de pièces détachées et d'accessoires pour tous vos besoins professionnels.
-              </p>
-              <p className="text-lg text-gray-400 mb-10 leading-relaxed">
-                Trouvez votre fournisseur RCMPLAY au Luxembourg pour toutes vos commandes de pièces détachées et accessoires professionnels.
-              </p>
-              <Link
-                href="/catalogue"
-                className="inline-block bg-gradient-to-r from-gold-500 to-gold-600 text-white px-10 py-4 rounded-xl font-bold text-lg hover:from-gold-600 hover:to-gold-700 transition-all shadow-2xl hover:shadow-gold-500/50 transform hover:scale-105"
-              >
-                En savoir plus
-              </Link>
-            </div>
-            <div className="relative">
-              <div className="glass rounded-3xl p-12 text-center backdrop-blur-xl border border-white/20 animate-float">
-                <div className="w-32 h-32 bg-gradient-to-br from-gold-400 to-gold-600 rounded-3xl mx-auto mb-8 flex items-center justify-center shadow-2xl">
-                  <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      {/* Pièces détachées - Section Moderne */}
+      <section className="py-32 bg-white relative">
+        <div className="container mx-auto px-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="grid lg:grid-cols-2 gap-16 items-center">
+              <div>
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-bold mb-6">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
+                  Spécialiste reconnu
                 </div>
-                <h3 className="text-3xl font-bold mb-4">Pièces détachées</h3>
-                <p className="text-gray-300 text-lg">
-                  Large gamme de pièces détachées disponibles sur commande
+                <h2 className="text-5xl md:text-6xl font-black text-gray-900 mb-8 leading-tight">
+                  Pièces détachées <span className="bg-gradient-to-r from-green-600 to-green-400 bg-clip-text text-transparent">professionnelles</span>
+                </h2>
+                <p className="text-xl text-gray-600 mb-6 leading-relaxed">
+                  En contact direct avec les grossistes du secteur, RCMPLAY est votre partenaire de confiance pour toutes vos commandes de pièces détachées et accessoires professionnels au Luxembourg.
                 </p>
+                <div className="space-y-4 mb-10">
+                  <div className="flex items-start gap-4">
+                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 mb-1">Large gamme disponible</h3>
+                      <p className="text-gray-600">Tous types de pièces détachées sur commande</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4">
+                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 mb-1">Réseau de fournisseurs</h3>
+                      <p className="text-gray-600">Accès privilégié aux meilleurs grossistes</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4">
+                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 mb-1">Service personnalisé</h3>
+                      <p className="text-gray-600">Accompagnement dédié pour vos besoins spécifiques</p>
+                    </div>
+                  </div>
+                </div>
+                <Link
+                  href="/catalogue"
+                  className="inline-flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-2xl font-bold text-lg hover:from-green-700 hover:to-green-800 transition-all shadow-xl hover:shadow-2xl transform hover:scale-105"
+                >
+                  Explorer le catalogue
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </Link>
+              </div>
+              <div className="relative">
+                <div className="relative">
+                  <div className="absolute -inset-4 bg-gradient-to-br from-green-200 to-green-100 rounded-3xl blur-2xl opacity-50"></div>
+                  <div className="relative bg-gradient-to-br from-green-50 to-white p-12 rounded-3xl border-2 border-green-100">
+                    <div className="grid grid-cols-2 gap-6">
+                      {['Nematic', 'Prinus', 'Bosch', 'Electro Lux'].map((brand, idx) => (
+                        <div key={brand} className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 text-center">
+                          <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-xl mx-auto mb-4 flex items-center justify-center">
+                            <span className="text-3xl font-black text-white">{brand.charAt(0)}</span>
+                          </div>
+                          <h4 className="font-bold text-gray-900">{brand}</h4>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Produits en vedette - Premium */}
+      {/* Produits en vedette - Design Moderne */}
       {loading ? (
-        <div className="text-center py-24 bg-gray-50">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <div className="text-center py-32 bg-gray-50">
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-green-200 border-t-green-600"></div>
+          <p className="mt-6 text-gray-600 text-lg">Chargement des produits...</p>
         </div>
       ) : featuredProducts.length > 0 && (
-        <section className="py-24 bg-gradient-to-b from-gray-50 to-white">
+        <section className="py-32 bg-gradient-to-b from-white via-gray-50 to-white">
           <div className="container mx-auto px-4">
-            <div className="text-center mb-16">
-              <h2 className="text-5xl font-black text-gray-900 mb-4">
-                Produits en <span className="gradient-text">vedette</span>
+            <div className="text-center mb-20">
+              <h2 className="text-5xl md:text-6xl font-black text-gray-900 mb-6">
+                Produits en <span className="bg-gradient-to-r from-green-600 to-green-400 bg-clip-text text-transparent">vedette</span>
               </h2>
               <p className="text-xl text-gray-600">Découvrez notre sélection de produits premium</p>
             </div>
@@ -278,114 +351,160 @@ export default function HomePage() {
                 <Link
                   key={product._id}
                   href={`/produit/${product.slug}`}
-                  className="group bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 border border-gray-100 card-hover"
+                  className="group relative bg-white rounded-3xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 border border-gray-100"
                 >
-                  {product.images?.[0] && (
-                    <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 relative overflow-hidden">
-                      <img
-                        src={`http://localhost:5000${product.images[0].url}`}
-                        alt={product.images[0].alt || product.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-                    </div>
-                  )}
-                  <div className="p-6">
-                    <div className="flex items-start justify-between mb-3">
-                      {product.brand && (
-                        <span className="bg-primary-100 text-primary-700 px-3 py-1 rounded-full text-xs font-semibold">
-                          {product.brand}
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-green-500 to-emerald-500 rounded-3xl opacity-0 group-hover:opacity-100 blur transition-opacity duration-500"></div>
+                  <div className="relative bg-white rounded-3xl">
+                    {product.images?.[0] && (
+                      <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 relative overflow-hidden">
+                        <img
+                          src={`http://localhost:5000${product.images[0].url}`}
+                          alt={product.images[0].alt || product.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+                        {product.brand && (
+                          <div className="absolute top-4 left-4">
+                            <span className="bg-white/90 backdrop-blur-sm text-green-700 px-4 py-2 rounded-full text-xs font-bold">
+                              {product.brand}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <div className="p-8">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-green-600 transition-colors line-clamp-2">
+                        {product.name}
+                      </h3>
+                      <p className="text-gray-600 mb-6 line-clamp-2 leading-relaxed">
+                        {product.shortDescription}
+                      </p>
+                      <div className="flex items-center justify-between pt-6 border-t border-gray-100">
+                        <span className="text-3xl font-black bg-gradient-to-r from-green-600 to-green-400 bg-clip-text text-transparent">
+                          {product.price.toFixed(2)} €
                         </span>
-                      )}
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-primary-600 transition-colors">
-                      {product.name}
-                    </h3>
-                    <p className="text-gray-600 mb-4 line-clamp-2 leading-relaxed">
-                      {product.shortDescription}
-                    </p>
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                      <span className="text-3xl font-black text-primary-600">
-                        {product.price.toFixed(2)} €
-                      </span>
-                      <span className="text-primary-600 font-semibold group-hover:translate-x-1 transition-transform inline-block">
-                        Voir →
-                      </span>
+                        <span className="flex items-center gap-2 text-green-600 font-semibold group-hover:gap-3 transition-all">
+                          Voir
+                          <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                          </svg>
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </Link>
               ))}
             </div>
             
-            <div className="text-center mt-16">
+            <div className="text-center mt-20">
               <Link
                 href="/catalogue"
-                className="inline-block bg-gradient-to-r from-primary-600 to-primary-700 text-white px-12 py-5 rounded-xl font-bold text-lg hover:from-primary-700 hover:to-primary-800 transition-all shadow-xl hover:shadow-2xl transform hover:scale-105"
+                className="inline-flex items-center gap-3 px-12 py-6 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-2xl font-bold text-lg hover:from-green-700 hover:to-green-800 transition-all shadow-xl hover:shadow-2xl transform hover:scale-105"
               >
                 Voir tout le catalogue
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
               </Link>
             </div>
           </div>
         </section>
       )}
 
-      {/* CTA Section - Premium */}
-      <section className="py-24 bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 text-white relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
+      {/* CTA Section - Design Premium */}
+      <section className="py-32 bg-gradient-to-br from-green-600 via-green-700 to-green-800 text-white relative overflow-hidden">
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_70%)]"></div>
           <div className="absolute inset-0" style={{
-            backgroundImage: `radial-gradient(circle at 2px 2px, white 1px, transparent 0)`,
-            backgroundSize: '50px 50px'
+            backgroundImage: `radial-gradient(circle at 2px 2px, rgba(255,255,255,0.1) 1px, transparent 0)`,
+            backgroundSize: '60px 60px'
           }}></div>
         </div>
         <div className="container mx-auto px-4 text-center relative z-10">
-          <h2 className="text-5xl md:text-6xl font-black mb-6">
-            Un besoin ? Une question ? Une précision ?
+          <h2 className="text-5xl md:text-6xl lg:text-7xl font-black mb-8 leading-tight">
+            Un besoin ? Une question ?
           </h2>
-          <p className="text-2xl mb-12 text-primary-100 max-w-3xl mx-auto">
-            Nos équipes sont là pour vous répondre ! Contactez-nous !
+          <p className="text-2xl md:text-3xl mb-16 text-green-100 max-w-3xl mx-auto">
+            Nos équipes sont là pour vous répondre !
           </p>
-          <div className="flex flex-wrap justify-center gap-6">
-            <a
-              href="tel:+352691775623"
-              className="glass rounded-xl px-10 py-5 font-bold text-lg hover:bg-white/20 transition-all backdrop-blur-xl border border-white/20 hover:border-white/30 card-hover"
-            >
-              <div className="flex items-center gap-3">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-                (+352) 691 775 623
+        </div>
+      </section>
+
+      {/* Statistiques - Section Moderne */}
+      <section className="py-24 bg-gradient-to-br from-gray-900 via-green-950 to-gray-900 text-white">
+        <div className="container mx-auto px-4">
+          <div className="grid md:grid-cols-3 gap-12 text-center">
+            <div className="group">
+              <div className="text-7xl font-black bg-gradient-to-r from-emerald-400 to-emerald-300 bg-clip-text text-transparent mb-4">
+                0000
               </div>
-            </a>
-            <a
-              href="mailto:contact@rcmplay-reparation.lu"
-              className="glass rounded-xl px-10 py-5 font-bold text-lg hover:bg-white/20 transition-all backdrop-blur-xl border border-white/20 hover:border-white/30 card-hover"
-            >
-              <div className="flex items-center gap-3">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                contact@rcmplay-reparation.lu
+              <div className="text-xl text-gray-300 font-medium">Produits disponibles</div>
+            </div>
+            <div className="group">
+              <div className="text-7xl font-black bg-gradient-to-r from-green-400 to-green-300 bg-clip-text text-transparent mb-4">
+                4
               </div>
-            </a>
+              <div className="text-xl text-gray-300 font-medium">Marques partenaires</div>
+            </div>
+            <div className="group">
+              <div className="text-7xl font-black bg-gradient-to-r from-green-400 to-green-300 bg-clip-text text-transparent mb-4">
+                100%
+              </div>
+              <div className="text-xl text-gray-300 font-medium">Satisfaction client</div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Statistiques - Premium */}
-      <section className="py-20 bg-gradient-to-br from-slate-900 via-gray-900 to-slate-900 text-white">
+      {/* Contact Section - En bas */}
+      <section className="py-24 bg-white border-t border-gray-100">
         <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-3 gap-12 text-center">
-            <div className="animate-fade-in">
-              <div className="text-6xl font-black text-gold-400 mb-4">0000</div>
-              <div className="text-xl text-gray-300 font-medium">Produits disponibles</div>
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-4">
+                Contactez-nous
+              </h2>
+              <p className="text-xl text-gray-600">
+                Nous sommes à votre disposition pour répondre à toutes vos questions
+              </p>
             </div>
-            <div className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
-              <div className="text-6xl font-black text-gold-400 mb-4">4</div>
-              <div className="text-xl text-gray-300 font-medium">Marques partenaires</div>
-            </div>
-            <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
-              <div className="text-6xl font-black text-gold-400 mb-4">100%</div>
-              <div className="text-xl text-gray-300 font-medium">Satisfaction client</div>
+            
+            <div className="grid md:grid-cols-3 gap-8">
+              <a
+                href="tel:+352691775623"
+                className="group p-8 bg-gradient-to-br from-green-50 to-white rounded-3xl border-2 border-green-100 hover:border-green-300 transition-all duration-300 text-center"
+              >
+                <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Téléphone</h3>
+                <p className="text-green-600 font-semibold text-lg">(+352) 691 775 623</p>
+              </a>
+
+              <a
+                href="mailto:contact@rcmplay-reparation.lu"
+                className="group p-8 bg-gradient-to-br from-emerald-50 to-white rounded-3xl border-2 border-emerald-100 hover:border-emerald-300 transition-all duration-300 text-center"
+              >
+                <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Email</h3>
+                <p className="text-emerald-600 font-semibold text-lg break-all">contact@rcmplay-reparation.lu</p>
+              </a>
+
+              <div className="p-8 bg-gradient-to-br from-green-50 to-white rounded-3xl border-2 border-green-100 text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Horaires</h3>
+                <p className="text-green-600 font-semibold text-lg">Sur rendez-vous</p>
+              </div>
             </div>
           </div>
         </div>

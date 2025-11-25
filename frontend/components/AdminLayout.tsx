@@ -27,26 +27,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <nav className="bg-white shadow-md">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            <Link href="/admin" className="text-xl font-bold text-primary-600">
+            <Link href="/admin" className="text-xl font-bold text-green-600">
               RCMPLAY Admin
             </Link>
             <div className="flex gap-4">
-              <Link href="/" className="text-gray-600 hover:text-primary-600">
-                Site public
-              </Link>
-              <Link href="/admin" className="text-gray-600 hover:text-primary-600">
+              <Link href="/admin" className="text-gray-600 hover:text-green-600">
                 Dashboard
               </Link>
-              <Link href="/admin/produits" className="text-gray-600 hover:text-primary-600">
+              <Link href="/admin/produits" className="text-gray-600 hover:text-green-600">
                 Produits
               </Link>
-              <Link href="/admin/categories" className="text-gray-600 hover:text-primary-600">
+              <Link href="/admin/categories" className="text-gray-600 hover:text-green-600">
                 Catégories
               </Link>
-              <Link href="/admin/clients" className="text-gray-600 hover:text-primary-600">
+              <Link href="/admin/clients" className="text-gray-600 hover:text-green-600">
                 Clients
               </Link>
-              <Link href="/admin/email" className="text-gray-600 hover:text-primary-600">
+              <Link href="/admin/paniers" className="text-gray-600 hover:text-green-600">
+                Paniers
+              </Link>
+              <Link href="/admin/email" className="text-gray-600 hover:text-green-600">
                 Email Marketing
               </Link>
             </div>

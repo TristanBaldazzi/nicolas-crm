@@ -1,0 +1,146 @@
+Request URL
+https://fetlife.com/conversations/695614111
+Request Method
+PUT
+Status Code
+200 OK
+Remote Address
+104.18.2.224:443
+Referrer Policy
+strict-origin-when-cross-origin
+alt-svc
+h3=":443"; ma=86400
+cache-control
+max-age=0, private, must-revalidate
+cf-cache-status
+DYNAMIC
+cf-ray
+9a419ab6990b41da-CDG
+content-encoding
+gzip
+content-type
+application/json; charset=utf-8
+cross-origin-opener-policy
+same-origin
+date
+Tue, 25 Nov 2025 13:48:33 GMT
+etag
+W/"d1d07d70cd05c1a5de31cbe582420e4d"
+permissions-policy
+interest-cohort=()
+priority
+u=1,i
+referrer-policy
+strict-origin-when-cross-origin
+server
+cloudflare
+server-timing
+cfExtPri
+strict-transport-security
+max-age=31536000; includeSubDomains; preload
+vary
+Cookie,Accept-Encoding
+x-content-type-options
+nosniff
+x-fetlife-app-server
+web-puma-production-6d995fddf8-62mpk
+x-frame-options
+SAMEORIGIN
+x-permitted-cross-domain-policies
+none
+x-pool
+main
+x-request-id
+d84faf10-7c64-4aa2-9594-c9da49bfba1a
+x-xss-protection
+0
+:authority
+fetlife.com
+:method
+PUT
+:path
+/conversations/695614111
+:scheme
+https
+accept
+application/json
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr-FR,fr;q=0.9
+content-length
+242
+content-type
+multipart/form-data; boundary=----WebKitFormBoundaryVpJcFNgoco9IfN5B
+cookie
+language=fr; __cf_bm=suAgOUCRjdNFTMGx22q89pZrOjc.HUB1he4zae4ZMvk-1764078463-1.0.1.1-fiu7AtrXG9FN14XxGNGM6Bf3pH83MngimloiNgV7QLsd6hyf3xdmVRSXUeGl0iUiGPna7o2fv_Dxil0HoOtiZ2sK3F3NvUNiJqgQOVFFjDE_cbcg6Xg7LQZF3qEgd7Se; _cfuvid=85ZiCAhQTNFL_udtR0A.8QVeQFsa.RWMbYbrZyParpg-1764078463488-0.0.1.1-604800000; fetlife_pwa=none; cf_clearance=FwY8Ex_rOWFxl_0PsHPCt6X_K5TXRRhazSL8eU.V0x0-1764078463-1.2.1.1-Z1xPTl3Bo1tUT0KoBL.M7EJJZunzf.iaMF4AsCEcfymP98IyBEm8cV0ahkGzK2xR2WS2IPwVhpsN4dljUrLn7BCROWSZVkIX0_9Bja.tYGbwo9y135l_kkUczCnBwY9wXFu1agA40TWBmmhWs.2R_cxWNbfEeelHX9YQJumYDT_0v3EzQlUdymzm8HTxHLbFKrigPsD2cxTS.fCPAzCjdPAaBlWeqClRbD_0h8AvO6A; _fl_sessionid=f235bc5a9d33c380ba643a345a068a86
+origin
+https://fetlife.com
+priority
+u=1, i
+referer
+https://fetlife.com/conversations/695614111
+sec-ch-ua
+"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36
+x-csrf-token
+unF9ugpjr703OslYa-I7OKrwf1N_NAL6U8rS1cvVx0VC2CavR_y7ZoxqM_xxo9ejeleT0xUhhkvPCIc09ZfcKw
+
+------
+
+Payload : 
+
+body
+Hey :)
+responsive
+true
+
+
+
+-----
+
+Preview :
+
+{message: {id: 4179211380, conversation_id: 695614111, body: "<p>Hey :)</p>", excerpt: "Hey :)",…}}
+
+
+
+-----
+
+Respose : 
+
+{
+    "message": {
+        "id": 4179211380,
+        "conversation_id": 695614111,
+        "body": "\u003cp\u003eHey :)\u003c/p\u003e",
+        "excerpt": "Hey :)",
+        "created_at": 1764078513,
+        "is_new": false,
+        "message_type": "plain",
+        "author": {
+            "id": 12223436,
+            "nickname": "kingmaster-",
+            "avatar_url": "https://picv2-c160.cdn.fetlife.com/12223436/0005f49d-3f11-431e-19bb-adc639387d70/c160.jpg?1764028800-mItIlKWyzhR_v6kikVSoXfXWPKJRXtdNQDYOrorYZJk\u0026Expires=1764201600\u0026Signature=AFwMTCJ8EAZErwazgFqn6y%2BFa08%3D",
+            "profile_url": "/kingmaster-",
+            "show_badge": false,
+            "identity": "23M Switch",
+            "organization": false,
+            "is_supporter": false
+        },
+        "targets": null,
+        "metadata": null,
+        "attachments": []
+    }
+}

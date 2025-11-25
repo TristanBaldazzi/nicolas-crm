@@ -102,7 +102,7 @@ export default function AdminCategoriesPage() {
             setEditingCategory(null);
             resetForm();
           }}
-          className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
+          className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
         >
           + Nouvelle catégorie
         </button>
@@ -167,7 +167,7 @@ export default function AdminCategoriesPage() {
             <div className="flex gap-4">
               <button
                 type="submit"
-                className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
+                className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
               >
                 {editingCategory ? 'Modifier' : 'Créer'}
               </button>
@@ -190,17 +190,45 @@ export default function AdminCategoriesPage() {
       <div className="space-y-6">
         <div>
           <h2 className="text-2xl font-bold mb-4">Catégories principales</h2>
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left">Nom</th>
-                  <th className="px-6 py-3 text-left">Ordre</th>
-                  <th className="px-6 py-3 text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mainCategories.map((category) => (
+          {mainCategories.length === 0 && !showForm ? (
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-12 text-center">
+              <div className="max-w-md mx-auto">
+                <div className="w-20 h-20 bg-gradient-to-br from-green-100 to-green-200 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">Aucune catégorie principale</h3>
+                <p className="text-gray-600 mb-6">
+                  Créez votre première catégorie pour organiser vos produits.
+                </p>
+                <button
+                  onClick={() => {
+                    setShowForm(true);
+                    setEditingCategory(null);
+                    resetForm();
+                  }}
+                  className="inline-flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-xl font-bold hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Créer une catégorie
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left">Nom</th>
+                    <th className="px-6 py-3 text-left">Ordre</th>
+                    <th className="px-6 py-3 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {mainCategories.map((category) => (
                   <tr key={category._id} className="border-t">
                     <td className="px-6 py-4">{category.name}</td>
                     <td className="px-6 py-4">{category.order}</td>
@@ -219,25 +247,56 @@ export default function AdminCategoriesPage() {
                       </button>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         <div>
           <h2 className="text-2xl font-bold mb-4">Sous-catégories</h2>
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left">Nom</th>
-                  <th className="px-6 py-3 text-left">Catégorie parente</th>
-                  <th className="px-6 py-3 text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {subCategories.map((category) => (
+          {subCategories.length === 0 ? (
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-12 text-center">
+              <div className="max-w-md mx-auto">
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">Aucune sous-catégorie</h3>
+                <p className="text-gray-600 mb-6">
+                  Créez des sous-catégories pour mieux organiser vos produits par catégories principales.
+                </p>
+                {mainCategories.length > 0 && (
+                  <button
+                    onClick={() => {
+                      setShowForm(true);
+                      setEditingCategory(null);
+                      resetForm();
+                    }}
+                    className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl font-bold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Créer une sous-catégorie
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left">Nom</th>
+                    <th className="px-6 py-3 text-left">Catégorie parente</th>
+                    <th className="px-6 py-3 text-left">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subCategories.map((category) => (
                   <tr key={category._id} className="border-t">
                     <td className="px-6 py-4">{category.name}</td>
                     <td className="px-6 py-4">
@@ -258,10 +317,11 @@ export default function AdminCategoriesPage() {
                       </button>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </AdminLayout>
