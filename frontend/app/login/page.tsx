@@ -22,12 +22,18 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
+    // Charger depuis le storage une seule fois au montage
     loadFromStorage();
+    loadSettings();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    // Rediriger si l'utilisateur est connecté
     if (user) {
       router.push('/admin');
     }
-    loadSettings();
-  }, [user, router, loadFromStorage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const loadSettings = async () => {
     try {

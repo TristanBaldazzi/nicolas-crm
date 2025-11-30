@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 
 export default function FavorisPage() {
   const router = useRouter();
-  const { user, loadFromStorage } = useAuthStore();
+  const { user, loadFromStorage, isLoading: authLoading } = useAuthStore();
   const { addItem } = useCartStore();
   const [favorites, setFavorites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,9 +41,13 @@ export default function FavorisPage() {
 
   useEffect(() => {
     loadFromStorage();
-  }, [loadFromStorage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
+    // Attendre que le chargement soit terminé avant de vérifier
+    if (authLoading) return;
+    
     if (!user) {
       router.push('/login');
       return;
@@ -51,7 +55,19 @@ export default function FavorisPage() {
     loadFavorites();
     loadSettings();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, authLoading]);
+
+  // Afficher un loader pendant le chargement de l'auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white via-gray-50 to-white">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-purple-200 border-t-purple-600 mb-4"></div>
+          <p className="text-gray-600 text-lg font-medium">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
 
   const removeFavorite = async (productId: string) => {
     try {

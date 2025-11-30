@@ -33,19 +33,20 @@ router.post('/', authenticate, async (req, res) => {
       };
     });
 
-    // Chercher un panier en statut "demande" pour cet utilisateur
+    // Chercher un panier en statut "en_cours" ou "demande" pour cet utilisateur
     let cart = await Cart.findOne({ 
       user: req.user.id, 
-      status: 'demande' 
+      status: { $in: ['en_cours', 'demande'] }
     });
 
     if (cart) {
-      // Mettre à jour le panier existant
+      // Mettre à jour le panier existant et passer en "demande" (validé)
       cart.items = cartItems;
       cart.notes = notes || cart.notes;
+      cart.status = 'demande'; // Validation de la commande
       await cart.save();
     } else {
-      // Créer un nouveau panier
+      // Créer un nouveau panier directement en "demande" (validé)
       cart = new Cart({
         user: req.user.id,
         items: cartItems,
@@ -67,9 +68,10 @@ router.post('/', authenticate, async (req, res) => {
 // Récupérer mon panier actif (client)
 router.get('/my', authenticate, async (req, res) => {
   try {
+    // Récupérer le panier en cours ou en demande
     const cart = await Cart.findOne({ 
       user: req.user.id, 
-      status: 'demande' 
+      status: { $in: ['en_cours', 'demande'] }
     })
     .populate('items.product', 'name slug price images brand')
     .populate('user', 'firstName lastName email');
@@ -77,6 +79,78 @@ router.get('/my', authenticate, async (req, res) => {
     if (!cart) {
       return res.json(null);
     }
+
+    res.json(cart);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Synchroniser le panier (créer ou mettre à jour le panier actif)
+router.post('/sync', authenticate, async (req, res) => {
+  try {
+    const { items, notes } = req.body;
+    
+    // Si pas d'items, supprimer le panier actif s'il existe
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      const existingCart = await Cart.findOne({ 
+        user: req.user.id, 
+        status: { $in: ['en_cours', 'demande'] }
+      });
+      
+      if (existingCart) {
+        await Cart.findByIdAndDelete(existingCart._id);
+      }
+      
+      return res.json({ message: 'Panier vidé', cart: null });
+    }
+
+    // Vérifier que tous les produits existent et récupérer leurs prix
+    const productIds = items.map(item => item.product);
+    const products = await Product.find({ _id: { $in: productIds } });
+    
+    if (products.length !== productIds.length) {
+      return res.status(400).json({ error: 'Un ou plusieurs produits sont introuvables' });
+    }
+
+    // Créer les items avec les prix actuels
+    const cartItems = items.map(item => {
+      const product = products.find(p => p._id.toString() === item.product);
+      return {
+        product: item.product,
+        quantity: item.quantity,
+        price: product.price
+      };
+    });
+
+    // Chercher un panier en statut "en_cours" ou "demande" pour cet utilisateur
+    let cart = await Cart.findOne({ 
+      user: req.user.id, 
+      status: { $in: ['en_cours', 'demande'] }
+    });
+
+    if (cart) {
+      // Mettre à jour le panier existant
+      cart.items = cartItems;
+      cart.notes = notes || cart.notes;
+      // Si le panier était en "demande", on le remet en "en_cours" car il est modifié
+      if (cart.status === 'demande') {
+        cart.status = 'en_cours';
+      }
+      await cart.save();
+    } else {
+      // Créer un nouveau panier en statut "en_cours"
+      cart = new Cart({
+        user: req.user.id,
+        items: cartItems,
+        notes: notes || '',
+        status: 'en_cours'
+      });
+      await cart.save();
+    }
+
+    await cart.populate('items.product', 'name slug price images brand');
+    await cart.populate('user', 'firstName lastName email');
 
     res.json(cart);
   } catch (error) {
@@ -200,8 +274,8 @@ router.put('/:id', authenticate, async (req, res) => {
       return res.status(403).json({ error: 'Accès non autorisé' });
     }
 
-    // Si le panier n'est pas en "demande", seul l'admin peut le modifier
-    if (cart.status !== 'demande' && req.user.role !== 'admin') {
+    // Si le panier n'est pas en "en_cours" ou "demande", seul l'admin peut le modifier
+    if (!['en_cours', 'demande'].includes(cart.status) && req.user.role !== 'admin') {
       return res.status(400).json({ error: 'Ce panier ne peut plus être modifié' });
     }
 
@@ -244,7 +318,7 @@ router.put('/:id/status', authenticate, requireAdmin, async (req, res) => {
   try {
     const { status } = req.body;
 
-    if (!['demande', 'traité', 'fini', 'annulé'].includes(status)) {
+    if (!['en_cours', 'demande', 'traité', 'fini', 'annulé'].includes(status)) {
       return res.status(400).json({ error: 'Statut invalide' });
     }
 
@@ -279,8 +353,8 @@ router.delete('/:id', authenticate, async (req, res) => {
       return res.status(403).json({ error: 'Accès non autorisé' });
     }
 
-    // Si le panier n'est pas en "demande", seul l'admin peut le supprimer
-    if (cart.status !== 'demande' && req.user.role !== 'admin') {
+    // Si le panier n'est pas en "en_cours" ou "demande", seul l'admin peut le supprimer
+    if (!['en_cours', 'demande'].includes(cart.status) && req.user.role !== 'admin') {
       return res.status(400).json({ error: 'Ce panier ne peut plus être supprimé' });
     }
 

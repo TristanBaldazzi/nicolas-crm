@@ -23,7 +23,6 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
-      localStorage.removeItem('user');
       window.location.href = '/login';
     }
     return Promise.reject(error);
@@ -149,6 +148,8 @@ export const cartsApi = {
     api.post('/carts', data),
   getMy: () =>
     api.get('/carts/my'),
+  sync: (data: any) =>
+    api.post('/carts/sync', data),
   getAll: (params?: any) =>
     api.get('/carts', { params }),
   getById: (id: string) =>

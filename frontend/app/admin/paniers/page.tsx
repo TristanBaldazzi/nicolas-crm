@@ -60,6 +60,15 @@ export default function AdminCartsPage() {
 
   const getStatusConfig = (status: string) => {
     switch (status) {
+      case 'en_cours':
+        return {
+          label: 'En cours',
+          color: 'gray',
+          bgColor: 'bg-gray-50',
+          textColor: 'text-gray-700',
+          borderColor: 'border-gray-300',
+          dotColor: 'bg-gray-500'
+        };
       case 'demande':
         return {
           label: 'Demande',
@@ -157,6 +166,7 @@ export default function AdminCartsPage() {
               className="w-full pl-10 pr-10 py-2.5 bg-white border-2 border-gray-200 rounded-xl text-gray-700 font-semibold appearance-none cursor-pointer hover:border-green-300 focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md"
             >
               <option value="">Tous les statuts</option>
+              <option value="en_cours">En cours</option>
               <option value="demande">Demande</option>
               <option value="traité">Traité</option>
               <option value="fini">Fini</option>
@@ -274,6 +284,7 @@ export default function AdminCartsPage() {
                             disabled={changingStatus === cart._id}
                             className={`text-xs font-bold px-4 py-2 pr-8 rounded-xl border-2 ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor} cursor-pointer hover:shadow-md focus:ring-2 focus:ring-offset-2 focus:ring-green-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 appearance-none min-w-[120px]`}
                           >
+                            <option value="en_cours">En cours</option>
                             <option value="demande">Demande</option>
                             <option value="traité">Traité</option>
                             <option value="fini">Fini</option>

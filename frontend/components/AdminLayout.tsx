@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/store';
@@ -8,17 +8,55 @@ import { useAuthStore } from '@/lib/store';
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAdmin, loadFromStorage } = useAuthStore();
+  const { user, isAdmin, loadFromStorage, isLoading: authLoading } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const hasCheckedAuth = useRef(false);
 
   useEffect(() => {
+    // Charger depuis le storage une seule fois au montage
     loadFromStorage();
-    if (!user) {
-      router.push('/login');
-    } else if (!isAdmin()) {
-      router.push('/');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    // Ne rien faire si on est encore en train de charger
+    if (authLoading) return;
+    
+    // Ne vérifier qu'une seule fois par changement d'utilisateur
+    const currentUserId = user?.id;
+    if (hasCheckedAuth.current === currentUserId) return;
+    
+    // Vérifier l'authentification et rediriger si nécessaire
+    // Note: on vérifie pathname dans le corps mais ne l'inclut pas dans les dépendances
+    // pour éviter les boucles infinies lors des redirections
+    if (user === null) {
+      if (pathname && !pathname.startsWith('/login')) {
+        hasCheckedAuth.current = currentUserId || 'null';
+        router.replace('/login');
+      }
+    } else if (user.role !== 'admin') {
+      if (pathname && pathname.startsWith('/admin')) {
+        hasCheckedAuth.current = currentUserId;
+        router.replace('/');
+      }
+    } else {
+      // Utilisateur admin valide
+      hasCheckedAuth.current = currentUserId;
     }
-  }, [user, isAdmin, router, loadFromStorage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, user?.role, authLoading]);
+
+  // Afficher un loader pendant le chargement
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-green-200 border-t-green-600 mb-4"></div>
+          <p className="text-gray-600 text-lg font-medium">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user || !isAdmin()) {
     return null;

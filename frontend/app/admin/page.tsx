@@ -3,9 +3,13 @@
 import AdminLayout from '@/components/AdminLayout';
 import { productsApi, authApi, categoriesApi, emailApi } from '@/lib/api';
 import { useEffect, useState } from 'react';
+import { useAuthStore } from '@/lib/store';
+import { useRouter } from 'next/navigation';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function AdminDashboard() {
+  const router = useRouter();
+  const { user, isAdmin } = useAuthStore();
   const [stats, setStats] = useState({
     products: 0,
     clients: 0,
@@ -15,9 +19,14 @@ export default function AdminDashboard() {
   const [userStats, setUserStats] = useState<any[]>([]);
 
   useEffect(() => {
+    // Vérifier que l'utilisateur est admin avant de charger les données
+    if (!user || user.role !== 'admin') {
+      return; // AdminLayout gère déjà la redirection
+    }
     loadStats();
     loadUserStats();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, user?.role]);
 
   const loadStats = async () => {
     try {

@@ -20,10 +20,17 @@ export default function CataloguePage() {
   });
   const [showFilters, setShowFilters] = useState(true);
 
+  // Charger les settings une seule fois au montage
   useEffect(() => {
     loadSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Charger les données quand les filtres changent
+  useEffect(() => {
     loadData();
-  }, [filters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.category, filters.brand, filters.search, filters.page]);
 
   const loadSettings = async () => {
     try {

@@ -11,19 +11,36 @@ import toast from 'react-hot-toast';
 
 export default function CartPage() {
   const router = useRouter();
-  const { user } = useAuthStore();
-  const { items, removeItem, updateQuantity, clearCart, getTotalItems } = useCartStore();
+  const { user, loadFromStorage, isLoading: authLoading } = useAuthStore();
+  const { items, removeItem, updateQuantity, clearCart, getTotalItems, loadCart } = useCartStore();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [notes, setNotes] = useState('');
 
+  // Charger depuis le storage au montage
   useEffect(() => {
+    loadFromStorage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    // Attendre que le chargement soit terminé avant de vérifier
+    if (authLoading) return;
+    
     if (!user || user.role === 'admin') {
       router.push('/login');
       return;
     }
-    loadProducts();
+    // Charger le panier depuis le backend au montage
+    loadCart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, authLoading]);
+
+  useEffect(() => {
+    if (user && user.role !== 'admin') {
+      loadProducts();
+    }
   }, [items, user]);
 
   const loadProducts = async () => {
@@ -59,13 +76,29 @@ export default function CartPage() {
 
     setSubmitting(true);
     try {
-      await cartsApi.create({
-        items: items.map(item => ({
-          product: item.product,
-          quantity: item.quantity
-        })),
-        notes
-      });
+      // Le panier est déjà synchronisé, on change juste le statut
+      // Récupérer le panier actif
+      const cartRes = await cartsApi.getMy();
+      if (cartRes.data && cartRes.data._id) {
+        // Mettre à jour les notes et changer le statut
+        await cartsApi.update(cartRes.data._id, {
+          items: items.map(item => ({
+            product: item.product,
+            quantity: item.quantity
+          })),
+          notes
+        });
+        // Le statut reste "demande" - l'admin pourra le changer
+      } else {
+        // Créer le panier si il n'existe pas
+        await cartsApi.create({
+          items: items.map(item => ({
+            product: item.product,
+            quantity: item.quantity
+          })),
+          notes
+        });
+      }
       
       toast.success('Votre commande a été envoyée avec succès !');
       clearCart();
@@ -83,6 +116,18 @@ export default function CartPage() {
     return sum + (product.price * (item?.quantity || 0));
   }, 0);
 
+  // Afficher un loader pendant le chargement de l'auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-green-200 border-t-green-600 mb-4"></div>
+          <p className="text-gray-600 text-lg font-medium">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!user || user.role === 'admin') {
     return null;
   }
@@ -98,23 +143,43 @@ export default function CartPage() {
             <p className="mt-4 text-gray-600">Chargement...</p>
           </div>
         ) : items.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-16 text-center">
-            <div className="max-w-md mx-auto">
-              <div className="w-24 h-24 bg-gradient-to-br from-green-100 to-green-200 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                <svg className="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
+          <div className="bg-gradient-to-br from-white via-green-50/30 to-white rounded-3xl shadow-xl border border-green-100 overflow-hidden">
+            <div className="relative p-16 text-center">
+              {/* Background decorative elements */}
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute -top-20 -right-20 w-40 h-40 bg-green-200 rounded-full mix-blend-multiply filter blur-xl opacity-20"></div>
+                <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-emerald-200 rounded-full mix-blend-multiply filter blur-xl opacity-20"></div>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">Votre panier est vide</h3>
-              <p className="text-gray-600 mb-8">
-                Ajoutez des produits à votre panier pour commencer vos achats.
-              </p>
-              <Link
-                href="/catalogue"
-                className="inline-flex items-center gap-3 bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl"
-              >
-                Parcourir le catalogue
-              </Link>
+              
+              <div className="relative max-w-md mx-auto">
+                <div className="w-32 h-32 bg-gradient-to-br from-green-500 via-green-600 to-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-2xl transform hover:scale-105 transition-transform duration-300">
+                  <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                  </svg>
+                </div>
+                
+                <h3 className="text-4xl font-black text-gray-900 mb-4">
+                  Panier <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">vide</span>
+                </h3>
+                
+                <p className="text-lg text-gray-600 mb-10 leading-relaxed">
+                  Votre panier attend d'être rempli !<br />
+                  Découvrez notre sélection de produits professionnels.
+                </p>
+                
+                <Link
+                  href="/catalogue"
+                  className="inline-flex items-center gap-3 bg-gradient-to-r from-green-600 via-green-600 to-emerald-600 text-white px-10 py-5 rounded-2xl font-black text-lg hover:from-green-700 hover:via-green-700 hover:to-emerald-700 transition-all shadow-2xl hover:shadow-3xl transform hover:scale-105 duration-300"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  Parcourir le catalogue
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </Link>
+              </div>
             </div>
           </div>
         ) : (

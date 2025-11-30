@@ -13,8 +13,10 @@ export default function Navbar() {
   const cartItemsCount = getTotalItems();
 
   useEffect(() => {
+    // Charger depuis le storage une seule fois au montage
     loadFromStorage();
-  }, [loadFromStorage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>

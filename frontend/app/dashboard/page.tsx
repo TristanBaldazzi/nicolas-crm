@@ -7,14 +7,33 @@ import Link from 'next/link';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, isAdmin, loadFromStorage } = useAuthStore();
+  const { user, isAdmin, loadFromStorage, isLoading } = useAuthStore();
 
+  // Charger depuis le storage une seule fois au montage
   useEffect(() => {
     loadFromStorage();
-    if (!user) {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Rediriger si pas d'utilisateur (seulement après le chargement)
+  useEffect(() => {
+    if (!isLoading && user === null) {
       router.push('/login');
     }
-  }, [user, router, loadFromStorage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, isLoading]);
+
+  // Afficher un loader pendant le chargement
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white via-gray-50 to-white">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-green-200 border-t-green-600 mb-4"></div>
+          <p className="text-gray-600 text-lg font-medium">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return null;
