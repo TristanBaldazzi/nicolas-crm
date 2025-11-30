@@ -56,3 +56,5 @@ const emailCampaignSchema = new mongoose.Schema({
 
 export default mongoose.model('EmailCampaign', emailCampaignSchema);
 
+
+

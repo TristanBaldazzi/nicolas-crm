@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
-import { authApi, cartsApi } from '@/lib/api';
+import { authApi, cartsApi, companiesApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 
@@ -15,18 +15,30 @@ export default function ClientDetailPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [clientCarts, setClientCarts] = useState<any[]>([]);
+  const [companies, setCompanies] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     role: 'user',
     isActive: true,
+    company: '',
   });
 
   useEffect(() => {
     loadClient();
     loadClientCarts();
+    loadCompanies();
   }, [id]);
+
+  const loadCompanies = async () => {
+    try {
+      const res = await companiesApi.getAll({ limit: 1000 });
+      setCompanies(res.data.companies || []);
+    } catch (error) {
+      console.error('Error loading companies:', error);
+    }
+  };
 
   const loadClient = async () => {
     try {
@@ -39,6 +51,7 @@ export default function ClientDetailPage() {
         email: userData.email || '',
         role: userData.role || 'user',
         isActive: userData.isActive !== undefined ? userData.isActive : true,
+        company: userData.company?._id || userData.company || '',
       });
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Erreur lors du chargement');
@@ -270,6 +283,24 @@ export default function ClientDetailPage() {
                 </div>
               </div>
 
+              <div>
+                <label className="block mb-2 font-semibold text-gray-700">
+                  Entreprise
+                </label>
+                <select
+                  value={formData.company}
+                  onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all bg-white"
+                >
+                  <option value="">Aucune entreprise</option>
+                  {companies.map((company) => (
+                    <option key={company._id} value={company._id}>
+                      {company.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="flex gap-4 pt-6 border-t border-gray-200">
                 <button
                   type="submit"
@@ -324,6 +355,12 @@ export default function ClientDetailPage() {
                     : 'bg-gray-100 text-gray-700'
                 }`}>
                   {client.isActive ? 'Actif' : 'Inactif'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Entreprise</span>
+                <span className="font-semibold text-gray-900">
+                  {client.company?.name || 'Aucune'}
                 </span>
               </div>
             </div>

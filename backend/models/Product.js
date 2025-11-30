@@ -75,6 +75,10 @@ const productSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isBestSeller: {
+    type: Boolean,
+    default: false
+  },
   metaTitle: {
     type: String,
     trim: true
@@ -97,6 +101,9 @@ productSchema.index({ category: 1 });
 productSchema.index({ subCategory: 1 });
 productSchema.index({ brand: 1 });
 productSchema.index({ isActive: 1, isFeatured: 1 });
+productSchema.index({ isActive: 1, isBestSeller: 1 });
 
 export default mongoose.model('Product', productSchema);
+
+
 

@@ -9,21 +9,61 @@ import toast from 'react-hot-toast';
 export default function AdminClientsPage() {
   const router = useRouter();
   const [clients, setClients] = useState<any[]>([]);
+  const [allClients, setAllClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     loadData();
   }, []);
 
+  useEffect(() => {
+    filterClients();
+  }, [search, roleFilter, statusFilter, allClients]);
+
   const loadData = async () => {
     try {
-      const res = await authApi.getUsers({ limit: 100 });
-      setClients(res.data.users || []);
+      const res = await authApi.getUsers({ limit: 1000 });
+      const usersList = res.data.users || [];
+      setAllClients(usersList);
+      setClients(usersList);
     } catch (error) {
       toast.error('Erreur lors du chargement');
     } finally {
       setLoading(false);
     }
+  };
+
+  const filterClients = () => {
+    let filtered = [...allClients];
+
+    // Recherche textuelle
+    if (search) {
+      const searchLower = search.toLowerCase();
+      filtered = filtered.filter((c) =>
+        c.firstName?.toLowerCase().includes(searchLower) ||
+        c.lastName?.toLowerCase().includes(searchLower) ||
+        c.email?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Filtre rôle
+    if (roleFilter === 'user') {
+      filtered = filtered.filter((c) => c.role !== 'admin');
+    } else if (roleFilter === 'admin') {
+      filtered = filtered.filter((c) => c.role === 'admin');
+    }
+
+    // Filtre statut
+    if (statusFilter === 'active') {
+      filtered = filtered.filter((c) => c.isActive !== false);
+    } else if (statusFilter === 'inactive') {
+      filtered = filtered.filter((c) => c.isActive === false);
+    }
+
+    setClients(filtered);
   };
 
   const handleClientClick = (client: any) => {
@@ -34,9 +74,99 @@ export default function AdminClientsPage() {
   return (
     <AdminLayout>
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Gestion des clients</h1>
-        <p className="text-gray-600">Liste des utilisateurs (hors administrateurs)</p>
+        <div>
+          <h1 className="text-3xl font-bold">Gestion des clients</h1>
+          <p className="text-gray-600 mt-1">{allClients.length} client{allClients.length > 1 ? 's' : ''} au total</p>
+        </div>
       </div>
+
+      {/* Barre de recherche et filtres */}
+      {allClients.length > 0 && (
+        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Recherche */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Rechercher</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Nom, prénom, email..."
+                  className="w-full px-4 py-3 pl-10 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all"
+                />
+                <svg className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Filtre rôle */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Rôle</label>
+              <div className="relative">
+                <select
+                  value={roleFilter}
+                  onChange={(e) => setRoleFilter(e.target.value)}
+                  className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all appearance-none cursor-pointer"
+                >
+                  <option value="all">Tous</option>
+                  <option value="user">Utilisateurs</option>
+                  <option value="admin">Administrateurs</option>
+                </select>
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Filtre statut */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Statut</label>
+              <div className="relative">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all appearance-none cursor-pointer"
+                >
+                  <option value="all">Tous</option>
+                  <option value="active">Actifs</option>
+                  <option value="inactive">Inactifs</option>
+                </select>
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+            {(search || roleFilter !== 'all' || statusFilter !== 'all') && (
+              <button
+                onClick={() => {
+                  setSearch('');
+                  setRoleFilter('all');
+                  setStatusFilter('all');
+                }}
+                className="text-sm text-gray-600 hover:text-green-600 font-semibold flex items-center gap-1"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Réinitialiser
+              </button>
+            )}
+            <div className="ml-auto text-sm text-gray-600">
+              <span className="font-semibold">{clients.length}</span> client{clients.length > 1 ? 's' : ''} trouvé{clients.length > 1 ? 's' : ''}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <table className="w-full">
@@ -110,5 +240,7 @@ export default function AdminClientsPage() {
     </AdminLayout>
   );
 }
+
+
 
 

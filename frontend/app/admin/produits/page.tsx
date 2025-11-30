@@ -4,15 +4,22 @@ import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import { productsApi, uploadApi } from '@/lib/api';
 import { categoriesApi } from '@/lib/api';
+import { getImageUrl } from '@/lib/config';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [brandFilter, setBrandFilter] = useState('');
+  const [stockFilter, setStockFilter] = useState('all');
+  const [featuredFilter, setFeaturedFilter] = useState('all');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -26,6 +33,7 @@ export default function AdminProductsPage() {
     stock: '',
     isInStock: true,
     isFeatured: false,
+    isBestSeller: false,
     images: [] as any[],
   });
   const [uploadingImages, setUploadingImages] = useState(false);
@@ -37,10 +45,12 @@ export default function AdminProductsPage() {
   const loadData = async () => {
     try {
       const [productsRes, categoriesRes] = await Promise.all([
-        productsApi.getAll({ limit: 100 }),
+        productsApi.getAll({ limit: 1000 }),
         categoriesApi.getAll(),
       ]);
-      setProducts(productsRes.data.products || []);
+      const productsList = productsRes.data.products || [];
+      setAllProducts(productsList);
+      setProducts(productsList);
       setCategories(categoriesRes.data || []);
     } catch (error) {
       toast.error('Erreur lors du chargement');
@@ -48,6 +58,57 @@ export default function AdminProductsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    filterProducts();
+  }, [search, categoryFilter, brandFilter, stockFilter, featuredFilter, allProducts]);
+
+  const filterProducts = () => {
+    let filtered = [...allProducts];
+
+    // Recherche textuelle
+    if (search) {
+      const searchLower = search.toLowerCase();
+      filtered = filtered.filter((p) =>
+        p.name?.toLowerCase().includes(searchLower) ||
+        p.description?.toLowerCase().includes(searchLower) ||
+        p.shortDescription?.toLowerCase().includes(searchLower) ||
+        p.sku?.toLowerCase().includes(searchLower) ||
+        p.brand?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Filtre catégorie
+    if (categoryFilter) {
+      filtered = filtered.filter((p) => {
+        const catId = p.category?._id || p.category;
+        return catId === categoryFilter;
+      });
+    }
+
+    // Filtre marque
+    if (brandFilter) {
+      filtered = filtered.filter((p) => p.brand === brandFilter);
+    }
+
+    // Filtre stock
+    if (stockFilter === 'inStock') {
+      filtered = filtered.filter((p) => p.isInStock);
+    } else if (stockFilter === 'outOfStock') {
+      filtered = filtered.filter((p) => !p.isInStock);
+    }
+
+    // Filtre vedette
+    if (featuredFilter === 'featured') {
+      filtered = filtered.filter((p) => p.isFeatured);
+    } else if (featuredFilter === 'notFeatured') {
+      filtered = filtered.filter((p) => !p.isFeatured);
+    }
+
+    setProducts(filtered);
+  };
+
+  const brands = Array.from(new Set(allProducts.map((p) => p.brand).filter(Boolean)));
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
@@ -117,6 +178,7 @@ export default function AdminProductsPage() {
       stock: '',
       isInStock: true,
       isFeatured: false,
+      isBestSeller: false,
       images: [],
     });
   };
@@ -136,6 +198,7 @@ export default function AdminProductsPage() {
       stock: product.stock.toString(),
       isInStock: product.isInStock,
       isFeatured: product.isFeatured,
+      isBestSeller: product.isBestSeller || false,
       images: product.images || [],
     });
     setShowForm(true);
@@ -166,7 +229,7 @@ export default function AdminProductsPage() {
           </div>
           <div>
             <h1 className="text-3xl font-bold">Gestion des produits</h1>
-            <p className="text-gray-600 mt-1">{products.length} produit{products.length > 1 ? 's' : ''} au total</p>
+            <p className="text-gray-600 mt-1">{allProducts.length} produit{allProducts.length > 1 ? 's' : ''} au total</p>
           </div>
         </div>
         <button
@@ -185,203 +248,352 @@ export default function AdminProductsPage() {
       </div>
 
       {showForm && (
-        <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-          <h2 className="text-2xl font-bold mb-4">
-            {editingProduct ? 'Modifier' : 'Créer'} un produit
-          </h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden mb-8">
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-8 py-6 border-b border-gray-200">
+            <h2 className="text-3xl font-black text-gray-900">
+              {editingProduct ? 'Modifier' : 'Créer'} un produit
+            </h2>
+            <p className="text-gray-600 mt-1">Remplissez les informations du produit ci-dessous</p>
+          </div>
+          <form onSubmit={handleSubmit} className="p-8 space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block mb-1">Nom *</label>
+                <label className="block mb-2 font-semibold text-gray-700">Nom *</label>
                 <input
                   type="text"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all"
                 />
               </div>
               <div>
-                <label className="block mb-1">SKU</label>
+                <label className="block mb-2 font-semibold text-gray-700">Code barre</label>
                 <input
                   type="text"
                   value={formData.sku}
                   onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block mb-1">Description courte</label>
+              <label className="block mb-2 font-semibold text-gray-700">Description courte</label>
               <textarea
                 value={formData.shortDescription}
                 onChange={(e) => setFormData({ ...formData, shortDescription: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all"
                 rows={2}
               />
             </div>
 
             <div>
-              <label className="block mb-1">Description complète</label>
+              <label className="block mb-2 font-semibold text-gray-700">Description complète</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all"
                 rows={4}
               />
             </div>
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block mb-1">Prix *</label>
+                <label className="block mb-2 font-semibold text-gray-700">Prix *</label>
                 <input
                   type="number"
                   step="0.01"
                   required
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all"
                 />
               </div>
               <div>
-                <label className="block mb-1">Prix comparé</label>
+                <label className="block mb-2 font-semibold text-gray-700">Prix comparé</label>
                 <input
                   type="number"
                   step="0.01"
                   value={formData.compareAtPrice}
                   onChange={(e) => setFormData({ ...formData, compareAtPrice: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all"
                 />
               </div>
               <div>
-                <label className="block mb-1">Stock</label>
+                <label className="block mb-2 font-semibold text-gray-700">Stock</label>
                 <input
                   type="number"
                   value={formData.stock}
                   onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block mb-1">Marque</label>
-                <select
-                  value={formData.brand}
-                  onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
-                >
-                  <option value="Autre">Autre</option>
-                  <option value="Nematic">Nematic</option>
-                  <option value="Prinus">Prinus</option>
-                  <option value="Bosch">Bosch</option>
-                  <option value="Electro Lux">Electro Lux</option>
-                </select>
+                <label className="block mb-2 font-semibold text-gray-700">Marque</label>
+                <div className="relative">
+                  <select
+                    value={formData.brand}
+                    onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                    className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all appearance-none cursor-pointer bg-white font-medium"
+                  >
+                    <option value="Autre">Autre</option>
+                    <option value="Nematic">Nematic</option>
+                    <option value="Prinus">Prinus</option>
+                    <option value="Bosch">Bosch</option>
+                    <option value="Electro Lux">Electro Lux</option>
+                  </select>
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
               </div>
               <div>
-                <label className="block mb-1">Catégorie *</label>
-                <select
-                  required
-                  value={formData.category}
-                  onChange={(e) => {
-                    setFormData({ ...formData, category: e.target.value, subCategory: '' });
-                  }}
-                  className="w-full px-4 py-2 border rounded-lg"
-                >
-                  <option value="">Sélectionner...</option>
-                  {mainCategories.map((cat) => (
-                    <option key={cat._id} value={cat._id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
+                <label className="block mb-2 font-semibold text-gray-700">Catégorie *</label>
+                <div className="relative">
+                  <select
+                    required
+                    value={formData.category}
+                    onChange={(e) => {
+                      setFormData({ ...formData, category: e.target.value, subCategory: '' });
+                    }}
+                    className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all appearance-none cursor-pointer bg-white font-medium"
+                  >
+                    <option value="">Sélectionner...</option>
+                    {mainCategories.map((cat) => (
+                      <option key={cat._id} value={cat._id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
               </div>
             </div>
 
             {formData.category && (
               <div>
-                <label className="block mb-1">Sous-catégorie</label>
-                <select
-                  value={formData.subCategory}
-                  onChange={(e) => setFormData({ ...formData, subCategory: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
-                >
-                  <option value="">Aucune</option>
-                  {subCategories
-                    .filter((c) => c.parentCategory === formData.category || c.parentCategory?._id === formData.category)
-                    .map((cat) => (
-                      <option key={cat._id} value={cat._id}>
-                        {cat.name}
-                      </option>
-                    ))}
-                </select>
+                <label className="block mb-2 font-semibold text-gray-700">Sous-catégorie</label>
+                <div className="relative">
+                  <select
+                    value={formData.subCategory}
+                    onChange={(e) => setFormData({ ...formData, subCategory: e.target.value })}
+                    className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all appearance-none cursor-pointer bg-white font-medium"
+                  >
+                    <option value="">Aucune</option>
+                    {subCategories
+                      .filter((c) => c.parentCategory === formData.category || c.parentCategory?._id === formData.category)
+                      .map((cat) => (
+                        <option key={cat._id} value={cat._id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                  </select>
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
               </div>
             )}
 
             <div>
-              <label className="block mb-1">Images (max 50)</label>
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={handleImageUpload}
-                disabled={uploadingImages || formData.images.length >= 50}
-                className="w-full px-4 py-2 border rounded-lg"
-              />
+              <label className="block mb-2 font-semibold text-gray-700">Images (max 50)</label>
+              <div className="relative">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={uploadingImages || formData.images.length >= 50}
+                  className="hidden"
+                  id="image-upload"
+                />
+                <label
+                  htmlFor="image-upload"
+                  className={`flex items-center justify-center gap-3 w-full px-6 py-4 border-2 border-dashed rounded-xl cursor-pointer transition-all ${
+                    uploadingImages || formData.images.length >= 50
+                      ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
+                      : 'border-gray-300 bg-gray-50 hover:border-green-500 hover:bg-green-50'
+                  }`}
+                >
+                  <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span className="font-semibold text-gray-700">
+                    {uploadingImages ? 'Upload en cours...' : formData.images.length >= 50 ? 'Maximum atteint (50 images)' : 'Cliquez pour ajouter des images'}
+                  </span>
+                </label>
+              </div>
               {formData.images.length > 0 && (
-                <div className="grid grid-cols-5 gap-2 mt-4">
-                  {formData.images.map((img, index) => (
-                    <div key={index} className="relative">
-                      <img
-                        src={`http://localhost:5000${img.url}`}
-                        alt={img.alt}
-                        className="w-full aspect-square object-cover rounded"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newImages = formData.images.filter((_, i) => i !== index);
-                          setFormData({ ...formData, images: newImages });
-                        }}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
+                <div className="mt-6">
+                  <p className="text-sm font-semibold text-gray-700 mb-3">
+                    {formData.images.length} image{formData.images.length > 1 ? 's' : ''} ajoutée{formData.images.length > 1 ? 's' : ''}
+                  </p>
+                  <div className="grid grid-cols-5 gap-4">
+                    {formData.images.map((img, index) => (
+                      <div key={index} className="relative group">
+                        <div className="aspect-square rounded-xl overflow-hidden border-2 border-gray-200 group-hover:border-green-500 transition-colors">
+                          <img
+                            src={getImageUrl(img.url)}
+                            alt={img.alt}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newImages = formData.images.filter((_, i) => i !== index);
+                            setFormData({ ...formData, images: newImages });
+                          }}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center shadow-lg hover:bg-red-600 transition-all hover:scale-110"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                        {img.isPrimary && (
+                          <div className="absolute bottom-2 left-2 bg-green-600 text-white px-2 py-1 rounded-lg text-xs font-bold">
+                            Principale
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
 
-            <div className="flex gap-4">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={formData.isInStock}
-                  onChange={(e) => setFormData({ ...formData, isInStock: e.target.checked })}
-                  className="mr-2"
-                />
-                En stock
-              </label>
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={formData.isFeatured}
-                  onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
-                  className="mr-2"
-                />
-                Produit en vedette
-              </label>
+            {/* Options du produit */}
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Options du produit</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* En stock */}
+                <label className="flex items-center p-4 bg-white rounded-xl border-2 cursor-pointer transition-all hover:border-green-300 hover:bg-green-50"
+                  style={{
+                    borderColor: formData.isInStock ? '#10b981' : '#e5e7eb',
+                    backgroundColor: formData.isInStock ? '#f0fdf4' : 'white'
+                  }}>
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={formData.isInStock}
+                      onChange={(e) => setFormData({ ...formData, isInStock: e.target.checked })}
+                      className="sr-only"
+                    />
+                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
+                      formData.isInStock 
+                        ? 'bg-green-600 border-green-600' 
+                        : 'bg-white border-gray-300'
+                    }`}>
+                      {formData.isInStock && (
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="font-bold text-gray-900">En stock</span>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-0.5">Produit disponible</p>
+                  </div>
+                </label>
+
+                {/* Produit en vedette */}
+                <label className="flex items-center p-4 bg-white rounded-xl border-2 cursor-pointer transition-all hover:border-emerald-300 hover:bg-emerald-50"
+                  style={{
+                    borderColor: formData.isFeatured ? '#10b981' : '#e5e7eb',
+                    backgroundColor: formData.isFeatured ? '#ecfdf5' : 'white'
+                  }}>
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={formData.isFeatured}
+                      onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
+                      className="sr-only"
+                    />
+                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
+                      formData.isFeatured 
+                        ? 'bg-emerald-600 border-emerald-600' 
+                        : 'bg-white border-gray-300'
+                    }`}>
+                      {formData.isFeatured && (
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927a1 1 0 011.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                      <span className="font-bold text-gray-900">Produit en vedette</span>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-0.5">Mise en avant</p>
+                  </div>
+                </label>
+
+                {/* Best Seller */}
+                <label className="flex items-center p-4 bg-white rounded-xl border-2 cursor-pointer transition-all hover:border-orange-300 hover:bg-orange-50"
+                  style={{
+                    borderColor: formData.isBestSeller ? '#f97316' : '#e5e7eb',
+                    backgroundColor: formData.isBestSeller ? '#fff7ed' : 'white'
+                  }}>
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={formData.isBestSeller}
+                      onChange={(e) => setFormData({ ...formData, isBestSeller: e.target.checked })}
+                      className="sr-only"
+                    />
+                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
+                      formData.isBestSeller 
+                        ? 'bg-orange-600 border-orange-600' 
+                        : 'bg-white border-gray-300'
+                    }`}>
+                      {formData.isBestSeller && (
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927a1 1 0 011.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                      <span className="font-bold text-gray-900">Best Seller</span>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-0.5">Meilleure vente</p>
+                  </div>
+                </label>
+              </div>
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex gap-4 pt-6 border-t border-gray-200">
               <button
                 type="submit"
-                className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
+                className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {editingProduct ? 'Modifier' : 'Créer'}
+                {editingProduct ? 'Enregistrer les modifications' : 'Créer le produit'}
               </button>
               <button
                 type="button"
@@ -390,12 +602,143 @@ export default function AdminProductsPage() {
                   setEditingProduct(null);
                   resetForm();
                 }}
-                className="bg-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-400"
+                className="px-8 py-4 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-all border-2 border-gray-200"
               >
                 Annuler
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Barre de recherche et filtres */}
+      {!showForm && allProducts.length > 0 && (
+        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            {/* Recherche */}
+            <div className="lg:col-span-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Rechercher</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Nom, description, SKU, marque..."
+                  className="w-full px-4 py-3 pl-10 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all"
+                />
+                <svg className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Filtre catégorie */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Catégorie</label>
+              <div className="relative">
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all appearance-none cursor-pointer"
+                >
+                  <option value="">Toutes</option>
+                  {mainCategories.map((cat) => (
+                    <option key={cat._id} value={cat._id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Filtre marque */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Marque</label>
+              <div className="relative">
+                <select
+                  value={brandFilter}
+                  onChange={(e) => setBrandFilter(e.target.value)}
+                  className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all appearance-none cursor-pointer"
+                >
+                  <option value="">Toutes</option>
+                  {brands.map((brand) => (
+                    <option key={brand} value={brand}>
+                      {brand}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Filtre stock */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Stock</label>
+              <div className="relative">
+                <select
+                  value={stockFilter}
+                  onChange={(e) => setStockFilter(e.target.value)}
+                  className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all appearance-none cursor-pointer"
+                >
+                  <option value="all">Tous</option>
+                  <option value="inStock">En stock</option>
+                  <option value="outOfStock">Rupture</option>
+                </select>
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Filtres supplémentaires */}
+          <div className="flex items-center gap-4 mt-4 pt-4 border-t border-gray-200">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-semibold text-gray-700">Vedette:</label>
+              <select
+                value={featuredFilter}
+                onChange={(e) => setFeaturedFilter(e.target.value)}
+                className="px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-all appearance-none cursor-pointer"
+              >
+                <option value="all">Tous</option>
+                <option value="featured">Vedettes uniquement</option>
+                <option value="notFeatured">Non vedettes</option>
+              </select>
+            </div>
+
+            {(search || categoryFilter || brandFilter || stockFilter !== 'all' || featuredFilter !== 'all') && (
+              <button
+                onClick={() => {
+                  setSearch('');
+                  setCategoryFilter('');
+                  setBrandFilter('');
+                  setStockFilter('all');
+                  setFeaturedFilter('all');
+                }}
+                className="text-sm text-gray-600 hover:text-green-600 font-semibold flex items-center gap-1"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Réinitialiser
+              </button>
+            )}
+
+            <div className="ml-auto text-sm text-gray-600">
+              <span className="font-semibold">{products.length}</span> produit{products.length > 1 ? 's' : ''} trouvé{products.length > 1 ? 's' : ''}
+            </div>
+          </div>
         </div>
       )}
 
@@ -440,7 +783,7 @@ export default function AdminProductsPage() {
                   <div className="w-16 h-16 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
                     {primaryImage ? (
                       <img
-                        src={`http://localhost:5000${primaryImage.url}`}
+                        src={getImageUrl(primaryImage.url)}
                         alt={product.name}
                         className="w-full h-full object-cover"
                       />
@@ -495,9 +838,17 @@ export default function AdminProductsPage() {
                         </div>
                         {/* Badges */}
                         <div className="flex flex-col gap-1">
+                          {product.isBestSeller && (
+                            <span className="px-2 py-0.5 bg-gradient-to-r from-orange-100 to-red-100 text-orange-700 text-xs font-black rounded whitespace-nowrap border border-orange-300">
+                              🔥 Best Seller
+                            </span>
+                          )}
                           {product.isFeatured && (
-                            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded whitespace-nowrap">
-                              ⭐
+                            <span className="px-3 py-1 bg-gradient-to-r from-emerald-500 to-green-500 text-white text-xs font-bold rounded-lg whitespace-nowrap shadow-lg flex items-center gap-1.5">
+                              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927a1 1 0 011.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              </svg>
+                              Vedette
                             </span>
                           )}
                           {!product.isInStock && (
@@ -540,4 +891,6 @@ export default function AdminProductsPage() {
     </AdminLayout>
   );
 }
+
+
 

@@ -1,6 +1,5 @@
 import axios from 'axios';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+import { API_URL } from './config';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -47,6 +46,12 @@ export const authApi = {
     api.get('/auth/users/stats'),
   updateUser: (id: string, data: any) =>
     api.put(`/auth/users/${id}`, data),
+  getFavorites: () =>
+    api.get('/auth/favorites'),
+  addFavorite: (productId: string) =>
+    api.post(`/auth/favorites/${productId}`),
+  removeFavorite: (productId: string) =>
+    api.delete(`/auth/favorites/${productId}`),
 };
 
 // Products
@@ -158,5 +163,49 @@ export const cartsApi = {
     api.delete(`/carts/${id}`),
 };
 
+// Companies
+export const companiesApi = {
+  getAll: (params?: any) =>
+    api.get('/companies', { params }),
+  getAllActive: () =>
+    api.get('/companies/all'),
+  getById: (id: string) =>
+    api.get(`/companies/${id}`),
+  getMembers: (id: string) =>
+    api.get(`/companies/${id}/members`),
+  create: (data: any) =>
+    api.post('/companies', data),
+  update: (id: string, data: any) =>
+    api.put(`/companies/${id}`, data),
+  delete: (id: string) =>
+    api.delete(`/companies/${id}`),
+};
+
+// Promotions
+export const promotionsApi = {
+  getAll: (params?: any) =>
+    api.get('/promotions', { params }),
+  getMy: () =>
+    api.get('/promotions/my'),
+  getById: (id: string) =>
+    api.get(`/promotions/${id}`),
+  create: (data: any) =>
+    api.post('/promotions', data),
+  update: (id: string, data: any) =>
+    api.put(`/promotions/${id}`, data),
+  delete: (id: string) =>
+    api.delete(`/promotions/${id}`),
+};
+
+// Settings
+export const settingsApi = {
+  get: () =>
+    api.get('/settings'),
+  update: (data: any) =>
+    api.put('/settings', data),
+};
+
 export default api;
+
+
 

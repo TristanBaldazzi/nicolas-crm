@@ -1,30 +1,18 @@
 import mongoose from 'mongoose';
 
-const clientSchema = new mongoose.Schema({
-  code: {
-    type: String,
-    required: true,
-    unique: true,
-    trim: true
-  },
-  civility: {
-    type: String,
-    trim: true
-  },
+const companySchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
     trim: true
   },
-  address1: {
+  code: {
     type: String,
+    unique: true,
+    sparse: true,
     trim: true
   },
-  address2: {
-    type: String,
-    trim: true
-  },
-  postalCode: {
+  address: {
     type: String,
     trim: true
   },
@@ -32,7 +20,7 @@ const clientSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
-  department: {
+  postalCode: {
     type: String,
     trim: true
   },
@@ -41,20 +29,7 @@ const clientSchema = new mongoose.Schema({
     default: 'LU',
     trim: true
   },
-  countryCode: {
-    type: String,
-    default: 'LU',
-    trim: true
-  },
-  website: {
-    type: String,
-    trim: true
-  },
   phone: {
-    type: String,
-    trim: true
-  },
-  mobile: {
     type: String,
     trim: true
   },
@@ -80,11 +55,9 @@ const clientSchema = new mongoose.Schema({
 });
 
 // Index pour recherche
-clientSchema.index({ code: 1 });
-clientSchema.index({ email: 1 });
-clientSchema.index({ name: 1 });
+companySchema.index({ name: 1 });
+companySchema.index({ code: 1 });
+companySchema.index({ email: 1 });
 
-export default mongoose.model('Client', clientSchema);
-
-
+export default mongoose.model('Company', companySchema);
 

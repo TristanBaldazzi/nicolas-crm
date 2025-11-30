@@ -48,3 +48,5 @@ categorySchema.index({ parentCategory: 1 });
 
 export default mongoose.model('Category', categorySchema);
 
+
+

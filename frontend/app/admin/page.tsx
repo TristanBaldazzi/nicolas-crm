@@ -3,6 +3,7 @@
 import AdminLayout from '@/components/AdminLayout';
 import { productsApi, authApi, categoriesApi, emailApi } from '@/lib/api';
 import { useEffect, useState } from 'react';
+import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -36,16 +37,20 @@ export default function AdminDashboard() {
   const loadUserStats = async () => {
     try {
       const res = await authApi.getUserStats();
-      const stats = res.data.stats || [];
+      const stats = res.data?.stats || res.data || [];
       setUserStats(stats);
       console.log('User stats loaded:', stats);
-    } catch (error) {
+      console.log('Total users in stats:', stats.reduce((sum: number, s: any) => sum + (s.count || 0), 0));
+    } catch (error: any) {
       console.error('Error loading user stats:', error);
+      console.error('Error response:', error.response?.data);
       setUserStats([]);
     }
   };
 
+  const totalUsers = userStats.reduce((sum, stat) => sum + (stat.count || 0), 0);
   const maxCount = userStats.length > 0 ? Math.max(...userStats.map((s: any) => s.count || 0), 1) : 1;
+  const hasUsers = totalUsers > 0;
 
   return (
     <AdminLayout>
@@ -70,112 +75,104 @@ export default function AdminDashboard() {
       </div>
 
       {/* Graphique des nouveaux utilisateurs */}
-      <div className="bg-white p-8 rounded-lg shadow-md">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Nouveaux utilisateurs (7 derniers jours)</h2>
-        {userStats.length === 7 ? (
-          <div className="relative h-80">
-            {/* Grille de fond */}
-            <div className="absolute inset-0 flex flex-col justify-between pb-12">
-              {[0, 1, 2, 3, 4].map((i) => (
-                <div key={i} className="border-t border-gray-100"></div>
-              ))}
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Nouveaux utilisateurs</h2>
+              <p className="text-xs text-gray-600 mt-0.5">7 derniers jours</p>
             </div>
-            
-            {/* SVG pour la courbe */}
-            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 700 280" preserveAspectRatio="none" style={{ paddingBottom: '60px' }}>
-              <defs>
-                <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#22c55e" />
-                  <stop offset="100%" stopColor="#16a34a" />
-                </linearGradient>
-                <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="rgba(34, 197, 94, 0.25)" />
-                  <stop offset="100%" stopColor="rgba(34, 197, 94, 0.02)" />
-                </linearGradient>
-              </defs>
-              
-              {/* Zone remplie sous la courbe */}
-              <polygon
-                points={`0,260 ${userStats.map((stat: any, index: number) => {
-                  const x = (index / 6) * 700;
-                  const y = maxCount > 0 ? 260 - ((stat.count / maxCount) * 230) : 260;
-                  return `${x},${y}`;
-                }).join(' ')} 700,260`}
-                fill="url(#areaGradient)"
-              />
-              
-              {/* Ligne de la courbe */}
-              <polyline
-                points={userStats.map((stat: any, index: number) => {
-                  const x = (index / 6) * 700;
-                  const y = maxCount > 0 ? 260 - ((stat.count / maxCount) * 230) : 260;
-                  return `${x},${y}`;
-                }).join(' ')}
-                fill="none"
-                stroke="url(#lineGradient)"
-                strokeWidth="4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              
-              {/* Points sur la courbe */}
-              {userStats.map((stat: any, index: number) => {
-                const x = (index / 6) * 700;
-                const y = maxCount > 0 ? 260 - ((stat.count / maxCount) * 230) : 260;
-                return (
-                  <g key={index} className="group">
-                    <circle
-                      cx={x}
-                      cy={y}
-                      r="8"
-                      fill="#22c55e"
-                      stroke="white"
-                      strokeWidth="3"
-                      className="transition-all cursor-pointer group-hover:r-12"
-                    />
-                    {/* Tooltip au survol */}
-                    <g className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                      <rect
-                        x={x - 35}
-                        y={y - 40}
-                        width="70"
-                        height="28"
-                        fill="#1f2937"
-                        rx="6"
-                      />
-                      <text
-                        x={x}
-                        y={y - 20}
-                        textAnchor="middle"
-                        fill="white"
-                        fontSize="13"
-                        fontWeight="bold"
-                      >
-                        {stat.count} utilisateur{stat.count > 1 ? 's' : ''}
-                      </text>
-                    </g>
-                  </g>
-                );
-              })}
-            </svg>
-            
-            {/* Labels en bas */}
-            <div className="absolute bottom-0 left-0 right-0 flex justify-between px-2">
-              {userStats.map((stat: any, index: number) => (
-                <div key={index} className="flex flex-col items-center min-w-0 flex-1">
-                  <div className="text-sm font-bold text-gray-900 mb-1">{stat.count}</div>
-                  <div className="text-xs text-gray-500 text-center leading-tight">{stat.day}</div>
-                </div>
-              ))}
+            <div className="text-right">
+              <div className="text-2xl font-black text-green-600">{totalUsers}</div>
+              <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Total</div>
             </div>
           </div>
+        </div>
+        
+        {userStats.length > 0 && hasUsers ? (
+          <div className="p-6">
+            <ResponsiveContainer width="100%" height={250}>
+              <AreaChart data={userStats} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                <XAxis 
+                  dataKey="day" 
+                  stroke="#6b7280"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis 
+                  stroke="#6b7280"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  width={30}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1f2937',
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#fff',
+                    padding: '8px 12px',
+                    fontSize: '12px'
+                  }}
+                  labelStyle={{ color: '#9ca3af', marginBottom: '4px', fontSize: '11px' }}
+                  formatter={(value: any) => [`${value} utilisateur${value > 1 ? 's' : ''}`, '']}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="count"
+                  stroke="#10b981"
+                  strokeWidth={3}
+                  fill="url(#colorUsers)"
+                  dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, stroke: '#10b981', strokeWidth: 2 }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        ) : userStats.length === 0 ? (
+          <div className="p-12 text-center">
+            <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-green-200 border-t-green-600 mb-4"></div>
+            <p className="text-gray-500 font-semibold">Chargement des statistiques...</p>
+          </div>
         ) : (
-          <div className="text-center py-12 text-gray-500">
-            Aucun nouvel utilisateur sur les 7 derniers jours
+          <div className="p-8">
+            <div className="text-center py-12 mb-8">
+              <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+                <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <p className="text-gray-700 text-xl font-bold mb-2">Aucun nouvel utilisateur</p>
+              <p className="text-gray-500 text-sm">Les nouveaux utilisateurs apparaîtront ici sur les 7 derniers jours</p>
+            </div>
+            
+            {/* Tableau des 7 derniers jours avec design amélioré */}
+            <div className="border-t border-gray-200 pt-6">
+              <h3 className="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wider">Détail des 7 derniers jours</h3>
+              <div className="grid grid-cols-7 gap-3">
+                {userStats.map((stat: any, index: number) => (
+                  <div key={index} className="text-center p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200 hover:from-gray-100 hover:to-gray-200 transition-all">
+                    <div className="text-3xl font-black text-gray-400 mb-2">{stat.count}</div>
+                    <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide">{stat.day}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </div>
     </AdminLayout>
   );
 }
+
+
 

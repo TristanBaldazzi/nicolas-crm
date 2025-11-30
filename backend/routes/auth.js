@@ -1,6 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import Settings from '../models/Settings.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -8,6 +9,12 @@ const router = express.Router();
 // Inscription
 router.post('/register', async (req, res) => {
   try {
+    // Vérifier si les inscriptions sont autorisées
+    const settings = await Settings.getSettings();
+    if (!settings.allowRegistration) {
+      return res.status(403).json({ error: 'Les inscriptions sont actuellement désactivées. Veuillez nous contacter directement par email.' });
+    }
+
     const { email, password, firstName, lastName, role } = req.body;
 
     // Vérifier si l'utilisateur existe déjà
@@ -94,13 +101,15 @@ router.post('/login', async (req, res) => {
 
 // Vérifier le token
 router.get('/me', authenticate, async (req, res) => {
+  const user = await User.findById(req.user._id).populate('company', 'name code');
   res.json({
     user: {
-      id: req.user._id,
-      email: req.user.email,
-      firstName: req.user.firstName,
-      lastName: req.user.lastName,
-      role: req.user.role
+      id: user._id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      company: user.company
     }
   });
 });
@@ -134,40 +143,20 @@ router.get('/users', authenticate, requireAdmin, async (req, res) => {
   }
 });
 
-// Récupérer un utilisateur par ID (admin)
-router.get('/users/:id', authenticate, requireAdmin, async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id).select('-password');
-    if (!user) {
-      return res.status(404).json({ error: 'Utilisateur non trouvé' });
-    }
-    res.json({
-      id: user._id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role,
-      isActive: user.isActive,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Statistiques des nouveaux utilisateurs sur 7 jours
+// Statistiques des nouveaux utilisateurs sur 7 jours (DOIT être avant /users/:id)
 router.get('/users/stats', authenticate, requireAdmin, async (req, res) => {
   try {
     // Créer un tableau pour les 7 derniers jours (toujours 7 jours, même si 0 utilisateurs)
     const stats = [];
+    const now = new Date();
+    
     for (let i = 6; i >= 0; i--) {
-      const date = new Date();
+      const date = new Date(now);
       date.setDate(date.getDate() - i);
-      date.setHours(0, 0, 0, 0);
+      date.setUTCHours(0, 0, 0, 0);
       
       const nextDate = new Date(date);
-      nextDate.setDate(nextDate.getDate() + 1);
+      nextDate.setUTCDate(nextDate.getUTCDate() + 1);
 
       // Compter les utilisateurs non-admin créés ce jour-là
       const count = await User.countDocuments({
@@ -187,6 +176,30 @@ router.get('/users/stats', authenticate, requireAdmin, async (req, res) => {
 
     res.json({ stats });
   } catch (error) {
+    console.error('Error in user stats:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Récupérer un utilisateur par ID (admin) - DOIT être après /users/stats
+router.get('/users/:id', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('-password').populate('company', 'name code');
+    if (!user) {
+      return res.status(404).json({ error: 'Utilisateur non trouvé' });
+    }
+    res.json({
+      id: user._id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      isActive: user.isActive,
+      company: user.company,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    });
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
@@ -194,7 +207,7 @@ router.get('/users/stats', authenticate, requireAdmin, async (req, res) => {
 // Mettre à jour un utilisateur (admin)
 router.put('/users/:id', authenticate, requireAdmin, async (req, res) => {
   try {
-    const { firstName, lastName, email, role, isActive } = req.body;
+    const { firstName, lastName, email, role, isActive, company } = req.body;
     
     const user = await User.findById(req.params.id);
     if (!user) {
@@ -216,8 +229,22 @@ router.put('/users/:id', authenticate, requireAdmin, async (req, res) => {
       user.role = role;
     }
     if (isActive !== undefined) user.isActive = isActive;
+    if (company !== undefined) {
+      if (company === null || company === '') {
+        user.company = null;
+      } else {
+        // Vérifier que l'entreprise existe
+        const Company = (await import('../models/Company.js')).default;
+        const companyDoc = await Company.findById(company);
+        if (!companyDoc) {
+          return res.status(404).json({ error: 'Entreprise non trouvée' });
+        }
+        user.company = company;
+      }
+    }
 
     await user.save();
+    await user.populate('company', 'name code');
 
     res.json({
       id: user._id,
@@ -225,12 +252,91 @@ router.put('/users/:id', authenticate, requireAdmin, async (req, res) => {
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
-      isActive: user.isActive
+      isActive: user.isActive,
+      company: user.company
     });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 });
 
+// Récupérer les favoris de l'utilisateur
+router.get('/favorites', authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).populate({
+      path: 'favorites',
+      match: { isActive: true },
+      select: 'name slug price images shortDescription brand isFeatured isBestSeller isInStock'
+    });
+    
+    if (!user) {
+      return res.status(404).json({ error: 'Utilisateur non trouvé' });
+    }
+
+    // Filtrer les favoris null (produits supprimés)
+    const favorites = user.favorites.filter(fav => fav !== null);
+    
+    res.json({ favorites });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Ajouter un produit aux favoris
+router.post('/favorites/:productId', authenticate, async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const user = await User.findById(req.user.id);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'Utilisateur non trouvé' });
+    }
+
+    // Vérifier que le produit existe
+    const Product = (await import('../models/Product.js')).default;
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ error: 'Produit non trouvé' });
+    }
+
+    // Vérifier si le produit est déjà dans les favoris
+    if (user.favorites.includes(productId)) {
+      return res.status(400).json({ error: 'Produit déjà dans les favoris' });
+    }
+
+    // Ajouter le produit aux favoris
+    user.favorites.push(productId);
+    await user.save();
+
+    res.json({ message: 'Produit ajouté aux favoris', favorites: user.favorites });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Supprimer un produit des favoris
+router.delete('/favorites/:productId', authenticate, async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const user = await User.findById(req.user.id);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'Utilisateur non trouvé' });
+    }
+
+    // Retirer le produit des favoris
+    user.favorites = user.favorites.filter(
+      fav => fav.toString() !== productId
+    );
+    await user.save();
+
+    res.json({ message: 'Produit retiré des favoris', favorites: user.favorites });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;
+
+
 

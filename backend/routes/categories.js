@@ -24,9 +24,41 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Récupérer une catégorie par ID (admin)
+router.get('/id/:id', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const category = await Category.findById(req.params.id)
+      .populate('parentCategory', 'name slug');
+
+    if (!category) {
+      return res.status(404).json({ error: 'Catégorie non trouvée' });
+    }
+
+    res.json(category);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Récupérer une catégorie par slug
 router.get('/:slug', async (req, res) => {
   try {
+    // Vérifier si c'est un ObjectId (24 caractères hexadécimaux)
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(req.params.slug);
+    
+    if (isObjectId) {
+      // Si c'est un ID, chercher par ID
+      const category = await Category.findById(req.params.slug)
+        .populate('parentCategory', 'name slug');
+      
+      if (!category) {
+        return res.status(404).json({ error: 'Catégorie non trouvée' });
+      }
+      
+      return res.json(category);
+    }
+    
+    // Sinon, chercher par slug
     const category = await Category.findOne({ slug: req.params.slug, isActive: true })
       .populate('parentCategory', 'name slug');
 
@@ -149,4 +181,6 @@ router.delete('/:id', authenticate, requireAdmin, async (req, res) => {
 });
 
 export default router;
+
+
 

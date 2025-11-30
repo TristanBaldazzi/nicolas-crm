@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { productsApi, categoriesApi } from '@/lib/api';
+import { getImageUrl } from '@/lib/config';
 
 export default function HomePage() {
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
@@ -358,7 +359,7 @@ export default function HomePage() {
                     {product.images?.[0] && (
                       <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 relative overflow-hidden">
                         <img
-                          src={`http://localhost:5000${product.images[0].url}`}
+                          src={getImageUrl(product.images[0].url)}
                           alt={product.images[0].alt || product.name}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                         />
@@ -370,6 +371,22 @@ export default function HomePage() {
                             </span>
                           </div>
                         )}
+                        {/* Badges */}
+                        <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
+                          {product.isBestSeller && (
+                            <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-full text-xs font-black shadow-xl uppercase tracking-wider flex items-center gap-1.5 animate-pulse">
+                              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927a1 1 0 011.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              </svg>
+                              Best Seller
+                            </span>
+                          )}
+                          {product.isFeatured && (
+                            <span className="bg-emerald-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg">
+                              ⭐ Vedette
+                            </span>
+                          )}
+                        </div>
                       </div>
                     )}
                     <div className="p-8">

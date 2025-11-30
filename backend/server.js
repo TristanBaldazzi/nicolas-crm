@@ -15,6 +15,9 @@ import clientRoutes from './routes/clients.js';
 import emailRoutes from './routes/email.js';
 import uploadRoutes from './routes/upload.js';
 import cartRoutes from './routes/carts.js';
+import companyRoutes from './routes/companies.js';
+import promotionRoutes from './routes/promotions.js';
+import settingsRoutes from './routes/settings.js';
 
 dotenv.config();
 
@@ -22,10 +25,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Middleware de sécurité
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginEmbedderPolicy: false
+}));
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true
@@ -42,8 +48,13 @@ app.use('/api/', limiter);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Servir les fichiers statiques (images uploadées)
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Servir les fichiers statiques (images uploadées) avec headers CORS
+app.use('/uploads', (req, res, next) => {
+  res.header('Access-Control-Allow-Origin', process.env.FRONTEND_URL || 'http://localhost:3000');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(path.join(__dirname, 'uploads')));
 
 // Routes API
 app.use('/api/auth', authRoutes);
@@ -53,6 +64,9 @@ app.use('/api/clients', clientRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/carts', cartRoutes);
+app.use('/api/companies', companyRoutes);
+app.use('/api/promotions', promotionRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Route de santé
 app.get('/api/health', (req, res) => {
@@ -76,4 +90,6 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/rcmplay',
 });
 
 export default app;
+
+
 

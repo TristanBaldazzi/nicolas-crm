@@ -69,3 +69,5 @@ npm start
 - `POST /api/upload/image` - Upload une image (admin)
 - `POST /api/upload/images` - Upload plusieurs images (max 50) (admin)
 
+
+

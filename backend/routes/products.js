@@ -2,9 +2,92 @@ import express from 'express';
 import mongoose from 'mongoose';
 import Product from '../models/Product.js';
 import Category from '../models/Category.js';
+import Promotion from '../models/Promotion.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// Fonction helper pour calculer le prix avec promotion
+async function applyPromotions(product, userId = null) {
+  if (!userId) {
+    return {
+      originalPrice: product.price,
+      discountedPrice: product.price,
+      discountPercentage: 0,
+      promotion: null
+    };
+  }
+
+  try {
+    // Récupérer l'utilisateur avec son entreprise
+    const User = (await import('../models/User.js')).default;
+    const user = await User.findById(userId).populate('company');
+    
+    if (!user || !user.company) {
+      return {
+        originalPrice: product.price,
+        discountedPrice: product.price,
+        discountPercentage: 0,
+        promotion: null
+      };
+    }
+
+    // Récupérer les promotions actives pour cette entreprise
+    const now = new Date();
+    const promotions = await Promotion.find({
+      company: user.company._id,
+      isActive: true,
+      startDate: { $lte: now },
+      $or: [
+        { endDate: null },
+        { endDate: { $gte: now } }
+      ]
+    }).sort({ discountPercentage: -1 }); // Prendre la promotion avec le plus grand pourcentage
+
+    // Trouver la promotion applicable
+    let applicablePromotion = null;
+    const categoryId = product.category?._id || product.category;
+    const subCategoryId = product.subCategory?._id || product.subCategory;
+    
+    for (const promotion of promotions) {
+      if (promotion.appliesToProduct(product._id, categoryId, subCategoryId)) {
+        applicablePromotion = promotion;
+        break;
+      }
+    }
+
+    if (!applicablePromotion) {
+      return {
+        originalPrice: product.price,
+        discountedPrice: product.price,
+        discountPercentage: 0,
+        promotion: null
+      };
+    }
+
+    // Calculer le prix réduit
+    const discountAmount = (product.price * applicablePromotion.discountPercentage) / 100;
+    const discountedPrice = product.price - discountAmount;
+
+    return {
+      originalPrice: product.price,
+      discountedPrice: Math.max(0, discountedPrice), // S'assurer que le prix n'est pas négatif
+      discountPercentage: applicablePromotion.discountPercentage,
+      promotion: {
+        id: applicablePromotion._id,
+        name: applicablePromotion.name
+      }
+    };
+  } catch (error) {
+    console.error('Error applying promotions:', error);
+    return {
+      originalPrice: product.price,
+      discountedPrice: product.price,
+      discountPercentage: 0,
+      promotion: null
+    };
+  }
+}
 
 // Récupérer tous les produits (public avec filtres)
 router.get('/', async (req, res) => {
@@ -55,8 +138,36 @@ router.get('/', async (req, res) => {
 
     const total = await Product.countDocuments(query);
 
+    // Appliquer les promotions si l'utilisateur est connecté
+    let userId = null;
+    try {
+      const { authenticate } = await import('../middleware/auth.js');
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (token) {
+        const jwt = (await import('jsonwebtoken')).default;
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        userId = decoded.userId;
+      }
+    } catch (e) {
+      // Pas d'utilisateur connecté ou token invalide
+    }
+
+    const productsWithPromotions = await Promise.all(
+      products.map(async (product) => {
+        const productObj = product.toObject();
+        const pricing = await applyPromotions(product, userId);
+        return {
+          ...productObj,
+          price: pricing.discountedPrice,
+          originalPrice: pricing.originalPrice,
+          discountPercentage: pricing.discountPercentage,
+          promotion: pricing.promotion
+        };
+      })
+    );
+
     res.json({
-      products,
+      products: productsWithPromotions,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -171,7 +282,29 @@ router.get('/:slug', async (req, res) => {
       return res.status(404).json({ error: 'Produit non trouvé' });
     }
 
-    res.json(product);
+    // Appliquer les promotions si l'utilisateur est connecté
+    let userId = null;
+    try {
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (token) {
+        const jwt = (await import('jsonwebtoken')).default;
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        userId = decoded.userId;
+      }
+    } catch (e) {
+      // Pas d'utilisateur connecté ou token invalide
+    }
+
+    const pricing = await applyPromotions(product, userId);
+    const productWithPromotion = {
+      ...product.toObject(),
+      price: pricing.discountedPrice,
+      originalPrice: pricing.originalPrice,
+      discountPercentage: pricing.discountPercentage,
+      promotion: pricing.promotion
+    };
+
+    res.json(productWithPromotion);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -364,4 +497,6 @@ router.delete('/:id', authenticate, requireAdmin, async (req, res) => {
 });
 
 export default router;
+
+
 

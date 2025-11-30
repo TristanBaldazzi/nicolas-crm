@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useCartStore } from '@/lib/cartStore';
 import { useAuthStore } from '@/lib/store';
 import { productsApi, cartsApi } from '@/lib/api';
+import { getImageUrl } from '@/lib/config';
 import toast from 'react-hot-toast';
 
 export default function CartPage() {
@@ -129,7 +130,7 @@ export default function CartPage() {
                   <div key={product._id} className="bg-white rounded-xl shadow-md p-6 flex gap-6">
                     {primaryImage && (
                       <img
-                        src={`http://localhost:5000${primaryImage.url}`}
+                        src={getImageUrl(primaryImage.url)}
                         alt={product.name}
                         className="w-24 h-24 object-cover rounded-lg"
                       />

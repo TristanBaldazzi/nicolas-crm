@@ -2,12 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { productsApi, categoriesApi } from '@/lib/api';
+import { productsApi, categoriesApi, settingsApi } from '@/lib/api';
+import { useAuthStore } from '@/lib/store';
+import { getImageUrl } from '@/lib/config';
 
 export default function CataloguePage() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState<any>(null);
+  const { user } = useAuthStore();
   const [filters, setFilters] = useState({
     category: '',
     brand: '',
@@ -17,8 +21,18 @@ export default function CataloguePage() {
   const [showFilters, setShowFilters] = useState(true);
 
   useEffect(() => {
+    loadSettings();
     loadData();
   }, [filters]);
+
+  const loadSettings = async () => {
+    try {
+      const res = await settingsApi.get();
+      setSettings(res.data);
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -36,6 +50,14 @@ export default function CataloguePage() {
     }
   };
 
+  const canSeePrice = () => {
+    if (!settings) return true; // Par défaut, afficher les prix en attendant le chargement
+    if (settings.priceVisibility === 'all') return true;
+    if (settings.priceVisibility === 'loggedIn') return !!user;
+    if (settings.priceVisibility === 'hidden') return false;
+    return true;
+  };
+
   const brands = ['Nematic', 'Prinus', 'Bosch', 'Electro Lux', 'Autre'];
 
   const clearFilters = () => {
@@ -46,22 +68,22 @@ export default function CataloguePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-gray-50 to-white">
-      {/* Hero Section - Moderne */}
-      <section className="relative bg-gradient-to-br from-gray-900 via-green-950 to-gray-900 text-white py-24 overflow-hidden">
+      {/* Hero Section - Moderne et Compacte */}
+      <section className="relative bg-gradient-to-br from-green-50 via-emerald-50/50 to-green-50 py-8 md:py-10 overflow-hidden border-b border-green-100/50">
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(34,197,94,0.1),transparent_50%)]"></div>
-          <div className="absolute inset-0" style={{
-            backgroundImage: `radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0)`,
-            backgroundSize: '50px 50px'
-          }}></div>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(34,197,94,0.05),transparent_50%)]"></div>
         </div>
         <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-6xl md:text-7xl lg:text-8xl font-black mb-6 leading-tight">
-              Catalogue <span className="bg-gradient-to-r from-emerald-400 via-emerald-300 to-emerald-500 bg-clip-text text-transparent">produits</span>
+          <div className="max-w-2xl mx-auto">
+            <div className="flex items-center gap-2 mb-2 justify-center">
+              <div className="w-0.5 h-5 bg-gradient-to-b from-green-500 to-emerald-500 rounded-full"></div>
+              <span className="text-xs font-bold text-green-700 uppercase tracking-wider">Notre Catalogue</span>
+            </div>
+            <h1 className="text-2xl md:text-3xl font-black text-gray-900 mb-2 text-center leading-tight">
+              Produits <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">Professionnels</span>
             </h1>
-            <p className="text-2xl text-gray-300 max-w-2xl mx-auto">
-              Découvrez notre sélection complète de produits professionnels
+            <p className="text-sm md:text-base text-gray-600 text-center max-w-lg mx-auto leading-relaxed">
+              Trouvez l'équipement qu'il vous faut parmi notre sélection
             </p>
           </div>
         </div>
@@ -231,7 +253,7 @@ export default function CataloguePage() {
                     {product.images?.[0] ? (
                       <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 relative overflow-hidden">
                         <img
-                          src={`http://localhost:5000${product.images[0].url}`}
+                          src={getImageUrl(product.images[0].url)}
                           alt={product.images[0].alt || product.name}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                         />
@@ -243,13 +265,25 @@ export default function CataloguePage() {
                             </span>
                           </div>
                         )}
-                        {product.featured && (
-                          <div className="absolute top-4 right-4">
-                            <span className="bg-emerald-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg">
-                              ⭐ Vedette
+                        {/* Badges */}
+                        <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
+                          {product.isBestSeller && (
+                            <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-full text-xs font-black shadow-xl uppercase tracking-wider flex items-center gap-1.5 animate-pulse">
+                              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927a1 1 0 011.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              </svg>
+                              Best Seller
                             </span>
-                          </div>
-                        )}
+                          )}
+                          {product.isFeatured && (
+                            <span className="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg flex items-center gap-1.5">
+                              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927a1 1 0 011.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              </svg>
+                              Vedette
+                            </span>
+                          )}
+                        </div>
                       </div>
                     ) : (
                       <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
@@ -273,9 +307,34 @@ export default function CataloguePage() {
                       {/* Prix et CTA */}
                       <div className="flex items-center justify-between pt-6 border-t border-gray-100 mt-auto">
                         <div>
-                          <span className="text-3xl font-black bg-gradient-to-r from-green-600 to-green-400 bg-clip-text text-transparent">
-                            {product.price.toFixed(2)} €
-                          </span>
+                          {canSeePrice() ? (
+                            <>
+                              <div className="flex items-baseline gap-2">
+                                <span className="text-3xl font-black bg-gradient-to-r from-green-600 to-green-400 bg-clip-text text-transparent">
+                                  {product.discountedPrice ? product.discountedPrice.toFixed(2) : product.price.toFixed(2)} €
+                                </span>
+                                {(product.discountedPrice || product.originalPrice) && (product.discountedPrice || product.originalPrice) !== product.price && (
+                                  <span className="text-sm text-gray-400 line-through">
+                                    {product.price.toFixed(2)} €
+                                  </span>
+                                )}
+                              </div>
+                              {product.discountPercentage > 0 && (
+                                <span className="inline-block bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs font-bold mt-1">
+                                  -{product.discountPercentage}%
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <div className="flex items-center gap-2 text-gray-500">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                              </svg>
+                              <span className="text-sm font-semibold">
+                                {settings?.priceVisibility === 'loggedIn' ? 'Connectez-vous pour voir le prix' : 'Prix sur demande'}
+                              </span>
+                            </div>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 text-green-600 font-semibold group-hover:gap-3 transition-all">
                           <span className="text-sm">Voir</span>

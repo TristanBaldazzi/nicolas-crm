@@ -203,15 +203,18 @@ export default function DashboardPage() {
                   <p className="text-sm text-gray-600">Historique de vos commandes</p>
                 </div>
 
-                <div className="p-6 bg-gradient-to-br from-purple-50 to-white rounded-2xl border border-purple-100">
+                <Link
+                  href="/dashboard/favoris"
+                  className="p-6 bg-gradient-to-br from-purple-50 to-white rounded-2xl border border-purple-100 hover:from-purple-100 hover:to-white transition-all cursor-pointer"
+                >
                   <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-4">
-                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg className="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
                     </svg>
                   </div>
                   <h4 className="font-bold text-gray-900 mb-2">Favoris</h4>
                   <p className="text-sm text-gray-600">Vos produits favoris</p>
-                </div>
+                </Link>
               </div>
             </div>
           </div>

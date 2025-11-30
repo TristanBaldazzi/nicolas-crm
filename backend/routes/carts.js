@@ -87,18 +87,64 @@ router.get('/my', authenticate, async (req, res) => {
 // Récupérer tous les paniers (admin)
 router.get('/', authenticate, requireAdmin, async (req, res) => {
   try {
-    const { status } = req.query;
+    const { status, search, sortBy = 'createdAt', sortOrder = 'desc', page = 1, limit = 10 } = req.query;
     const query = {};
+    
     if (status) {
       query.status = status;
     }
+    
+    if (search) {
+      // Recherche par utilisateur
+      const users = await User.find({
+        $or: [
+          { firstName: { $regex: search, $options: 'i' } },
+          { lastName: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } }
+        ]
+      }).select('_id');
+      
+      const orConditions = [
+        { notes: { $regex: search, $options: 'i' } }
+      ];
+      
+      if (users.length > 0) {
+        orConditions.push({ user: { $in: users.map(u => u._id) } });
+      }
+      
+      query.$or = orConditions;
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const sortOptions = {};
+    sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
 
     const carts = await Cart.find(query)
-      .populate('items.product', 'name slug price images brand')
-      .populate('user', 'firstName lastName email')
-      .sort({ createdAt: -1 });
+      .populate({
+        path: 'items.product',
+        select: 'name slug price images brand',
+        match: { isActive: { $ne: false } }
+      })
+      .populate({
+        path: 'user',
+        select: 'firstName lastName email',
+        options: { strictPopulate: false }
+      })
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(parseInt(limit));
 
-    res.json({ carts });
+    const total = await Cart.countDocuments(query);
+
+    res.json({ 
+      carts,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit))
+      }
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

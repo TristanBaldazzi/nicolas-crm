@@ -32,7 +32,16 @@ const userSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
-  }
+  },
+  company: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Company',
+    default: null
+  },
+  favorites: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Product'
+  }]
 }, {
   timestamps: true
 });
@@ -50,4 +59,6 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
 };
 
 export default mongoose.model('User', userSchema);
+
+
 
