@@ -47,6 +47,18 @@ export default function CartDetailPage() {
 
   const getStatusConfig = (status: string) => {
     switch (status) {
+      case 'en_cours':
+        return {
+          label: 'En cours',
+          bgColor: 'bg-gray-50',
+          textColor: 'text-gray-800',
+          borderColor: 'border-gray-300',
+          icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          )
+        };
       case 'demande':
         return {
           label: 'Demande',
@@ -107,6 +119,7 @@ export default function CartDetailPage() {
   };
 
   const statusOptions = [
+    { value: 'en_cours', label: 'En cours' },
     { value: 'demande', label: 'Demande' },
     { value: 'traité', label: 'Traité' },
     { value: 'fini', label: 'Fini' },

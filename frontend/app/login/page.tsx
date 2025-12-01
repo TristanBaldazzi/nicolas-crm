@@ -44,8 +44,11 @@ export default function LoginPage() {
       if (!allowReg) {
         setIsLogin(true);
       }
-    } catch (error) {
-      console.error('Error loading settings:', error);
+    } catch (error: any) {
+      // Ne logger que les erreurs non-401 (erreurs réseau, etc.)
+      if (error.response?.status !== 401) {
+        console.error('Error loading settings:', error);
+      }
       // En cas d'erreur, on assume que les inscriptions sont autorisées par défaut
       setAllowRegistration(true);
     } finally {
@@ -68,7 +71,8 @@ export default function LoginPage() {
     try {
       if (isLogin) {
         const res = await authApi.login(formData.email, formData.password);
-        setAuth(res.data.user, res.data.token);
+        // Le token est maintenant dans un cookie HTTP-only
+        setAuth(res.data.user, 'cookie');
         toast.success('Connexion réussie');
         router.push('/admin');
       } else {
@@ -76,7 +80,8 @@ export default function LoginPage() {
           ...formData,
           role: 'user',
         });
-        setAuth(res.data.user, res.data.token);
+        // Le token est maintenant dans un cookie HTTP-only
+        setAuth(res.data.user, 'cookie');
         toast.success('Inscription réussie');
         router.push('/admin');
       }

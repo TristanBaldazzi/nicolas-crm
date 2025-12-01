@@ -96,6 +96,18 @@ export default function ClientDetailPage() {
 
   const getStatusConfig = (status: string) => {
     switch (status) {
+      case 'en_cours':
+        return {
+          label: 'En cours',
+          bgColor: 'bg-gray-50',
+          textColor: 'text-gray-800',
+          borderColor: 'border-gray-300',
+          icon: (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          )
+        };
       case 'demande':
         return {
           label: 'Demande',
@@ -156,6 +168,7 @@ export default function ClientDetailPage() {
   };
 
   const statusOptions = [
+    { value: 'en_cours', label: 'En cours' },
     { value: 'demande', label: 'Demande' },
     { value: 'traité', label: 'Traité' },
     { value: 'fini', label: 'Fini' },
@@ -255,50 +268,86 @@ export default function ClientDetailPage() {
               </div>
 
               <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block mb-2 font-semibold text-gray-700">
+                <div className="relative">
+                  <label className="block mb-3 font-bold text-gray-900 text-sm uppercase tracking-wide">
                     Rôle
                   </label>
-                  <select
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all bg-white"
-                  >
-                    <option value="user">Utilisateur</option>
-                    <option value="admin">Administrateur</option>
-                  </select>
+                  <div className="relative">
+                    <div className="absolute left-4 top-1/2 transform -translate-y-1/2 pointer-events-none z-10">
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                    </div>
+                    <select
+                      value={formData.role}
+                      onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                      className="w-full pl-12 pr-10 py-4 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all bg-white font-semibold appearance-none cursor-pointer hover:border-green-300 shadow-sm hover:shadow-md"
+                    >
+                      <option value="user">Utilisateur</option>
+                      <option value="admin">Administrateur</option>
+                    </select>
+                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none z-10">
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block mb-2 font-semibold text-gray-700">
+                <div className="relative">
+                  <label className="block mb-3 font-bold text-gray-900 text-sm uppercase tracking-wide">
                     Statut du compte
                   </label>
-                  <select
-                    value={formData.isActive ? 'active' : 'inactive'}
-                    onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'active' })}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all bg-white"
-                  >
-                    <option value="active">Actif</option>
-                    <option value="inactive">Inactif</option>
-                  </select>
+                  <div className="relative">
+                    <div className="absolute left-4 top-1/2 transform -translate-y-1/2 pointer-events-none z-10">
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <select
+                      value={formData.isActive ? 'active' : 'inactive'}
+                      onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'active' })}
+                      className="w-full pl-12 pr-10 py-4 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all bg-white font-semibold appearance-none cursor-pointer hover:border-green-300 shadow-sm hover:shadow-md"
+                    >
+                      <option value="active">Actif</option>
+                      <option value="inactive">Inactif</option>
+                    </select>
+                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none z-10">
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block mb-2 font-semibold text-gray-700">
+              <div className="relative">
+                <label className="block mb-3 font-bold text-gray-900 text-sm uppercase tracking-wide">
                   Entreprise
                 </label>
-                <select
-                  value={formData.company}
-                  onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all bg-white"
-                >
-                  <option value="">Aucune entreprise</option>
-                  {companies.map((company) => (
-                    <option key={company._id} value={company._id}>
-                      {company.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 transform -translate-y-1/2 pointer-events-none z-10">
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  </div>
+                  <select
+                    value={formData.company}
+                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                    className="w-full pl-12 pr-10 py-4 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all bg-white font-semibold appearance-none cursor-pointer hover:border-green-300 shadow-sm hover:shadow-md"
+                  >
+                    <option value="">Aucune entreprise</option>
+                    {companies.map((company) => (
+                      <option key={company._id} value={company._id}>
+                        {company.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none z-10">
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
               </div>
 
               <div className="flex gap-4 pt-6 border-t border-gray-200">
@@ -425,7 +474,11 @@ export default function ClientDetailPage() {
                 {clientCarts.map((cart) => {
                   const statusConfig = getStatusConfig(cart.status);
                   return (
-                    <div key={cart._id} className={`border-2 ${statusConfig.borderColor} rounded-xl p-4 ${statusConfig.bgColor} hover:shadow-md transition-all`}>
+                    <Link
+                      key={cart._id}
+                      href={`/admin/paniers/${cart._id}`}
+                      className={`block border-2 ${statusConfig.borderColor} rounded-xl p-4 ${statusConfig.bgColor} hover:shadow-lg transition-all cursor-pointer group`}
+                    >
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
@@ -463,7 +516,7 @@ export default function ClientDetailPage() {
                       </div>
                       
                       {/* Boutons de changement de statut */}
-                      <div className="pt-4 border-t border-gray-200">
+                      <div className="pt-4 border-t border-gray-200" onClick={(e) => e.stopPropagation()}>
                         <label className="block text-xs font-bold text-gray-700 mb-2 uppercase tracking-wide">Changer le statut</label>
                         <div className="flex flex-wrap gap-2">
                           {statusOptions.map((option) => {
@@ -473,7 +526,10 @@ export default function ClientDetailPage() {
                             return (
                               <button
                                 key={option.value}
-                                onClick={() => !isActive && handleStatusChange(cart._id, option.value)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (!isActive) handleStatusChange(cart._id, option.value);
+                                }}
                                 disabled={isActive}
                                 className={`
                                   px-3 py-1.5 rounded-lg text-xs font-semibold
@@ -500,7 +556,15 @@ export default function ClientDetailPage() {
                           })}
                         </div>
                       </div>
-                    </div>
+                      <div className="mt-3 flex items-center justify-end">
+                        <span className="text-xs text-gray-500 group-hover:text-green-600 transition-colors flex items-center gap-1">
+                          Voir les détails
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </span>
+                      </div>
+                    </Link>
                   );
                 })}
               </div>

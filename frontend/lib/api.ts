@@ -6,24 +6,23 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-});
-
-// Intercepteur pour ajouter le token
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+  withCredentials: true, // Important pour envoyer les cookies
 });
 
 // Intercepteur pour gérer les erreurs
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Ne rediriger vers login que si on n'est pas déjà sur la page de login
+    // et que ce n'est pas une requête vers /auth/me (qui peut échouer normalement si non connecté)
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      const currentPath = window.location.pathname;
+      const isAuthRequest = error.config?.url?.includes('/auth/me') || error.config?.url?.includes('/auth/login');
+      
+      // Ne rediriger que si on n'est pas déjà sur login et que ce n'est pas une requête d'auth
+      if (!currentPath.includes('/login') && !isAuthRequest) {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
@@ -35,6 +34,8 @@ export const authApi = {
     api.post('/auth/login', { email, password }),
   register: (data: any) =>
     api.post('/auth/register', data),
+  logout: () =>
+    api.post('/auth/logout'),
   me: () =>
     api.get('/auth/me'),
   getUsers: (params?: any) =>

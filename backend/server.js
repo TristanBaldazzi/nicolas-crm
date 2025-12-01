@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -43,6 +44,9 @@ const limiter = rateLimit({
   max: 10000 // limite chaque IP à 100 requêtes par windowMs
 });
 app.use('/api/', limiter);
+
+// Cookie parser
+app.use(cookieParser());
 
 // Body parser
 app.use(express.json({ limit: '50mb' }));

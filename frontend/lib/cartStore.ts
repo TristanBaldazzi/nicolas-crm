@@ -30,13 +30,7 @@ export const useCartStore = create<CartState>()(
       // Synchroniser le panier avec le backend
       syncCart: async () => {
         const { items } = get();
-        const token = localStorage.getItem('token');
         
-        if (!token) {
-          // Pas connecté, on garde juste le localStorage
-          return;
-        }
-
         if (get().syncing) return;
         
         set({ syncing: true });
@@ -57,12 +51,6 @@ export const useCartStore = create<CartState>()(
 
       // Charger le panier depuis le backend
       loadCart: async () => {
-        const token = localStorage.getItem('token');
-        
-        if (!token) {
-          return;
-        }
-
         try {
           const res = await cartsApi.getMy();
           if (res.data && res.data.items) {

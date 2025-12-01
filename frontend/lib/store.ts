@@ -27,16 +27,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   token: null,
   isLoading: true,
   setAuth: (user, token) => {
-    set({ user, token, isLoading: false });
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('token', token);
-    }
+    // Le token est maintenant dans un cookie HTTP-only, on ne le stocke plus dans le state
+    set({ user, token: 'cookie', isLoading: false });
   },
-  logout: () => {
-    set({ user: null, token: null, isLoading: false });
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('token');
+  logout: async () => {
+    try {
+      // Appeler l'API pour supprimer le cookie
+      await authApi.logout();
+    } catch (error) {
+      console.error('Error during logout:', error);
     }
+    set({ user: null, token: null, isLoading: false });
   },
   isAdmin: () => {
     const user = get().user;
@@ -53,41 +54,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ isLoading: true });
       
       try {
-        const token = localStorage.getItem('token');
-        if (token) {
-          try {
-            // Récupérer les infos utilisateur depuis l'API
-            const res = await authApi.me();
-            const user = res.data;
-            
-            // Ne mettre à jour que si les valeurs ont changé pour éviter les boucles infinies
-            const currentState = get();
-            if (currentState.user?.id !== user.id || currentState.token !== token) {
-              set({ user, token, isLoading: false });
-            } else {
-              set({ isLoading: false });
-            }
-          } catch (e) {
-            // Token invalide ou expiré
-            localStorage.removeItem('token');
-            const currentState = get();
-            if (currentState.user !== null || currentState.token !== null) {
-              set({ user: null, token: null, isLoading: false });
-            } else {
-              set({ isLoading: false });
-            }
-          }
+        // Le token est dans un cookie HTTP-only, on récupère directement les infos utilisateur
+        const res = await authApi.me();
+        // La réponse peut être { user: {...} } ou { user: null }
+        const user = res.data.user || res.data;
+        
+        // Ne mettre à jour que si les valeurs ont changé pour éviter les boucles infinies
+        const currentState = get();
+        if (user && currentState.user?.id !== user.id) {
+          set({ user, token: 'cookie', isLoading: false });
+        } else if (!user && (currentState.user !== null || currentState.token !== null)) {
+          set({ user: null, token: null, isLoading: false });
         } else {
-          // Si pas de token dans le storage, s'assurer que le state est null
-          const currentState = get();
-          if (currentState.user !== null || currentState.token !== null) {
-            set({ user: null, token: null, isLoading: false });
-          } else {
-            set({ isLoading: false });
-          }
+          set({ isLoading: false });
         }
-      } catch (error) {
-        // Erreur lors du chargement
+      } catch (e: any) {
+        // Erreur réseau ou autre - logger seulement les erreurs non-réseau
+        if (e.code !== 'ERR_NETWORK') {
+          console.error('Error loading user:', e);
+        }
+        
         const currentState = get();
         if (currentState.user !== null || currentState.token !== null) {
           set({ user: null, token: null, isLoading: false });

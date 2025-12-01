@@ -2,7 +2,7 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import Settings from '../models/Settings.js';
-import { authenticate, requireAdmin } from '../middleware/auth.js';
+import { authenticate, optionalAuthenticate, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -43,8 +43,15 @@ router.post('/register', async (req, res) => {
       { expiresIn: '7d' }
     );
 
+    // Envoyer le token dans un cookie HTTP-only
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // HTTPS en production
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 jours
+    });
+
     res.status(201).json({
-      token,
       user: {
         id: user._id,
         email: user.email,
@@ -84,8 +91,15 @@ router.post('/login', async (req, res) => {
       { expiresIn: '7d' }
     );
 
+    // Envoyer le token dans un cookie HTTP-only
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // HTTPS en production
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 jours
+    });
+
     res.json({
-      token,
       user: {
         id: user._id,
         email: user.email,
@@ -99,9 +113,29 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Vérifier le token
-router.get('/me', authenticate, async (req, res) => {
-  const user = await User.findById(req.user._id).populate('company', 'name code');
+// Déconnexion
+router.post('/logout', (req, res) => {
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax'
+  });
+  res.json({ message: 'Déconnexion réussie' });
+});
+
+// Vérifier le token (optionnel - retourne null si pas connecté)
+router.get('/me', optionalAuthenticate, async (req, res) => {
+  if (!req.user) {
+    return res.json({ user: null });
+  }
+  
+  // Mettre à jour la date de dernière activité
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    { lastActivity: new Date() },
+    { new: true }
+  ).populate('company', 'name code').select('-password');
+  
   res.json({
     user: {
       id: user._id,
@@ -109,7 +143,8 @@ router.get('/me', authenticate, async (req, res) => {
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
-      company: user.company
+      company: user.company,
+      lastActivity: user.lastActivity
     }
   });
 });
