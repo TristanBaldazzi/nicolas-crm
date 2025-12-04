@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { productsApi, categoriesApi, settingsApi } from '@/lib/api';
+import { productsApi, categoriesApi, settingsApi, brandsApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 import { getImageUrl } from '@/lib/config';
 
 export default function CataloguePage() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<any>(null);
   const { user } = useAuthStore();
@@ -44,12 +45,14 @@ export default function CataloguePage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [productsRes, categoriesRes] = await Promise.all([
+      const [productsRes, categoriesRes, brandsRes] = await Promise.all([
         productsApi.getAll(filters),
         categoriesApi.getAll({ parentOnly: 'true' }),
+        brandsApi.getAll(),
       ]);
       setProducts(productsRes.data.products || []);
       setCategories(categoriesRes.data || []);
+      setBrands(brandsRes.data || []);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -65,7 +68,6 @@ export default function CataloguePage() {
     return true;
   };
 
-  const brands = ['Nematic', 'Prinus', 'Bosch', 'Electro Lux', 'Autre'];
 
   const clearFilters = () => {
     setFilters({ category: '', brand: '', search: '', page: 1 });
@@ -197,8 +199,8 @@ export default function CataloguePage() {
                       >
                         <option value="">Toutes les marques</option>
                         {brands.map((brand) => (
-                          <option key={brand} value={brand}>
-                            {brand}
+                          <option key={brand._id} value={brand._id}>
+                            {brand.name}
                           </option>
                         ))}
                       </select>
@@ -268,7 +270,7 @@ export default function CataloguePage() {
                         {product.brand && (
                           <div className="absolute top-4 left-4">
                             <span className="bg-white/90 backdrop-blur-sm text-green-700 px-3 py-1.5 rounded-full text-xs font-bold">
-                              {product.brand}
+                              {product.brand.name || product.brand}
                             </span>
                           </div>
                         )}

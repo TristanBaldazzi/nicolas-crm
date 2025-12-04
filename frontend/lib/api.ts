@@ -207,6 +207,30 @@ export const settingsApi = {
     api.put('/settings', data),
 };
 
+// Product Specs
+export const productSpecsApi = {
+  getAll: () =>
+    api.get('/product-specs'),
+  create: (data: any) =>
+    api.post('/product-specs', data),
+  delete: (id: string) =>
+    api.delete(`/product-specs/${id}`),
+  updateOrder: (id: string, order: number) =>
+    api.put(`/product-specs/${id}/order`, { order }),
+};
+
+// Brands
+export const brandsApi = {
+  getAll: () =>
+    api.get('/brands'),
+  create: (data: any) =>
+    api.post('/brands', data),
+  delete: (id: string) =>
+    api.delete(`/brands/${id}`),
+  updateOrder: (id: string, order: number) =>
+    api.put(`/brands/${id}/order`, { order }),
+};
+
 export default api;
 
 

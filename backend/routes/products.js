@@ -132,6 +132,7 @@ router.get('/', async (req, res) => {
     const products = await Product.find(query)
       .populate('category', 'name slug')
       .populate('subCategory', 'name slug')
+      .populate('brand', 'name')
       .sort({ [sort]: sortOrder })
       .skip(skip)
       .limit(parseInt(limit));
@@ -155,6 +156,16 @@ router.get('/', async (req, res) => {
     const productsWithPromotions = await Promise.all(
       products.map(async (product) => {
         const productObj = product.toObject();
+        
+        // Convertir les specifications Map en objet pour la réponse JSON
+        if (productObj.specifications && productObj.specifications instanceof Map) {
+          const specsObj = {};
+          productObj.specifications.forEach((value, key) => {
+            specsObj[key] = value;
+          });
+          productObj.specifications = specsObj;
+        }
+        
         const pricing = await applyPromotions(product, userId);
         return {
           ...productObj,
@@ -189,7 +200,8 @@ router.get('/recommended/:id', async (req, res) => {
     
     const product = await Product.findById(req.params.id)
       .populate('category', '_id')
-      .populate('subCategory', '_id');
+      .populate('subCategory', '_id')
+      .populate('brand', '_id');
 
     if (!product) {
       return res.status(404).json({ error: 'Produit non trouvé' });
@@ -207,6 +219,7 @@ router.get('/recommended/:id', async (req, res) => {
       })
         .populate('category', 'name slug')
         .populate('subCategory', 'name slug')
+        .populate('brand', 'name')
         .limit(limit)
         .sort({ createdAt: -1 });
 
@@ -223,6 +236,7 @@ router.get('/recommended/:id', async (req, res) => {
       })
         .populate('category', 'name slug')
         .populate('subCategory', 'name slug')
+        .populate('brand', 'name')
         .limit(limit - recommended.length)
         .sort({ createdAt: -1 });
 
@@ -236,11 +250,12 @@ router.get('/recommended/:id', async (req, res) => {
 
       const brandProducts = await Product.find({
         _id: { $nin: existingIds },
-        brand: product.brand,
+        brand: product.brand?._id || product.brand,
         isActive: true
       })
         .populate('category', 'name slug')
         .populate('subCategory', 'name slug')
+        .populate('brand', 'name')
         .limit(limit - recommended.length)
         .sort({ createdAt: -1 });
 
@@ -258,6 +273,7 @@ router.get('/recommended/:id', async (req, res) => {
       })
         .populate('category', 'name slug')
         .populate('subCategory', 'name slug')
+        .populate('brand', 'name')
         .limit(limit - recommended.length)
         .sort({ createdAt: -1 });
 
@@ -276,7 +292,8 @@ router.get('/:slug', async (req, res) => {
   try {
     const product = await Product.findOne({ slug: req.params.slug, isActive: true })
       .populate('category', 'name slug')
-      .populate('subCategory', 'name slug');
+      .populate('subCategory', 'name slug')
+      .populate('brand', 'name');
 
     if (!product) {
       return res.status(404).json({ error: 'Produit non trouvé' });
@@ -296,8 +313,19 @@ router.get('/:slug', async (req, res) => {
     }
 
     const pricing = await applyPromotions(product, userId);
+    const productObj = product.toObject();
+    
+    // Convertir les specifications Map en objet pour la réponse JSON
+    if (productObj.specifications && productObj.specifications instanceof Map) {
+      const specsObj = {};
+      productObj.specifications.forEach((value, key) => {
+        specsObj[key] = value;
+      });
+      productObj.specifications = specsObj;
+    }
+    
     const productWithPromotion = {
-      ...product.toObject(),
+      ...productObj,
       price: pricing.discountedPrice,
       originalPrice: pricing.originalPrice,
       discountPercentage: pricing.discountPercentage,
@@ -329,7 +357,8 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
       isFeatured,
       metaTitle,
       metaDescription,
-      tags
+      tags,
+      specifications
     } = req.body;
 
     // Vérifier que la catégorie existe
@@ -360,6 +389,16 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
       isPrimary: index === 0 && !img.isPrimary ? true : img.isPrimary || false
     }));
 
+    // Nettoyer les specifications (enlever les valeurs vides)
+    const cleanedSpecs = {};
+    if (specifications && typeof specifications === 'object') {
+      for (const [key, value] of Object.entries(specifications)) {
+        if (value !== null && value !== undefined && value !== '') {
+          cleanedSpecs[key] = value;
+        }
+      }
+    }
+
     const product = new Product({
       name,
       slug,
@@ -368,7 +407,7 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
       sku,
       price,
       compareAtPrice,
-      brand: brand || 'Autre',
+      brand: brand || null,
       category,
       subCategory: subCategory || null,
       images: productImages,
@@ -377,15 +416,26 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
       isFeatured: isFeatured || false,
       metaTitle,
       metaDescription,
-      tags: tags || []
+      tags: tags || [],
+      specifications: cleanedSpecs
     });
 
     await product.save();
     const populatedProduct = await Product.findById(product._id)
       .populate('category', 'name slug')
       .populate('subCategory', 'name slug');
+    
+    // Convertir les specifications Map en objet pour la réponse JSON
+    const productObj = populatedProduct.toObject();
+    if (productObj.specifications && productObj.specifications instanceof Map) {
+      const specsObj = {};
+      productObj.specifications.forEach((value, key) => {
+        specsObj[key] = value;
+      });
+      productObj.specifications = specsObj;
+    }
 
-    res.status(201).json(populatedProduct);
+    res.status(201).json(productObj);
   } catch (error) {
     if (error.code === 11000) {
       return res.status(400).json({ error: 'Ce produit existe déjà (slug ou SKU dupliqué)' });
@@ -419,7 +469,8 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
       isFeatured,
       metaTitle,
       metaDescription,
-      tags
+      tags,
+      specifications
     } = req.body;
 
     // Mettre à jour le slug si le nom change
@@ -437,7 +488,7 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
     if (sku !== undefined) product.sku = sku;
     if (price !== undefined) product.price = price;
     if (compareAtPrice !== undefined) product.compareAtPrice = compareAtPrice;
-    if (brand) product.brand = brand;
+    if (brand !== undefined) product.brand = brand || null;
     if (category) {
       const categoryDoc = await Category.findById(category);
       if (!categoryDoc) {
@@ -469,13 +520,37 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
     if (metaTitle !== undefined) product.metaTitle = metaTitle;
     if (metaDescription !== undefined) product.metaDescription = metaDescription;
     if (tags !== undefined) product.tags = tags;
+    if (specifications !== undefined) {
+      // Nettoyer les specifications (enlever les valeurs vides)
+      const cleanedSpecs = {};
+      if (specifications && typeof specifications === 'object') {
+        for (const [key, value] of Object.entries(specifications)) {
+          if (value !== null && value !== undefined && value !== '') {
+            cleanedSpecs[key] = value;
+          }
+        }
+      }
+      // Mettre à jour les specifications (MongoDB Map)
+      product.specifications = cleanedSpecs;
+    }
 
     await product.save();
     const populatedProduct = await Product.findById(product._id)
       .populate('category', 'name slug')
-      .populate('subCategory', 'name slug');
+      .populate('subCategory', 'name slug')
+      .populate('brand', 'name');
+    
+    // Convertir les specifications Map en objet pour la réponse JSON
+    const productObj = populatedProduct.toObject();
+    if (productObj.specifications && productObj.specifications instanceof Map) {
+      const specsObj = {};
+      productObj.specifications.forEach((value, key) => {
+        specsObj[key] = value;
+      });
+      productObj.specifications = specsObj;
+    }
 
-    res.json(populatedProduct);
+    res.json(productObj);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

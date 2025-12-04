@@ -38,9 +38,9 @@ const productSchema = new mongoose.Schema({
     default: null
   },
   brand: {
-    type: String,
-    enum: ['Nematic', 'Prinus', 'Bosch', 'Electro Lux', 'Autre'],
-    default: 'Autre'
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Brand',
+    default: null
   },
   category: {
     type: mongoose.Schema.Types.ObjectId,
@@ -90,7 +90,12 @@ const productSchema = new mongoose.Schema({
   tags: [{
     type: String,
     trim: true
-  }]
+  }],
+  specifications: {
+    type: Map,
+    of: mongoose.Schema.Types.Mixed,
+    default: {}
+  }
 }, {
   timestamps: true
 });

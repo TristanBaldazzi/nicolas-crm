@@ -19,6 +19,8 @@ import cartRoutes from './routes/carts.js';
 import companyRoutes from './routes/companies.js';
 import promotionRoutes from './routes/promotions.js';
 import settingsRoutes from './routes/settings.js';
+import productSpecRoutes from './routes/productSpecs.js';
+import brandRoutes from './routes/brands.js';
 
 dotenv.config();
 
@@ -71,6 +73,8 @@ app.use('/api/carts', cartRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/promotions', promotionRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/product-specs', productSpecRoutes);
+app.use('/api/brands', brandRoutes);
 
 // Route de santé
 app.get('/api/health', (req, res) => {

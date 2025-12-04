@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/AdminLayout';
-import { productsApi, uploadApi } from '@/lib/api';
+import CustomSelect from '@/components/CustomSelect';
+import { productsApi, uploadApi, productSpecsApi, brandsApi } from '@/lib/api';
 import { categoriesApi } from '@/lib/api';
 import { getImageUrl } from '@/lib/config';
 import toast from 'react-hot-toast';
@@ -12,6 +13,8 @@ export default function AdminProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [productSpecs, setProductSpecs] = useState<any[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
@@ -20,6 +23,12 @@ export default function AdminProductsPage() {
   const [brandFilter, setBrandFilter] = useState('');
   const [stockFilter, setStockFilter] = useState('all');
   const [featuredFilter, setFeaturedFilter] = useState('all');
+  const [showSpecsManager, setShowSpecsManager] = useState(false);
+  const [showBrandsManager, setShowBrandsManager] = useState(false);
+  const [newSpecName, setNewSpecName] = useState('');
+  const [newBrandName, setNewBrandName] = useState('');
+  const [specSearch, setSpecSearch] = useState('');
+  const [brandSearch, setBrandSearch] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -35,6 +44,7 @@ export default function AdminProductsPage() {
     isFeatured: false,
     isBestSeller: false,
     images: [] as any[],
+    specifications: {} as Record<string, any>,
   });
   const [uploadingImages, setUploadingImages] = useState(false);
 
@@ -44,14 +54,18 @@ export default function AdminProductsPage() {
 
   const loadData = async () => {
     try {
-      const [productsRes, categoriesRes] = await Promise.all([
+      const [productsRes, categoriesRes, specsRes, brandsRes] = await Promise.all([
         productsApi.getAll({ limit: 1000 }),
         categoriesApi.getAll(),
+        productSpecsApi.getAll(),
+        brandsApi.getAll(),
       ]);
       const productsList = productsRes.data.products || [];
       setAllProducts(productsList);
       setProducts(productsList);
       setCategories(categoriesRes.data || []);
+      setProductSpecs(specsRes.data || []);
+      setBrands(brandsRes.data || []);
     } catch (error) {
       toast.error('Erreur lors du chargement');
     } finally {
@@ -88,7 +102,10 @@ export default function AdminProductsPage() {
 
     // Filtre marque
     if (brandFilter) {
-      filtered = filtered.filter((p) => p.brand === brandFilter);
+      filtered = filtered.filter((p) => {
+        const brandId = p.brand?._id || p.brand;
+        return brandId === brandFilter;
+      });
     }
 
     // Filtre stock
@@ -108,7 +125,7 @@ export default function AdminProductsPage() {
     setProducts(filtered);
   };
 
-  const brands = Array.from(new Set(allProducts.map((p) => p.brand).filter(Boolean)));
+  // Les marques sont maintenant chargées depuis l'API
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
@@ -145,6 +162,7 @@ export default function AdminProductsPage() {
         price: parseFloat(formData.price),
         compareAtPrice: formData.compareAtPrice ? parseFloat(formData.compareAtPrice) : null,
         stock: parseInt(formData.stock) || 0,
+        specifications: formData.specifications,
       };
 
       if (editingProduct) {
@@ -172,7 +190,7 @@ export default function AdminProductsPage() {
       sku: '',
       price: '',
       compareAtPrice: '',
-      brand: 'Autre',
+      brand: '',
       category: '',
       subCategory: '',
       stock: '',
@@ -180,11 +198,23 @@ export default function AdminProductsPage() {
       isFeatured: false,
       isBestSeller: false,
       images: [],
+      specifications: {},
     });
   };
 
   const handleEdit = (product: any) => {
     setEditingProduct(product);
+    // Convertir les specifications Map en objet si nécessaire
+    const specs = product.specifications || {};
+    const specsObj: Record<string, any> = {};
+    if (specs instanceof Map) {
+      specs.forEach((value, key) => {
+        specsObj[key] = value;
+      });
+    } else if (typeof specs === 'object') {
+      Object.assign(specsObj, specs);
+    }
+    
     setFormData({
       name: product.name,
       description: product.description || '',
@@ -192,7 +222,7 @@ export default function AdminProductsPage() {
       sku: product.sku || '',
       price: product.price.toString(),
       compareAtPrice: product.compareAtPrice?.toString() || '',
-      brand: product.brand || 'Autre',
+      brand: product.brand?._id || product.brand || '',
       category: product.category?._id || product.category || '',
       subCategory: product.subCategory?._id || product.subCategory || '',
       stock: product.stock.toString(),
@@ -200,6 +230,7 @@ export default function AdminProductsPage() {
       isFeatured: product.isFeatured,
       isBestSeller: product.isBestSeller || false,
       images: product.images || [],
+      specifications: specsObj,
     });
     setShowForm(true);
   };
@@ -212,6 +243,112 @@ export default function AdminProductsPage() {
       loadData();
     } catch (error) {
       toast.error('Erreur lors de la suppression');
+    }
+  };
+
+  const handleAddSpec = async () => {
+    if (!newSpecName.trim()) {
+      toast.error('Le nom de la caractéristique est requis');
+      return;
+    }
+    try {
+      await productSpecsApi.create({ name: newSpecName.trim() });
+      toast.success('Caractéristique ajoutée');
+      setNewSpecName('');
+      loadData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erreur lors de l\'ajout');
+    }
+  };
+
+  const handleDeleteSpec = async (id: string, name: string) => {
+    if (!confirm(`Supprimer la caractéristique "${name}" ? Elle sera supprimée de tous les produits.`)) return;
+    try {
+      await productSpecsApi.delete(id);
+      toast.success('Caractéristique supprimée');
+      loadData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erreur lors de la suppression');
+    }
+  };
+
+  const handleAddBrand = async () => {
+    if (!newBrandName.trim()) {
+      toast.error('Le nom de la marque est requis');
+      return;
+    }
+    try {
+      await brandsApi.create({ name: newBrandName.trim() });
+      toast.success('Marque ajoutée');
+      setNewBrandName('');
+      loadData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erreur lors de l\'ajout');
+    }
+  };
+
+  const handleDeleteBrand = async (id: string, name: string) => {
+    if (!confirm(`Supprimer la marque "${name}" ? Les produits utilisant cette marque seront mis à jour.`)) return;
+    try {
+      await brandsApi.delete(id);
+      toast.success('Marque supprimée');
+      loadData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erreur lors de la suppression');
+    }
+  };
+
+  const updateSpecification = (specName: string, value: any, specType?: string) => {
+    // Validation pour les champs de type number
+    if (specType === 'number') {
+      // Autoriser uniquement les nombres (avec points décimaux et signes négatifs)
+      if (value === '' || value === null || value === undefined) {
+        // Permettre les valeurs vides
+        setFormData({
+          ...formData,
+          specifications: {
+            ...formData.specifications,
+            [specName]: '',
+          },
+        });
+        return;
+      }
+      // Vérifier si c'est un nombre valide
+      const numValue = value.toString().replace(',', '.'); // Remplacer les virgules par des points
+      if (!/^-?\d*\.?\d*$/.test(numValue)) {
+        // Si ce n'est pas un nombre valide, ne pas mettre à jour
+        return;
+      }
+      // Convertir en nombre si c'est valide
+      if (numValue === '' || numValue === '-') {
+        setFormData({
+          ...formData,
+          specifications: {
+            ...formData.specifications,
+            [specName]: '',
+          },
+        });
+        return;
+      }
+      const finalValue = parseFloat(numValue);
+      if (isNaN(finalValue)) {
+        return;
+      }
+      setFormData({
+        ...formData,
+        specifications: {
+          ...formData.specifications,
+          [specName]: finalValue,
+        },
+      });
+    } else {
+      setFormData({
+        ...formData,
+        specifications: {
+          ...formData.specifications,
+          [specName]: value,
+        },
+      });
     }
   };
 
@@ -232,183 +369,543 @@ export default function AdminProductsPage() {
             <p className="text-gray-600 mt-1">{allProducts.length} produit{allProducts.length > 1 ? 's' : ''} au total</p>
           </div>
         </div>
-        <button
-          onClick={() => {
-            setShowForm(true);
-            setEditingProduct(null);
-            resetForm();
-          }}
-          className="inline-flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-xl font-bold hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-          Nouveau produit
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200 p-1 shadow-sm">
+            <button
+              onClick={() => {
+                setShowSpecsManager(true);
+                loadData();
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-50 text-blue-700 hover:text-blue-800 transition-all"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Caractéristiques
+            </button>
+            <div className="w-px h-6 bg-gray-200"></div>
+            <button
+              onClick={() => {
+                setShowBrandsManager(true);
+                loadData();
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-purple-50 text-purple-700 hover:text-purple-800 transition-all"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+              Marques
+            </button>
+          </div>
+          <button
+            onClick={() => {
+              setShowForm(true);
+              setEditingProduct(null);
+              resetForm();
+            }}
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:from-green-700 hover:to-green-800 transition-all shadow-md hover:shadow-lg"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Nouveau produit
+          </button>
+        </div>
       </div>
 
+      {/* Modal de gestion des caractéristiques */}
+      {showSpecsManager && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6 border-b border-blue-500 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-3xl font-black text-white">Gestion des caractéristiques</h2>
+                  <p className="text-blue-100 mt-1">Ajoutez ou supprimez les caractéristiques disponibles pour les produits</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowSpecsManager(false);
+                    setSpecSearch('');
+                  }}
+                  className="text-white hover:bg-white/20 rounded-lg p-2 transition-all"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 flex-shrink-0 border-b border-gray-200 bg-gray-50">
+              {/* Formulaire d'ajout */}
+              <div className="mb-4">
+                <label className="block text-sm font-bold text-gray-700 mb-2">Ajouter une nouvelle caractéristique</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newSpecName}
+                    onChange={(e) => setNewSpecName(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleAddSpec()}
+                    placeholder="Nom de la caractéristique (ex: Dimensions, Poids, etc.)"
+                    className="flex-1 px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all font-medium text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddSpec}
+                    className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-bold hover:from-blue-700 hover:to-blue-800 transition-all shadow-md hover:shadow-lg whitespace-nowrap"
+                  >
+                    <svg className="w-5 h-5 inline mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Ajouter
+                  </button>
+                </div>
+              </div>
+
+              {/* Barre de recherche */}
+              {productSpecs.length > 0 && (
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={specSearch}
+                    onChange={(e) => setSpecSearch(e.target.value)}
+                    placeholder="Rechercher une caractéristique..."
+                    className="w-full px-4 py-2.5 pl-10 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-sm"
+                  />
+                  <svg className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  {specSearch && (
+                    <button
+                      onClick={() => setSpecSearch('')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1">
+              {/* Liste des caractéristiques */}
+              {(() => {
+                const filteredSpecs = productSpecs.filter(spec =>
+                  spec.name.toLowerCase().includes(specSearch.toLowerCase())
+                );
+
+                return (
+                  <>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-bold text-gray-900">
+                        Caractéristiques disponibles
+                        <span className="ml-2 text-sm font-normal text-gray-500">
+                          ({filteredSpecs.length}{specSearch && ` sur ${productSpecs.length}`})
+                        </span>
+                      </h3>
+                      {specSearch && (
+                        <button
+                          onClick={() => setSpecSearch('')}
+                          className="text-sm text-blue-600 hover:text-blue-700 font-semibold"
+                        >
+                          Effacer la recherche
+                        </button>
+                      )}
+                    </div>
+
+                    {productSpecs.length === 0 ? (
+                      <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
+                        <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <p className="text-gray-500 font-medium">Aucune caractéristique disponible</p>
+                        <p className="text-gray-400 text-sm mt-2">Ajoutez votre première caractéristique ci-dessus</p>
+                      </div>
+                    ) : filteredSpecs.length === 0 ? (
+                      <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
+                        <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <p className="text-gray-500 font-medium">Aucune caractéristique trouvée</p>
+                        <p className="text-gray-400 text-sm mt-1">Essayez avec d'autres mots-clés</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {filteredSpecs.map((spec) => (
+                          <div key={spec._id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all group">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-semibold text-gray-900 truncate">{spec.name}</div>
+                                <div className="text-xs text-gray-500">Type: {spec.type || 'text'}</div>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteSpec(spec._id, spec.name)}
+                              className="text-red-600 hover:bg-red-50 p-2 rounded-lg transition-all flex-shrink-0 opacity-0 group-hover:opacity-100"
+                              title="Supprimer cette caractéristique"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-between items-center flex-shrink-0">
+              <div className="text-sm text-gray-600">
+                <span className="font-semibold">{productSpecs.length}</span> caractéristique{productSpecs.length > 1 ? 's' : ''} au total
+              </div>
+              <button
+                onClick={() => {
+                  setShowSpecsManager(false);
+                  setSpecSearch('');
+                }}
+                className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 transition-all"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de gestion des marques */}
+      {showBrandsManager && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-8 py-6 border-b border-purple-500 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-3xl font-black text-white">Gestion des marques</h2>
+                  <p className="text-purple-100 mt-1">Ajoutez ou supprimez les marques disponibles pour les produits</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowBrandsManager(false);
+                    setBrandSearch('');
+                  }}
+                  className="text-white hover:bg-white/20 rounded-lg p-2 transition-all"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 flex-shrink-0 border-b border-gray-200 bg-gray-50">
+              {/* Formulaire d'ajout */}
+              <div className="mb-4">
+                <label className="block text-sm font-bold text-gray-700 mb-2">Ajouter une nouvelle marque</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newBrandName}
+                    onChange={(e) => setNewBrandName(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleAddBrand()}
+                    placeholder="Nom de la marque (ex: Samsung, LG, etc.)"
+                    className="flex-1 px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all font-medium text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddBrand}
+                    className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-bold hover:from-purple-700 hover:to-purple-800 transition-all shadow-md hover:shadow-lg whitespace-nowrap"
+                  >
+                    <svg className="w-5 h-5 inline mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Ajouter
+                  </button>
+                </div>
+              </div>
+
+              {/* Barre de recherche */}
+              {brands.length > 0 && (
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={brandSearch}
+                    onChange={(e) => setBrandSearch(e.target.value)}
+                    placeholder="Rechercher une marque..."
+                    className="w-full px-4 py-2.5 pl-10 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all text-sm"
+                  />
+                  <svg className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  {brandSearch && (
+                    <button
+                      onClick={() => setBrandSearch('')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1">
+              {/* Liste des marques */}
+              {(() => {
+                const filteredBrands = brands.filter(brand =>
+                  brand.name.toLowerCase().includes(brandSearch.toLowerCase())
+                );
+
+                return (
+                  <>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-bold text-gray-900">
+                        Marques disponibles
+                        <span className="ml-2 text-sm font-normal text-gray-500">
+                          ({filteredBrands.length}{brandSearch && ` sur ${brands.length}`})
+                        </span>
+                      </h3>
+                      {brandSearch && (
+                        <button
+                          onClick={() => setBrandSearch('')}
+                          className="text-sm text-purple-600 hover:text-purple-700 font-semibold"
+                        >
+                          Effacer la recherche
+                        </button>
+                      )}
+                    </div>
+
+                    {brands.length === 0 ? (
+                      <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
+                        <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                        <p className="text-gray-500 font-medium">Aucune marque disponible</p>
+                        <p className="text-gray-400 text-sm mt-2">Ajoutez votre première marque ci-dessus</p>
+                      </div>
+                    ) : filteredBrands.length === 0 ? (
+                      <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
+                        <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <p className="text-gray-500 font-medium">Aucune marque trouvée</p>
+                        <p className="text-gray-400 text-sm mt-1">Essayez avec d'autres mots-clés</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {filteredBrands.map((brand) => (
+                          <div key={brand._id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200 hover:border-purple-300 hover:shadow-md transition-all group">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <div className="w-8 h-8 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                </svg>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-semibold text-gray-900 truncate">{brand.name}</div>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteBrand(brand._id, brand.name)}
+                              className="text-red-600 hover:bg-red-50 p-2 rounded-lg transition-all flex-shrink-0 opacity-0 group-hover:opacity-100"
+                              title="Supprimer cette marque"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-between items-center flex-shrink-0">
+              <div className="text-sm text-gray-600">
+                <span className="font-semibold">{brands.length}</span> marque{brands.length > 1 ? 's' : ''} au total
+              </div>
+              <button
+                onClick={() => {
+                  setShowBrandsManager(false);
+                  setBrandSearch('');
+                }}
+                className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 transition-all"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showForm && (
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden mb-8">
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-8 py-6 border-b border-gray-200">
-            <h2 className="text-3xl font-black text-gray-900">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden mb-8">
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-200">
+            <h2 className="text-2xl font-black text-gray-900">
               {editingProduct ? 'Modifier' : 'Créer'} un produit
             </h2>
-            <p className="text-gray-600 mt-1">Remplissez les informations du produit ci-dessous</p>
           </div>
-          <form onSubmit={handleSubmit} className="p-8 space-y-6">
-            <div className="grid grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            {/* Ligne 1: Nom et Code barre */}
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block mb-2 font-semibold text-gray-700">Nom *</label>
+                <label className="block mb-1 text-xs font-semibold text-gray-700">Nom *</label>
                 <input
                   type="text"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-100 transition-all"
                 />
               </div>
               <div>
-                <label className="block mb-2 font-semibold text-gray-700">Code barre</label>
+                <label className="block mb-1 text-xs font-semibold text-gray-700">Code barre</label>
                 <input
                   type="text"
                   value={formData.sku}
                   onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-100 transition-all"
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block mb-2 font-semibold text-gray-700">Description courte</label>
-              <textarea
-                value={formData.shortDescription}
-                onChange={(e) => setFormData({ ...formData, shortDescription: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all"
-                rows={2}
-              />
-            </div>
-
-            <div>
-              <label className="block mb-2 font-semibold text-gray-700">Description complète</label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all"
-                rows={4}
-              />
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
+            {/* Ligne 2: Descriptions */}
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block mb-2 font-semibold text-gray-700">Prix *</label>
+                <label className="block mb-1 text-xs font-semibold text-gray-700">Description courte</label>
+                <textarea
+                  value={formData.shortDescription}
+                  onChange={(e) => setFormData({ ...formData, shortDescription: e.target.value })}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-100 transition-all resize-none"
+                  rows={2}
+                />
+              </div>
+              <div>
+                <label className="block mb-1 text-xs font-semibold text-gray-700">Description complète</label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-100 transition-all resize-none"
+                  rows={2}
+                />
+              </div>
+            </div>
+
+            {/* Ligne 3: Prix, Prix comparé, Stock */}
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block mb-1 text-xs font-semibold text-gray-700">Prix *</label>
                 <input
                   type="number"
                   step="0.01"
                   required
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-100 transition-all"
                 />
               </div>
               <div>
-                <label className="block mb-2 font-semibold text-gray-700">Prix comparé</label>
+                <label className="block mb-1 text-xs font-semibold text-gray-700">Prix comparé</label>
                 <input
                   type="number"
                   step="0.01"
                   value={formData.compareAtPrice}
                   onChange={(e) => setFormData({ ...formData, compareAtPrice: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-100 transition-all"
                 />
               </div>
               <div>
-                <label className="block mb-2 font-semibold text-gray-700">Stock</label>
+                <label className="block mb-1 text-xs font-semibold text-gray-700">Stock</label>
                 <input
                   type="number"
                   value={formData.stock}
                   onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-100 transition-all"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            {/* Ligne 4: Marque, Catégorie, Sous-catégorie */}
+            <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="block mb-2 font-semibold text-gray-700">Marque</label>
-                <div className="relative">
-                  <select
-                    value={formData.brand}
-                    onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                    className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all appearance-none cursor-pointer bg-white font-medium"
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-gray-700">Marque</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowBrandsManager(true);
+                      loadData();
+                    }}
+                    className="text-xs text-purple-600 hover:text-purple-700 font-semibold"
                   >
-                    <option value="Autre">Autre</option>
-                    <option value="Nematic">Nematic</option>
-                    <option value="Prinus">Prinus</option>
-                    <option value="Bosch">Bosch</option>
-                    <option value="Electro Lux">Electro Lux</option>
-                  </select>
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
+                    Gérer
+                  </button>
                 </div>
+                <CustomSelect
+                  options={[
+                    { value: '', label: 'Aucune' },
+                    ...brands.map(brand => ({ value: brand._id, label: brand.name }))
+                  ]}
+                  value={formData.brand}
+                  onChange={(value) => setFormData({ ...formData, brand: value })}
+                  placeholder="Sélectionner une marque..."
+                  searchable={true}
+                />
               </div>
               <div>
-                <label className="block mb-2 font-semibold text-gray-700">Catégorie *</label>
-                <div className="relative">
-                  <select
-                    required
-                    value={formData.category}
-                    onChange={(e) => {
-                      setFormData({ ...formData, category: e.target.value, subCategory: '' });
-                    }}
-                    className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all appearance-none cursor-pointer bg-white font-medium"
-                  >
-                    <option value="">Sélectionner...</option>
-                    {mainCategories.map((cat) => (
-                      <option key={cat._id} value={cat._id}>
-                        {cat.name}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
+                <label className="block mb-1 text-xs font-semibold text-gray-700">Catégorie *</label>
+                <CustomSelect
+                  options={mainCategories.map(cat => ({ value: cat._id, label: cat.name }))}
+                  value={formData.category}
+                  onChange={(value) => {
+                    setFormData({ ...formData, category: value, subCategory: '' });
+                  }}
+                  placeholder="Sélectionner une catégorie..."
+                  searchable={true}
+                  required={true}
+                />
+              </div>
+              <div>
+                <label className="block mb-1 text-xs font-semibold text-gray-700">Sous-catégorie</label>
+                <CustomSelect
+                  options={formData.category 
+                    ? [
+                        { value: '', label: 'Aucune' },
+                        ...subCategories
+                          .filter((c) => c.parentCategory === formData.category || c.parentCategory?._id === formData.category)
+                          .map((cat) => ({ value: cat._id, label: cat.name }))
+                      ]
+                    : [{ value: '', label: 'Sélectionnez d\'abord une catégorie' }]
+                  }
+                  value={formData.subCategory}
+                  onChange={(value) => setFormData({ ...formData, subCategory: value })}
+                  placeholder="Sélectionner une sous-catégorie..."
+                  searchable={true}
+                  disabled={!formData.category}
+                />
               </div>
             </div>
 
-            {formData.category && (
-              <div>
-                <label className="block mb-2 font-semibold text-gray-700">Sous-catégorie</label>
-                <div className="relative">
-                  <select
-                    value={formData.subCategory}
-                    onChange={(e) => setFormData({ ...formData, subCategory: e.target.value })}
-                    className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all appearance-none cursor-pointer bg-white font-medium"
-                  >
-                    <option value="">Aucune</option>
-                    {subCategories
-                      .filter((c) => c.parentCategory === formData.category || c.parentCategory?._id === formData.category)
-                      .map((cat) => (
-                        <option key={cat._id} value={cat._id}>
-                          {cat.name}
-                        </option>
-                      ))}
-                  </select>
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            )}
-
+            {/* Images */}
             <div>
-              <label className="block mb-2 font-semibold text-gray-700">Images (max 50)</label>
+              <label className="block mb-1 text-xs font-semibold text-gray-700">Images (max 50)</label>
               <div className="relative">
                 <input
                   type="file"
@@ -421,29 +918,26 @@ export default function AdminProductsPage() {
                 />
                 <label
                   htmlFor="image-upload"
-                  className={`flex items-center justify-center gap-3 w-full px-6 py-4 border-2 border-dashed rounded-xl cursor-pointer transition-all ${
+                  className={`flex items-center justify-center gap-2 w-full px-4 py-2.5 border border-dashed rounded-lg cursor-pointer transition-all text-sm ${
                     uploadingImages || formData.images.length >= 50
-                      ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
-                      : 'border-gray-300 bg-gray-50 hover:border-green-500 hover:bg-green-50'
+                      ? 'border-gray-200 bg-gray-50 cursor-not-allowed text-gray-400'
+                      : 'border-gray-300 bg-gray-50 hover:border-green-500 hover:bg-green-50 text-gray-700'
                   }`}
                 >
-                  <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
-                  <span className="font-semibold text-gray-700">
-                    {uploadingImages ? 'Upload en cours...' : formData.images.length >= 50 ? 'Maximum atteint (50 images)' : 'Cliquez pour ajouter des images'}
+                  <span className="font-medium">
+                    {uploadingImages ? 'Upload...' : formData.images.length >= 50 ? 'Max atteint' : `Ajouter des images (${formData.images.length}/50)`}
                   </span>
                 </label>
               </div>
               {formData.images.length > 0 && (
-                <div className="mt-6">
-                  <p className="text-sm font-semibold text-gray-700 mb-3">
-                    {formData.images.length} image{formData.images.length > 1 ? 's' : ''} ajoutée{formData.images.length > 1 ? 's' : ''}
-                  </p>
-                  <div className="grid grid-cols-5 gap-4">
+                <div className="mt-3">
+                  <div className="grid grid-cols-6 gap-2">
                     {formData.images.map((img, index) => (
                       <div key={index} className="relative group">
-                        <div className="aspect-square rounded-xl overflow-hidden border-2 border-gray-200 group-hover:border-green-500 transition-colors">
+                        <div className="aspect-square rounded-lg overflow-hidden border border-gray-200 group-hover:border-green-500 transition-colors">
                           <img
                             src={getImageUrl(img.url)}
                             alt={img.alt}
@@ -456,15 +950,13 @@ export default function AdminProductsPage() {
                             const newImages = formData.images.filter((_, i) => i !== index);
                             setFormData({ ...formData, images: newImages });
                           }}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center shadow-lg hover:bg-red-600 transition-all hover:scale-110"
+                          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center shadow-md hover:bg-red-600 transition-all text-xs"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
+                          ×
                         </button>
                         {img.isPrimary && (
-                          <div className="absolute bottom-2 left-2 bg-green-600 text-white px-2 py-1 rounded-lg text-xs font-bold">
-                            Principale
+                          <div className="absolute bottom-1 left-1 bg-green-600 text-white px-1.5 py-0.5 rounded text-xs font-bold">
+                            P
                           </div>
                         )}
                       </div>
@@ -475,11 +967,11 @@ export default function AdminProductsPage() {
             </div>
 
             {/* Options du produit */}
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Options du produit</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border border-gray-200">
+              <h3 className="text-sm font-bold text-gray-900 mb-3">Options du produit</h3>
+              <div className="grid grid-cols-3 gap-3">
                 {/* En stock */}
-                <label className="flex items-center p-4 bg-white rounded-xl border-2 cursor-pointer transition-all hover:border-green-300 hover:bg-green-50"
+                <label className="flex items-center p-3 bg-white rounded-lg border cursor-pointer transition-all hover:border-green-300 hover:bg-green-50"
                   style={{
                     borderColor: formData.isInStock ? '#10b981' : '#e5e7eb',
                     backgroundColor: formData.isInStock ? '#f0fdf4' : 'white'
@@ -491,31 +983,25 @@ export default function AdminProductsPage() {
                       onChange={(e) => setFormData({ ...formData, isInStock: e.target.checked })}
                       className="sr-only"
                     />
-                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
+                    <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${
                       formData.isInStock 
                         ? 'bg-green-600 border-green-600' 
                         : 'bg-white border-gray-300'
                     }`}>
                       {formData.isInStock && (
-                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
                       )}
                     </div>
                   </div>
-                  <div className="ml-3 flex-1">
-                    <div className="flex items-center gap-2">
-                      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span className="font-bold text-gray-900">En stock</span>
-                    </div>
-                    <p className="text-xs text-gray-600 mt-0.5">Produit disponible</p>
+                  <div className="ml-2 flex-1">
+                    <span className="text-sm font-semibold text-gray-900">En stock</span>
                   </div>
                 </label>
 
                 {/* Produit en vedette */}
-                <label className="flex items-center p-4 bg-white rounded-xl border-2 cursor-pointer transition-all hover:border-emerald-300 hover:bg-emerald-50"
+                <label className="flex items-center p-3 bg-white rounded-lg border cursor-pointer transition-all hover:border-emerald-300 hover:bg-emerald-50"
                   style={{
                     borderColor: formData.isFeatured ? '#10b981' : '#e5e7eb',
                     backgroundColor: formData.isFeatured ? '#ecfdf5' : 'white'
@@ -527,31 +1013,25 @@ export default function AdminProductsPage() {
                       onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
                       className="sr-only"
                     />
-                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
+                    <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${
                       formData.isFeatured 
                         ? 'bg-emerald-600 border-emerald-600' 
                         : 'bg-white border-gray-300'
                     }`}>
                       {formData.isFeatured && (
-                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
                       )}
                     </div>
                   </div>
-                  <div className="ml-3 flex-1">
-                    <div className="flex items-center gap-2">
-                      <svg className="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927a1 1 0 011.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
-                      <span className="font-bold text-gray-900">Produit en vedette</span>
-                    </div>
-                    <p className="text-xs text-gray-600 mt-0.5">Mise en avant</p>
+                  <div className="ml-2 flex-1">
+                    <span className="text-sm font-semibold text-gray-900">En vedette</span>
                   </div>
                 </label>
 
                 {/* Best Seller */}
-                <label className="flex items-center p-4 bg-white rounded-xl border-2 cursor-pointer transition-all hover:border-orange-300 hover:bg-orange-50"
+                <label className="flex items-center p-3 bg-white rounded-lg border cursor-pointer transition-all hover:border-orange-300 hover:bg-orange-50"
                   style={{
                     borderColor: formData.isBestSeller ? '#f97316' : '#e5e7eb',
                     backgroundColor: formData.isBestSeller ? '#fff7ed' : 'white'
@@ -563,37 +1043,60 @@ export default function AdminProductsPage() {
                       onChange={(e) => setFormData({ ...formData, isBestSeller: e.target.checked })}
                       className="sr-only"
                     />
-                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
+                    <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${
                       formData.isBestSeller 
                         ? 'bg-orange-600 border-orange-600' 
                         : 'bg-white border-gray-300'
                     }`}>
                       {formData.isBestSeller && (
-                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
                       )}
                     </div>
                   </div>
-                  <div className="ml-3 flex-1">
-                    <div className="flex items-center gap-2">
-                      <svg className="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927a1 1 0 011.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
-                      <span className="font-bold text-gray-900">Best Seller</span>
-                    </div>
-                    <p className="text-xs text-gray-600 mt-0.5">Meilleure vente</p>
+                  <div className="ml-2 flex-1">
+                    <span className="text-sm font-semibold text-gray-900">Best Seller</span>
                   </div>
                 </label>
               </div>
             </div>
 
-            <div className="flex gap-4 pt-6 border-t border-gray-200">
+            {/* Caractéristiques du produit */}
+            {productSpecs.length > 0 && (
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
+                <div className="mb-3">
+                  <h3 className="text-sm font-bold text-gray-900">Caractéristiques du produit</h3>
+                  <p className="text-xs text-gray-600 mt-0.5">Renseignez les caractéristiques (optionnel)</p>
+                </div>
+
+                {/* Formulaire des caractéristiques en grille */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {productSpecs.map((spec) => (
+                    <div key={spec._id} className="flex flex-col">
+                      <label className="block mb-1 text-xs font-semibold text-gray-700">
+                        {spec.name}
+                      </label>
+                      <input
+                        type={spec.type === 'number' ? 'text' : 'text'}
+                        inputMode={spec.type === 'number' ? 'decimal' : 'text'}
+                        value={formData.specifications[spec.name] || ''}
+                        onChange={(e) => updateSpecification(spec.name, e.target.value, spec.type)}
+                        placeholder={spec.type === 'number' ? 'Nombre uniquement' : `Entrez ${spec.name.toLowerCase()}`}
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-100 transition-all"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-4 border-t border-gray-200">
               <button
                 type="submit"
-                className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-2.5 rounded-lg font-bold text-sm hover:from-green-700 hover:to-green-800 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {editingProduct ? 'Enregistrer les modifications' : 'Créer le produit'}
+                {editingProduct ? 'Enregistrer' : 'Créer le produit'}
               </button>
               <button
                 type="button"
@@ -602,7 +1105,7 @@ export default function AdminProductsPage() {
                   setEditingProduct(null);
                   resetForm();
                 }}
-                className="px-8 py-4 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-all border-2 border-gray-200"
+                className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-bold text-sm hover:bg-gray-200 transition-all border border-gray-200"
               >
                 Annuler
               </button>
@@ -635,70 +1138,48 @@ export default function AdminProductsPage() {
             {/* Filtre catégorie */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Catégorie</label>
-              <div className="relative">
-                <select
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all appearance-none cursor-pointer"
-                >
-                  <option value="">Toutes</option>
-                  {mainCategories.map((cat) => (
-                    <option key={cat._id} value={cat._id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
+              <CustomSelect
+                options={[
+                  { value: '', label: 'Toutes' },
+                  ...mainCategories.map(cat => ({ value: cat._id, label: cat.name }))
+                ]}
+                value={categoryFilter}
+                onChange={setCategoryFilter}
+                placeholder="Toutes les catégories..."
+                searchable={true}
+              />
             </div>
 
             {/* Filtre marque */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Marque</label>
-              <div className="relative">
-                <select
-                  value={brandFilter}
-                  onChange={(e) => setBrandFilter(e.target.value)}
-                  className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all appearance-none cursor-pointer"
-                >
-                  <option value="">Toutes</option>
-                  {brands.map((brand) => (
-                    <option key={brand} value={brand}>
-                      {brand}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
+              <CustomSelect
+                options={[
+                  { value: '', label: 'Toutes' },
+                  ...brands.map(brand => ({ value: brand._id, label: brand.name }))
+                ]}
+                value={brandFilter}
+                onChange={setBrandFilter}
+                placeholder="Toutes les marques..."
+                searchable={true}
+              />
             </div>
 
             {/* Filtre stock */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Stock</label>
-              <div className="relative">
-                <select
-                  value={stockFilter}
-                  onChange={(e) => setStockFilter(e.target.value)}
-                  className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all appearance-none cursor-pointer"
-                >
-                  <option value="all">Tous</option>
-                  <option value="inStock">En stock</option>
-                  <option value="outOfStock">Rupture</option>
-                </select>
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
+              <CustomSelect
+                options={[
+                  { value: 'all', label: 'Tous' },
+                  { value: 'inStock', label: 'En stock' },
+                  { value: 'outOfStock', label: 'Rupture' }
+                ]}
+                value={stockFilter}
+                onChange={setStockFilter}
+                placeholder="Tous"
+                searchable={false}
+                className="text-sm"
+              />
             </div>
           </div>
 
@@ -706,15 +1187,18 @@ export default function AdminProductsPage() {
           <div className="flex items-center gap-4 mt-4 pt-4 border-t border-gray-200">
             <div className="flex items-center gap-2">
               <label className="text-sm font-semibold text-gray-700">Vedette:</label>
-              <select
+              <CustomSelect
+                options={[
+                  { value: 'all', label: 'Tous' },
+                  { value: 'featured', label: 'Vedettes uniquement' },
+                  { value: 'notFeatured', label: 'Non vedettes' }
+                ]}
                 value={featuredFilter}
-                onChange={(e) => setFeaturedFilter(e.target.value)}
-                className="px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-all appearance-none cursor-pointer"
-              >
-                <option value="all">Tous</option>
-                <option value="featured">Vedettes uniquement</option>
-                <option value="notFeatured">Non vedettes</option>
-              </select>
+                onChange={setFeaturedFilter}
+                placeholder="Tous"
+                searchable={false}
+                className="w-48"
+              />
             </div>
 
             {(search || categoryFilter || brandFilter || stockFilter !== 'all' || featuredFilter !== 'all') && (
@@ -808,7 +1292,7 @@ export default function AdminProductsPage() {
                         </Link>
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
                           {product.brand && (
-                            <span className="text-xs text-gray-500">{product.brand}</span>
+                            <span className="text-xs text-gray-500">{product.brand.name || product.brand}</span>
                           )}
                           {product.category && (
                             <>

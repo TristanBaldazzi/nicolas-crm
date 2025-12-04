@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "node --watch server.js",
     "start": "node server.js",
-    "init-admin": "node scripts/initAdmin.js"
+    "init-admin": "node scripts/initAdmin.js",
+    "init-specs": "node scripts/initProductSpecs.js",
+    "init-brands": "node scripts/initBrands.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

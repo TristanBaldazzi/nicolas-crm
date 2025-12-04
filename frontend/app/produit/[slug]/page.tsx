@@ -21,6 +21,7 @@ export default function ProductPage() {
   const [settings, setSettings] = useState<any>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoritesLoading, setFavoritesLoading] = useState(false);
+  const [showAllSpecs, setShowAllSpecs] = useState(false);
   const { addItem } = useCartStore();
   const { user } = useAuthStore();
 
@@ -120,14 +121,14 @@ export default function ProductPage() {
   }
 
   return (
-    <div className="min-h-screen py-8">
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+    <div className="min-h-screen bg-white">
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Images */}
-          <div>
+          <div className="space-y-4">
             {product.images && product.images.length > 0 ? (
               <>
-                <div className="aspect-square bg-gray-100 rounded-lg mb-4 overflow-hidden">
+                <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
                   <img
                     src={getImageUrl(product.images[selectedImage]?.url)}
                     alt={product.images[selectedImage]?.alt || product.name}
@@ -135,13 +136,15 @@ export default function ProductPage() {
                   />
                 </div>
                 {product.images.length > 1 && (
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-5 gap-2">
                     {product.images.map((img: any, index: number) => (
                       <button
                         key={index}
                         onClick={() => setSelectedImage(index)}
-                        className={`aspect-square rounded-lg overflow-hidden border-2 ${
-                          selectedImage === index ? 'border-green-600' : 'border-transparent'
+                        className={`aspect-square rounded overflow-hidden border transition-all ${
+                          selectedImage === index 
+                            ? 'border-gray-900' 
+                            : 'border-gray-200 hover:border-gray-400'
                         }`}
                       >
                         <img
@@ -155,70 +158,159 @@ export default function ProductPage() {
                 )}
               </>
             ) : (
-              <div className="aspect-square bg-gray-200 rounded-lg flex items-center justify-center">
-                <span className="text-gray-400">Aucune image</span>
+              <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center border border-gray-200">
+                <span className="text-gray-400 text-sm">Aucune image</span>
               </div>
             )}
+
+            {/* Caractéristiques en dessous de la photo */}
+            {(() => {
+              // Convertir les specifications Map en objet si nécessaire
+              let specs: Record<string, any> = {};
+              if (product.specifications) {
+                if (product.specifications instanceof Map) {
+                  product.specifications.forEach((value, key) => {
+                    if (value !== null && value !== undefined && value !== '') {
+                      specs[key] = value;
+                    }
+                  });
+                } else if (typeof product.specifications === 'object') {
+                  specs = product.specifications;
+                }
+              }
+              
+              const validSpecs = Object.entries(specs).filter(
+                ([key, value]) => value !== null && value !== undefined && value !== ''
+              );
+
+              if (validSpecs.length === 0) return null;
+
+              const displaySpecs = showAllSpecs ? validSpecs : validSpecs.slice(0, 10);
+              const hasMore = validSpecs.length > 10;
+
+              return (
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                    <h2 className="text-sm font-semibold text-gray-900">Caractéristiques</h2>
+                  </div>
+                  <div className="relative">
+                    <div className={`p-4 space-y-2 ${!showAllSpecs && hasMore ? 'pb-16' : ''}`}>
+                      {displaySpecs.map(([key, value]) => (
+                        <div key={key} className="flex items-start gap-3 py-2 border-b border-gray-100 last:border-0">
+                          <div className="flex-1">
+                            <div className="text-xs text-gray-500 mb-0.5">{key}</div>
+                            <div className="text-sm font-medium text-gray-900">{String(value)}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {!showAllSpecs && hasMore && (
+                      <>
+                        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white via-white/95 to-transparent pointer-events-none"></div>
+                        <div className="absolute bottom-2 left-0 right-0 flex justify-center">
+                          <button
+                            onClick={() => setShowAllSpecs(true)}
+                            className="px-4 py-2 bg-gray-900 text-white text-xs font-medium rounded hover:bg-gray-800 transition-colors"
+                          >
+                            Voir plus ({validSpecs.length - 10} autres)
+                          </button>
+                        </div>
+                      </>
+                    )}
+                    {showAllSpecs && hasMore && (
+                      <div className="px-4 pb-4 flex justify-center border-t border-gray-200 pt-3">
+                        <button
+                          onClick={() => setShowAllSpecs(false)}
+                          className="px-4 py-2 bg-gray-100 text-gray-700 text-xs font-medium rounded hover:bg-gray-200 transition-colors"
+                        >
+                          Voir moins
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Informations */}
-          <div>
-            <div className="flex items-start gap-4 mb-4">
-              <h1 className="text-4xl font-bold flex-1">{product.name}</h1>
-              {product.isBestSeller && (
-                <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-5 py-2 rounded-full text-sm font-black shadow-xl uppercase tracking-wider flex items-center gap-2 animate-pulse">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927a1 1 0 011.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                  Best Seller
-                </span>
-              )}
-            </div>
-            
-            {product.brand && (
-              <div className="mb-4">
-                <span className="text-sm text-gray-600">Marque:</span>
-                <span className="ml-2 font-semibold">{product.brand}</span>
+          <div className="space-y-6">
+            {/* Header */}
+            <div>
+              <div className="flex items-start gap-3 mb-3">
+                <h1 className="text-2xl font-semibold text-gray-900 flex-1">{product.name}</h1>
+                {product.isBestSeller && (
+                  <span className="bg-gray-900 text-white px-2 py-1 rounded text-xs font-medium uppercase flex-shrink-0">
+                    Best Seller
+                  </span>
+                )}
               </div>
-            )}
+              
+              <div className="flex items-center gap-3 flex-wrap text-sm text-gray-600">
+                {product.brand && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-gray-500">Marque:</span>
+                    <span className="font-medium text-gray-900">{product.brand.name || product.brand}</span>
+                  </div>
+                )}
+                {product.category && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-gray-500">Catégorie:</span>
+                    <span className="font-medium text-gray-900">{product.category.name}</span>
+                    {product.subCategory && (
+                      <>
+                        <span className="text-gray-400">/</span>
+                        <span className="font-medium text-gray-900">{product.subCategory.name}</span>
+                      </>
+                    )}
+                  </div>
+                )}
+                <div className={`px-2 py-1 rounded text-xs font-medium ${
+                  product.isInStock 
+                    ? 'bg-gray-100 text-gray-700' 
+                    : 'bg-gray-200 text-gray-600'
+                }`}>
+                  {product.isInStock ? 'En stock' : 'Rupture de stock'}
+                </div>
+              </div>
+            </div>
 
-            <div className="mb-6">
+            {/* Prix */}
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
               {canSeePrice() ? (
                 <>
-                  <div className="flex items-baseline gap-4">
-                    <span className="text-4xl font-bold text-green-600">
+                  <div className="flex items-baseline gap-3 mb-2">
+                    <span className="text-3xl font-semibold text-gray-900">
                       {product.discountedPrice ? product.discountedPrice.toFixed(2) : product.price.toFixed(2)} €
                     </span>
                     {(product.discountedPrice || product.originalPrice) && (product.discountedPrice || product.originalPrice) !== product.price && (
-                      <span className="text-xl text-gray-400 line-through">
+                      <span className="text-lg text-gray-400 line-through">
                         {product.price.toFixed(2)} €
                       </span>
                     )}
                     {!product.discountedPrice && !product.originalPrice && product.compareAtPrice && (
-                      <span className="text-xl text-gray-400 line-through">
+                      <span className="text-lg text-gray-400 line-through">
                         {product.compareAtPrice.toFixed(2)} €
                       </span>
                     )}
                   </div>
                   {product.discountPercentage > 0 && (
-                    <div className="mt-2">
-                      <span className="inline-block bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-bold">
-                        -{product.discountPercentage}% {product.promotion?.name && `(${product.promotion.name})`}
-                      </span>
+                    <div className="inline-block bg-gray-900 text-white px-2 py-1 rounded text-xs font-medium">
+                      -{product.discountPercentage}% {product.promotion?.name && `(${product.promotion.name})`}
                     </div>
                   )}
                 </>
               ) : (
-                <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                  <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex items-center gap-3 p-4 bg-white rounded border border-gray-200">
+                  <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
-                  <div>
-                    <p className="font-semibold text-gray-900">
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900 text-sm">
                       {settings?.priceVisibility === 'loggedIn' ? 'Connectez-vous pour voir le prix' : 'Prix sur demande'}
                     </p>
                     {settings?.priceVisibility === 'loggedIn' && !user && (
-                      <Link href="/login" className="text-sm text-green-600 hover:underline mt-1 inline-block">
+                      <Link href="/login" className="text-xs text-gray-600 hover:text-gray-900 mt-1 inline-block">
                         Se connecter →
                       </Link>
                     )}
@@ -227,98 +319,87 @@ export default function ProductPage() {
               )}
             </div>
 
+            {/* Description */}
             {product.shortDescription && (
-              <p className="text-lg text-gray-700 mb-6">{product.shortDescription}</p>
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <p className="text-sm text-gray-700 leading-relaxed">{product.shortDescription}</p>
+              </div>
             )}
 
             {product.description && (
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold mb-2">Description</h2>
-                <p className="text-gray-700 whitespace-pre-line">{product.description}</p>
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <h2 className="text-sm font-semibold text-gray-900 mb-3">Description</h2>
+                <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">{product.description}</p>
               </div>
             )}
 
+            {/* Référence */}
             {product.sku && (
-              <div className="mb-4">
-                <span className="text-sm text-gray-600">Référence:</span>
-                <span className="ml-2 font-mono">{product.sku}</span>
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">Référence:</span>
+                  <span className="font-mono text-sm font-medium text-gray-900">{product.sku}</span>
+                </div>
               </div>
             )}
 
-            <div className="mb-6">
-              <div className={`inline-block px-4 py-2 rounded-lg ${
-                product.isInStock ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-              }`}>
-                {product.isInStock ? 'En stock' : 'Rupture de stock'}
-              </div>
-            </div>
-
-            {product.category && (
-              <div className="text-sm text-gray-600 mb-6">
-                <span>Catégorie: </span>
-                <span className="font-semibold">{product.category.name}</span>
-                {product.subCategory && (
-                  <>
-                    <span className="mx-2">/</span>
-                    <span className="font-semibold">{product.subCategory.name}</span>
-                  </>
-                )}
-              </div>
-            )}
-
+            {/* Actions */}
             {user && user.role !== 'admin' && (
-              <div className="mt-8 pt-8 border-t border-gray-200">
-                <div className="flex items-center gap-4 mb-4">
-                  <label className="text-sm font-semibold text-gray-700">Quantité:</label>
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <div className="flex items-center gap-3 mb-4">
+                  <label className="text-sm font-medium text-gray-700">Quantité:</label>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="w-10 h-10 border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50"
+                      className="w-8 h-8 border border-gray-300 rounded flex items-center justify-center hover:bg-gray-50 transition-colors text-sm"
                     >
-                      -
+                      −
                     </button>
                     <input
                       type="number"
                       min="1"
                       value={quantity}
                       onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center"
+                      className="w-16 px-2 py-1.5 border border-gray-300 rounded text-center text-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900"
                     />
                     <button
                       onClick={() => setQuantity(quantity + 1)}
-                      className="w-10 h-10 border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50"
+                      className="w-8 h-8 border border-gray-300 rounded flex items-center justify-center hover:bg-gray-50 transition-colors text-sm"
                     >
                       +
                     </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <button
                     onClick={() => {
                       addItem(product._id, quantity);
                       toast.success(`${quantity} article(s) ajouté(s) au panier`);
                       setQuantity(1);
                     }}
-                    className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl"
+                    className="flex-1 bg-gray-900 text-white px-4 py-2.5 rounded text-sm font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
                   >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
                     Ajouter au panier
                   </button>
                   <button
                     onClick={toggleFavorite}
                     disabled={favoritesLoading}
-                    className={`p-4 rounded-xl font-bold transition-all shadow-lg hover:shadow-xl ${
+                    className={`p-2.5 rounded border transition-colors ${
                       isFavorite
-                        ? 'bg-red-500 hover:bg-red-600 text-white'
-                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                        ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800'
+                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                     }`}
                     title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
                   >
                     {favoritesLoading ? (
-                      <svg className="w-6 h-6 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
                     ) : (
-                      <svg className="w-6 h-6" fill={isFavorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4" fill={isFavorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                       </svg>
                     )}
@@ -331,133 +412,71 @@ export default function ProductPage() {
 
         {/* Produits recommandés */}
         {recommendedProducts.length > 0 && (
-          <div className="mt-20 pt-20 border-t border-gray-200">
-            {/* Header avec design moderne */}
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center gap-3 mb-4">
-                <div className="h-px w-12 bg-gradient-to-r from-transparent to-green-500"></div>
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <h2 className="text-4xl font-black text-gray-900">
-                  Produits <span className="bg-gradient-to-r from-green-600 to-emerald-500 bg-clip-text text-transparent">recommandés</span>
-                </h2>
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <div className="h-px w-12 bg-gradient-to-l from-transparent to-green-500"></div>
-              </div>
-              <p className="text-gray-600 text-lg">Découvrez d'autres produits qui pourraient vous intéresser</p>
+          <div className="mt-12 pt-12 border-t border-gray-200">
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">Produits recommandés</h2>
+              <p className="text-sm text-gray-600">Découvrez d'autres produits qui pourraient vous intéresser</p>
             </div>
 
-            {/* Grille de produits avec design amélioré */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {recommendedProducts.map((recommendedProduct) => {
                 const primaryImage = recommendedProduct.images?.find((img: any) => img.isPrimary) || recommendedProduct.images?.[0];
                 return (
                   <Link
                     key={recommendedProduct._id}
                     href={`/produit/${recommendedProduct.slug}`}
-                    className="group relative bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 border border-gray-100 transform hover:-translate-y-2 cursor-pointer"
+                    className="group bg-white rounded-lg border border-gray-200 overflow-hidden hover:border-gray-300 transition-colors"
                   >
-                    {/* Effet de glow au hover */}
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-green-500 via-emerald-500 to-green-500 rounded-2xl opacity-0 group-hover:opacity-100 blur transition-opacity duration-500"></div>
-                    
-                    <div className="relative bg-white rounded-2xl h-full flex flex-col">
-                      {/* Image avec overlay */}
-                      {primaryImage ? (
-                        <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 relative overflow-hidden">
-                          <img
-                            src={getImageUrl(primaryImage.url)}
-                            alt={primaryImage.alt || recommendedProduct.name}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                          
-                          {/* Badge marque */}
-                          {recommendedProduct.brand && (
-                            <div className="absolute top-4 left-4">
-                              <span className="bg-white/95 backdrop-blur-sm text-green-700 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg">
-                                {recommendedProduct.brand}
-                              </span>
-                            </div>
-                          )}
-                          
-                          {/* Badges */}
-                          <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
-                            {recommendedProduct.isBestSeller && (
-                              <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-full text-xs font-black shadow-xl uppercase tracking-wider flex items-center gap-1.5 animate-pulse">
-                                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                  <path d="M9.049 2.927a1 1 0 011.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                </svg>
-                                Best Seller
+                    {primaryImage ? (
+                      <div className="aspect-square bg-gray-100 relative overflow-hidden">
+                        <img
+                          src={getImageUrl(primaryImage.url)}
+                          alt={primaryImage.alt || recommendedProduct.name}
+                          className="w-full h-full object-cover"
+                        />
+                        {recommendedProduct.isBestSeller && (
+                          <div className="absolute top-2 right-2">
+                            <span className="bg-gray-900 text-white px-2 py-0.5 rounded text-xs font-medium uppercase">
+                              Best Seller
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="aspect-square bg-gray-100 flex items-center justify-center">
+                        <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    )}
+
+                    <div className="p-3 flex flex-col">
+                      <h3 className="font-medium text-gray-900 mb-2 line-clamp-2 text-sm leading-tight">
+                        {recommendedProduct.name}
+                      </h3>
+                      
+                      <div className="mt-auto pt-2 border-t border-gray-100">
+                        {canSeePrice() ? (
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-base font-semibold text-gray-900">
+                              {recommendedProduct.discountedPrice 
+                                ? recommendedProduct.discountedPrice.toFixed(2)
+                                : recommendedProduct.price.toFixed(2)} €
+                            </span>
+                            {recommendedProduct.discountedPrice && recommendedProduct.discountedPrice !== recommendedProduct.price && (
+                              <span className="text-xs text-gray-400 line-through">
+                                {recommendedProduct.price.toFixed(2)} €
                               </span>
                             )}
-                            {recommendedProduct.isFeatured && (
-                              <span className="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
-                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                  <path d="M9.049 2.927a1 1 0 011.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                </svg>
-                                Vedette
+                            {recommendedProduct.discountPercentage > 0 && (
+                              <span className="ml-auto bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-xs font-medium">
+                                -{recommendedProduct.discountPercentage}%
                               </span>
                             )}
                           </div>
-
-                          {/* Overlay avec bouton au hover */}
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                            <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-xl font-bold shadow-xl transform translate-y-4 group-hover:translate-y-0 transition-all duration-500 hover:scale-105 flex items-center gap-2">
-                              <span>Découvrir</span>
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                              </svg>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                          <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                        </div>
-                      )}
-
-                      {/* Contenu */}
-                      <div className="p-5 flex-1 flex flex-col">
-                        <h3 className="font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-green-600 transition-colors text-lg leading-tight">
-                          {recommendedProduct.name}
-                        </h3>
-                        
-                        {/* Prix avec design amélioré */}
-                        <div className="mt-auto pt-4 border-t border-gray-100">
-                          {canSeePrice() ? (
-                            <div className="flex items-baseline gap-2">
-                              <span className="text-2xl font-black bg-gradient-to-r from-green-600 to-emerald-500 bg-clip-text text-transparent">
-                                {recommendedProduct.discountedPrice 
-                                  ? recommendedProduct.discountedPrice.toFixed(2)
-                                  : recommendedProduct.price.toFixed(2)} €
-                              </span>
-                              {recommendedProduct.discountedPrice && recommendedProduct.discountedPrice !== recommendedProduct.price && (
-                                <span className="text-sm text-gray-400 line-through">
-                                  {recommendedProduct.price.toFixed(2)} €
-                                </span>
-                              )}
-                              {recommendedProduct.discountPercentage > 0 && (
-                                <span className="ml-auto bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs font-bold">
-                                  -{recommendedProduct.discountPercentage}%
-                                </span>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                <span className="text-base font-bold text-gray-900">Disponible</span>
-                              </div>
-                              <div className="flex items-center gap-1 text-green-600 font-bold group-hover:gap-2 transition-all">
-                                <span className="text-sm">Découvrir</span>
-                                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                </svg>
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                        ) : (
+                          <div className="text-xs text-gray-600">Prix sur demande</div>
+                        )}
                       </div>
                     </div>
                   </Link>
