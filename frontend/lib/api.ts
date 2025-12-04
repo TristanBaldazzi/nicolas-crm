@@ -68,6 +68,8 @@ export const productsApi = {
     api.put(`/products/${id}`, data),
   delete: (id: string) =>
     api.delete(`/products/${id}`),
+  generateAI: (description: string) =>
+    api.post('/products/generate-ai', { description }),
 };
 
 // Categories

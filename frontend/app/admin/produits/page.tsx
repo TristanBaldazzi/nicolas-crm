@@ -29,6 +29,9 @@ export default function AdminProductsPage() {
   const [newBrandName, setNewBrandName] = useState('');
   const [specSearch, setSpecSearch] = useState('');
   const [brandSearch, setBrandSearch] = useState('');
+  const [showAIModal, setShowAIModal] = useState(false);
+  const [aiDescription, setAiDescription] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -349,6 +352,51 @@ export default function AdminProductsPage() {
           [specName]: value,
         },
       });
+    }
+  };
+
+  const handleAIGeneration = async () => {
+    if (!aiDescription.trim()) {
+      toast.error('Veuillez entrer une description du produit');
+      return;
+    }
+
+    setAiLoading(true);
+    try {
+      const response = await productsApi.generateAI(aiDescription.trim());
+      const generatedData = response.data;
+
+      // Remplir le formulaire avec les données générées
+      setFormData({
+        name: generatedData.name || '',
+        description: generatedData.description || '',
+        shortDescription: generatedData.shortDescription || '',
+        sku: generatedData.sku || '',
+        price: generatedData.price?.toString() || '',
+        compareAtPrice: generatedData.compareAtPrice?.toString() || '',
+        brand: generatedData.brand || '',
+        category: generatedData.category || '',
+        subCategory: generatedData.subCategory || '',
+        stock: generatedData.stock?.toString() || '',
+        isInStock: generatedData.isInStock !== undefined ? generatedData.isInStock : true,
+        isFeatured: generatedData.isFeatured || false,
+        isBestSeller: generatedData.isBestSeller || false,
+        images: [],
+        specifications: generatedData.specifications || {},
+      });
+
+      // Fermer le modal et ouvrir le formulaire
+      setShowAIModal(false);
+      setAiDescription('');
+      setShowForm(true);
+      setEditingProduct(null);
+      
+      toast.success('Produit généré avec succès ! Vérifiez et complétez les informations si nécessaire.');
+    } catch (error: any) {
+      console.error('Erreur génération IA:', error);
+      toast.error(error.response?.data?.error || 'Erreur lors de la génération IA. Vérifiez que OPENAI_API_KEY est configurée dans le backend.');
+    } finally {
+      setAiLoading(false);
     }
   };
 
@@ -757,10 +805,22 @@ export default function AdminProductsPage() {
 
       {showForm && (
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden mb-8">
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-200">
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <h2 className="text-2xl font-black text-gray-900">
               {editingProduct ? 'Modifier' : 'Créer'} un produit
             </h2>
+            {!editingProduct && (
+              <button
+                type="button"
+                onClick={() => setShowAIModal(true)}
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                Génération IA
+              </button>
+            )}
           </div>
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
             {/* Ligne 1: Nom et Code barre */}
@@ -1369,6 +1429,88 @@ export default function AdminProductsPage() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Modal Génération IA */}
+      {showAIModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-8 py-6 border-b border-purple-500 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-3xl font-black text-white flex items-center gap-3">
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Génération IA
+                  </h2>
+                  <p className="text-purple-100 mt-1">Décrivez votre produit et l'IA remplira automatiquement les informations</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowAIModal(false);
+                    setAiDescription('');
+                  }}
+                  className="text-white hover:bg-white/20 rounded-lg p-2 transition-all"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 flex-1 flex flex-col">
+              <div className="mb-4">
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Description du produit
+                </label>
+                <textarea
+                  value={aiDescription}
+                  onChange={(e) => setAiDescription(e.target.value)}
+                  placeholder="Exemple: Aspirateur robot Nematic avec technologie ReFlo, puissance moteur 2000W, rayon d'action 50m, réservoir inclus, prise Nuplug, dimensions 35x35x10cm, poids 3.5kg..."
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all text-sm min-h-[200px] resize-y"
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  Plus vous donnez de détails, plus l'IA pourra remplir précisément les champs
+                </p>
+              </div>
+
+              <div className="mt-auto pt-4 border-t border-gray-200 flex items-center justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowAIModal(false);
+                    setAiDescription('');
+                  }}
+                  className="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition-all"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleAIGeneration}
+                  disabled={!aiDescription.trim() || aiLoading}
+                  className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-bold hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {aiLoading ? (
+                    <>
+                      <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Génération en cours...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      Générer
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

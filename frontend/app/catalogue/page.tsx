@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { productsApi, categoriesApi, settingsApi, brandsApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 import { getImageUrl } from '@/lib/config';
+import CustomSelect from '@/components/CustomSelect';
 
 export default function CataloguePage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -101,22 +102,30 @@ export default function CataloguePage() {
       <div className="container mx-auto px-4 py-16">
         {/* Filtres - Design Moderne */}
         <div className="mb-12">
-          <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-visible backdrop-blur-sm bg-opacity-95">
             {/* Header des filtres */}
             <div 
-              className="flex items-center justify-between p-6 cursor-pointer hover:bg-gray-50 transition-colors"
+              className="flex items-center justify-between p-6 cursor-pointer hover:bg-gradient-to-r hover:from-green-50/50 hover:to-emerald-50/50 transition-all duration-300"
               onClick={() => setShowFilters(!showFilters)}
             >
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                <div className="w-14 h-14 bg-gradient-to-br from-green-500 via-green-600 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform">
+                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Filtres de recherche</h2>
+                  <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+                    Filtres de recherche
+                    {hasActiveFilters && (
+                      <span className="px-2.5 py-0.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold rounded-full">
+                        {[filters.search && 'Recherche', filters.category && 'Catégorie', filters.brand && 'Marque'].filter(Boolean).length}
+                      </span>
+                    )}
+                  </h2>
                   {hasActiveFilters && (
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-sm text-gray-500 mt-1.5 flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
                       {[filters.search && 'Recherche', filters.category && 'Catégorie', filters.brand && 'Marque'].filter(Boolean).join(', ')} actifs
                     </p>
                   )}
@@ -129,85 +138,98 @@ export default function CataloguePage() {
                       e.stopPropagation();
                       clearFilters();
                     }}
-                    className="px-4 py-2 text-sm font-semibold text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
+                    className="px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-red-500 to-pink-500 rounded-xl hover:from-red-600 hover:to-pink-600 transition-all shadow-md hover:shadow-lg transform hover:scale-105"
                   >
                     Réinitialiser
                   </button>
                 )}
-                <svg 
-                  className={`w-6 h-6 text-gray-400 transition-transform duration-300 ${showFilters ? 'rotate-180' : ''}`}
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center transition-all duration-300 ${showFilters ? 'rotate-180 bg-gradient-to-br from-green-100 to-emerald-100' : ''}`}>
+                  <svg 
+                    className={`w-5 h-5 text-gray-600 transition-colors ${showFilters ? 'text-green-600' : ''}`}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
               </div>
             </div>
 
             {/* Contenu des filtres */}
             {showFilters && (
-              <div className="px-6 pb-6 border-t border-gray-100">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
+              <div className="px-6 pb-8 border-t border-gray-100 bg-gradient-to-br from-gray-50/50 to-white relative overflow-visible">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 relative z-10">
                   {/* Recherche */}
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-3">Recherche</label>
-                    <div className="relative">
-                      <svg className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="group">
+                    <label className="block text-sm font-black text-gray-900 mb-3 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                       </svg>
+                      Recherche
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-green-600 transition-colors">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                      </div>
                       <input
                         type="text"
                         value={filters.search}
                         onChange={(e) => setFilters({ ...filters, search: e.target.value, page: 1 })}
                         placeholder="Nom, description, SKU..."
-                        className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all bg-white font-medium"
+                        className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-2xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all bg-white font-semibold shadow-sm hover:shadow-md focus:shadow-lg"
                       />
                     </div>
                   </div>
 
                   {/* Catégorie */}
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-3">Catégorie</label>
-                    <div className="relative">
-                      <select
-                        value={filters.category}
-                        onChange={(e) => setFilters({ ...filters, category: e.target.value, page: 1 })}
-                        className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all appearance-none bg-white font-medium cursor-pointer"
-                      >
-                        <option value="">Toutes les catégories</option>
-                        {categories.map((cat) => (
-                          <option key={cat._id} value={cat._id}>
-                            {cat.name}
-                          </option>
-                        ))}
-                      </select>
-                      <svg className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  <div className="group">
+                    <label className="block text-sm font-black text-gray-900 mb-3 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                       </svg>
-                    </div>
+                      Catégorie
+                    </label>
+                    <CustomSelect
+                      options={[
+                        { value: '', label: 'Toutes les catégories' },
+                        ...categories.map((cat) => ({
+                          value: cat._id,
+                          label: cat.name,
+                        })),
+                      ]}
+                      value={filters.category}
+                      onChange={(value) => setFilters({ ...filters, category: value, page: 1 })}
+                      placeholder="Sélectionner une catégorie"
+                      searchable={true}
+                      className="shadow-sm hover:shadow-md focus-within:shadow-lg"
+                    />
                   </div>
 
                   {/* Marque */}
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-3">Marque</label>
-                    <div className="relative">
-                      <select
-                        value={filters.brand}
-                        onChange={(e) => setFilters({ ...filters, brand: e.target.value, page: 1 })}
-                        className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all appearance-none bg-white font-medium cursor-pointer"
-                      >
-                        <option value="">Toutes les marques</option>
-                        {brands.map((brand) => (
-                          <option key={brand._id} value={brand._id}>
-                            {brand.name}
-                          </option>
-                        ))}
-                      </select>
-                      <svg className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  <div className="group">
+                    <label className="block text-sm font-black text-gray-900 mb-3 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                       </svg>
-                    </div>
+                      Marque
+                    </label>
+                    <CustomSelect
+                      options={[
+                        { value: '', label: 'Toutes les marques' },
+                        ...brands.map((brand) => ({
+                          value: brand._id,
+                          label: brand.name,
+                        })),
+                      ]}
+                      value={filters.brand}
+                      onChange={(value) => setFilters({ ...filters, brand: value, page: 1 })}
+                      placeholder="Sélectionner une marque"
+                      searchable={true}
+                      className="shadow-sm hover:shadow-md focus-within:shadow-lg"
+                    />
                   </div>
                 </div>
               </div>
@@ -260,13 +282,12 @@ export default function CataloguePage() {
                   <div className="relative bg-white rounded-3xl h-full flex flex-col">
                     {/* Image */}
                     {product.images?.[0] ? (
-                      <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 relative overflow-hidden">
+                      <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 relative overflow-hidden flex items-center justify-center">
                         <img
                           src={getImageUrl(product.images[0].url)}
                           alt={product.images[0].alt || product.name}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                          className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
                         {product.brand && (
                           <div className="absolute top-4 left-4">
                             <span className="bg-white/90 backdrop-blur-sm text-green-700 px-3 py-1.5 rounded-full text-xs font-bold">

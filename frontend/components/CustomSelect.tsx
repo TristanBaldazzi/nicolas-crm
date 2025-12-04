@@ -69,8 +69,8 @@ export default function CustomSelect({
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        className={`w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-100 transition-all appearance-none cursor-pointer bg-white text-left flex items-center justify-between ${
-          disabled ? 'bg-gray-50 cursor-not-allowed opacity-60' : 'hover:border-gray-300'
+        className={`w-full px-4 py-4 text-sm border-2 border-gray-200 rounded-2xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all appearance-none cursor-pointer bg-white text-left flex items-center justify-between font-semibold ${
+          disabled ? 'bg-gray-50 cursor-not-allowed opacity-60' : 'hover:border-gray-300 hover:shadow-md focus:shadow-lg'
         } ${!selectedOption ? 'text-gray-400' : 'text-gray-900'}`}
       >
         <span className="truncate">
@@ -87,7 +87,7 @@ export default function CustomSelect({
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-hidden">
+        <div className="absolute z-[9999] w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-2xl max-h-60 overflow-hidden" style={{ position: 'absolute', top: '100%', left: 0 }}>
           {searchable && (
             <div className="p-2 border-b border-gray-200 bg-gray-50">
               <div className="relative">

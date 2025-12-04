@@ -128,12 +128,43 @@ export default function ProductPage() {
           <div className="space-y-4">
             {product.images && product.images.length > 0 ? (
               <>
-                <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
-                  <img
-                    src={getImageUrl(product.images[selectedImage]?.url)}
-                    alt={product.images[selectedImage]?.alt || product.name}
-                    className="w-full h-full object-cover"
-                  />
+                <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200 relative">
+                  <div className="relative w-full h-full">
+                    {product.images.map((img: any, index: number) => (
+                      <img
+                        key={index}
+                        src={getImageUrl(img.url)}
+                        alt={img.alt || product.name}
+                        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
+                          selectedImage === index ? 'opacity-100' : 'opacity-0'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  {product.images.length > 1 && (
+                    <>
+                      {/* Flèche gauche */}
+                      <button
+                        onClick={() => setSelectedImage((selectedImage - 1 + product.images.length) % product.images.length)}
+                        className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white text-gray-900 p-2 rounded-full shadow-lg transition-all hover:scale-110 z-10"
+                        aria-label="Image précédente"
+                      >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                      {/* Flèche droite */}
+                      <button
+                        onClick={() => setSelectedImage((selectedImage + 1) % product.images.length)}
+                        className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white text-gray-900 p-2 rounded-full shadow-lg transition-all hover:scale-110 z-10"
+                        aria-label="Image suivante"
+                      >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    </>
+                  )}
                 </div>
                 {product.images.length > 1 && (
                   <div className="grid grid-cols-5 gap-2">
@@ -162,75 +193,6 @@ export default function ProductPage() {
                 <span className="text-gray-400 text-sm">Aucune image</span>
               </div>
             )}
-
-            {/* Caractéristiques en dessous de la photo */}
-            {(() => {
-              // Convertir les specifications Map en objet si nécessaire
-              let specs: Record<string, any> = {};
-              if (product.specifications) {
-                if (product.specifications instanceof Map) {
-                  product.specifications.forEach((value, key) => {
-                    if (value !== null && value !== undefined && value !== '') {
-                      specs[key] = value;
-                    }
-                  });
-                } else if (typeof product.specifications === 'object') {
-                  specs = product.specifications;
-                }
-              }
-              
-              const validSpecs = Object.entries(specs).filter(
-                ([key, value]) => value !== null && value !== undefined && value !== ''
-              );
-
-              if (validSpecs.length === 0) return null;
-
-              const displaySpecs = showAllSpecs ? validSpecs : validSpecs.slice(0, 10);
-              const hasMore = validSpecs.length > 10;
-
-              return (
-                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                  <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                    <h2 className="text-sm font-semibold text-gray-900">Caractéristiques</h2>
-                  </div>
-                  <div className="relative">
-                    <div className={`p-4 space-y-2 ${!showAllSpecs && hasMore ? 'pb-16' : ''}`}>
-                      {displaySpecs.map(([key, value]) => (
-                        <div key={key} className="flex items-start gap-3 py-2 border-b border-gray-100 last:border-0">
-                          <div className="flex-1">
-                            <div className="text-xs text-gray-500 mb-0.5">{key}</div>
-                            <div className="text-sm font-medium text-gray-900">{String(value)}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    {!showAllSpecs && hasMore && (
-                      <>
-                        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white via-white/95 to-transparent pointer-events-none"></div>
-                        <div className="absolute bottom-2 left-0 right-0 flex justify-center">
-                          <button
-                            onClick={() => setShowAllSpecs(true)}
-                            className="px-4 py-2 bg-gray-900 text-white text-xs font-medium rounded hover:bg-gray-800 transition-colors"
-                          >
-                            Voir plus ({validSpecs.length - 10} autres)
-                          </button>
-                        </div>
-                      </>
-                    )}
-                    {showAllSpecs && hasMore && (
-                      <div className="px-4 pb-4 flex justify-center border-t border-gray-200 pt-3">
-                        <button
-                          onClick={() => setShowAllSpecs(false)}
-                          className="px-4 py-2 bg-gray-100 text-gray-700 text-xs font-medium rounded hover:bg-gray-200 transition-colors"
-                        >
-                          Voir moins
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })()}
           </div>
 
           {/* Informations */}
@@ -320,12 +282,6 @@ export default function ProductPage() {
             </div>
 
             {/* Description */}
-            {product.shortDescription && (
-              <div className="bg-white rounded-lg p-4 border border-gray-200">
-                <p className="text-sm text-gray-700 leading-relaxed">{product.shortDescription}</p>
-              </div>
-            )}
-
             {product.description && (
               <div className="bg-white rounded-lg p-4 border border-gray-200">
                 <h2 className="text-sm font-semibold text-gray-900 mb-3">Description</h2>
@@ -409,6 +365,73 @@ export default function ProductPage() {
             )}
           </div>
         </div>
+
+        {/* Caractéristiques en pleine largeur */}
+        {(() => {
+          // Convertir les specifications Map en objet si nécessaire
+          let specs: Record<string, any> = {};
+          if (product.specifications) {
+            if (product.specifications instanceof Map) {
+              product.specifications.forEach((value, key) => {
+                if (value !== null && value !== undefined && value !== '') {
+                  specs[key] = value;
+                }
+              });
+            } else if (typeof product.specifications === 'object') {
+              specs = product.specifications;
+            }
+          }
+          
+          const validSpecs = Object.entries(specs).filter(
+            ([key, value]) => value !== null && value !== undefined && value !== ''
+          );
+
+          if (validSpecs.length === 0) return null;
+
+          const displaySpecs = showAllSpecs ? validSpecs : validSpecs.slice(0, 9);
+          const hasMore = validSpecs.length > 9;
+
+          return (
+            <div className="mt-12 bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                <h2 className="text-lg font-semibold text-gray-900">Caractéristiques</h2>
+              </div>
+              <div className="relative">
+                <div className={`p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${!showAllSpecs && hasMore ? 'pb-20' : ''}`}>
+                  {displaySpecs.map(([key, value]) => (
+                    <div key={key} className="flex flex-col gap-1 py-2 border-b border-gray-100 last:border-0">
+                      <div className="text-xs text-gray-500 font-medium">{key}</div>
+                      <div className="text-sm font-semibold text-gray-900">{String(value)}</div>
+                    </div>
+                  ))}
+                </div>
+                {!showAllSpecs && hasMore && (
+                  <>
+                    <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white via-white/95 to-transparent pointer-events-none"></div>
+                    <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+                      <button
+                        onClick={() => setShowAllSpecs(true)}
+                        className="px-4 py-2 bg-gray-900 text-white text-xs font-medium rounded hover:bg-gray-800 transition-colors"
+                      >
+                        Voir plus ({validSpecs.length - 9} autres)
+                      </button>
+                    </div>
+                  </>
+                )}
+                {showAllSpecs && hasMore && (
+                  <div className="px-6 pb-6 flex justify-center border-t border-gray-200 pt-4">
+                    <button
+                      onClick={() => setShowAllSpecs(false)}
+                      className="px-4 py-2 bg-gray-100 text-gray-700 text-xs font-medium rounded hover:bg-gray-200 transition-colors"
+                    >
+                      Voir moins
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Produits recommandés */}
         {recommendedProducts.length > 0 && (

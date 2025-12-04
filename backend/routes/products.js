@@ -3,7 +3,10 @@ import mongoose from 'mongoose';
 import Product from '../models/Product.js';
 import Category from '../models/Category.js';
 import Promotion from '../models/Promotion.js';
+import Brand from '../models/Brand.js';
+import ProductSpec from '../models/ProductSpec.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
+import OpenAI from 'openai';
 
 const router = express.Router();
 
@@ -568,6 +571,187 @@ router.delete('/:id', authenticate, requireAdmin, async (req, res) => {
     res.json({ message: 'Produit supprimé' });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Génération IA de produit (admin)
+router.post('/generate-ai', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const { description } = req.body;
+
+    if (!description || !description.trim()) {
+      return res.status(400).json({ error: 'La description du produit est requise' });
+    }
+
+    // Vérifier si OpenAI est configuré
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(500).json({ error: 'OpenAI API key non configurée' });
+    }
+
+    // Récupérer les catégories, marques et specs existantes
+    const [categories, brands, specs] = await Promise.all([
+      Category.find({ isActive: true }).select('name slug parentCategory'),
+      Brand.find().select('name'),
+      ProductSpec.find().select('name type')
+    ]);
+
+    // Organiser les catégories principales et sous-catégories
+    const mainCategories = categories.filter(c => c.isMainCategory || !c.parentCategory).map(c => c.name);
+    const subCategories = categories.filter(c => !c.isMainCategory && c.parentCategory).map(c => c.name);
+    const brandNames = brands.map(b => b.name);
+    const specNames = specs.map(s => s.name);
+
+    // Initialiser OpenAI
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    // Créer le prompt pour OpenAI
+    const prompt = `Tu es un assistant expert en création de fiches produits e-commerce. 
+
+À partir de la description suivante, génère une fiche produit complète au format JSON strict (pas de markdown, juste du JSON valide).
+
+Description du produit:
+${description}
+
+Catégories principales disponibles: ${mainCategories.join(', ') || 'Aucune'}
+Sous-catégories disponibles: ${subCategories.join(', ') || 'Aucune'}
+Marques disponibles: ${brandNames.join(', ') || 'Aucune'}
+Caractéristiques disponibles: ${specNames.join(', ') || 'Aucune'}
+
+IMPORTANT:
+- Si une catégorie ou marque mentionnée dans la description correspond exactement (ou très proche) à une catégorie/marque disponible, utilise-la. Sinon, laisse le champ vide (null).
+- Remplis UNIQUEMENT les caractéristiques qui sont dans la liste des caractéristiques disponibles.
+- Pour les caractéristiques de type "number", retourne un nombre (pas de texte).
+- Pour les caractéristiques de type "boolean", retourne true ou false.
+- Si une information n'est pas disponible dans la description, laisse le champ vide (null ou chaîne vide).
+
+Retourne UNIQUEMENT un objet JSON valide avec cette structure exacte (sans markdown, sans code blocks):
+{
+  "name": "Nom du produit",
+  "shortDescription": "Description courte (max 200 caractères)",
+  "description": "Description complète et détaillée",
+  "price": nombre ou null,
+  "compareAtPrice": nombre ou null,
+  "sku": "référence produit" ou null,
+  "brand": "nom de la marque exacte si trouvée dans la liste" ou null,
+  "category": "nom de la catégorie principale exacte si trouvée" ou null,
+  "subCategory": "nom de la sous-catégorie exacte si trouvée" ou null,
+  "stock": nombre ou null,
+  "isInStock": true ou false,
+  "isFeatured": false,
+  "isBestSeller": false,
+  "specifications": {
+    "nom_caracteristique": "valeur" ou nombre ou boolean selon le type
+  }
+}`;
+
+    // Appeler OpenAI
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'Tu es un assistant expert en création de fiches produits e-commerce. Tu retournes UNIQUEMENT du JSON valide, sans markdown, sans code blocks, sans explications. Réponds toujours avec un objet JSON valide.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.3,
+      response_format: { type: 'json_object' }
+    });
+
+    // Parser la réponse
+    let generatedData;
+    try {
+      const content = completion.choices[0].message.content;
+      // Nettoyer le contenu si nécessaire (enlever les markdown code blocks)
+      const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      generatedData = JSON.parse(cleanedContent);
+    } catch (parseError) {
+      console.error('Erreur parsing OpenAI response:', parseError);
+      return res.status(500).json({ error: 'Erreur lors de la génération des données' });
+    }
+
+    // Matcher la catégorie et marque avec les IDs
+    let categoryId = null;
+    let subCategoryId = null;
+    let brandId = null;
+
+    if (generatedData.category) {
+      const matchedCategory = categories.find(
+        c => c.name.toLowerCase() === generatedData.category.toLowerCase() && (c.isMainCategory || !c.parentCategory)
+      );
+      if (matchedCategory) {
+        categoryId = matchedCategory._id.toString();
+      }
+    }
+
+    if (generatedData.subCategory) {
+      const matchedSubCategory = categories.find(
+        c => c.name.toLowerCase() === generatedData.subCategory.toLowerCase() && !c.isMainCategory && c.parentCategory
+      );
+      if (matchedSubCategory) {
+        subCategoryId = matchedSubCategory._id.toString();
+      }
+    }
+
+    if (generatedData.brand) {
+      const matchedBrand = brands.find(
+        b => b.name.toLowerCase() === generatedData.brand.toLowerCase()
+      );
+      if (matchedBrand) {
+        brandId = matchedBrand._id.toString();
+      }
+    }
+
+    // Nettoyer les spécifications (ne garder que celles qui existent)
+    const cleanedSpecs = {};
+    if (generatedData.specifications && typeof generatedData.specifications === 'object') {
+      specs.forEach(spec => {
+        const specName = spec.name;
+        if (generatedData.specifications[specName] !== undefined && 
+            generatedData.specifications[specName] !== null && 
+            generatedData.specifications[specName] !== '') {
+          // Convertir selon le type
+          if (spec.type === 'number') {
+            const numValue = parseFloat(generatedData.specifications[specName]);
+            if (!isNaN(numValue)) {
+              cleanedSpecs[specName] = numValue;
+            }
+          } else if (spec.type === 'boolean') {
+            cleanedSpecs[specName] = Boolean(generatedData.specifications[specName]);
+          } else {
+            cleanedSpecs[specName] = String(generatedData.specifications[specName]);
+          }
+        }
+      });
+    }
+
+    // Retourner les données formatées
+    const result = {
+      name: generatedData.name || '',
+      shortDescription: generatedData.shortDescription || '',
+      description: generatedData.description || '',
+      price: generatedData.price || '',
+      compareAtPrice: generatedData.compareAtPrice || '',
+      sku: generatedData.sku || '',
+      brand: brandId || '',
+      category: categoryId || '',
+      subCategory: subCategoryId || '',
+      stock: generatedData.stock || '',
+      isInStock: generatedData.isInStock !== undefined ? generatedData.isInStock : true,
+      isFeatured: generatedData.isFeatured || false,
+      isBestSeller: generatedData.isBestSeller || false,
+      specifications: cleanedSpecs
+    };
+
+    res.json(result);
+  } catch (error) {
+    console.error('Erreur génération IA:', error);
+    res.status(500).json({ error: error.message || 'Erreur lors de la génération IA' });
   }
 });
 
