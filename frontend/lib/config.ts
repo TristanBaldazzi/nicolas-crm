@@ -9,3 +9,4 @@ export const getImageUrl = (imagePath: string) => {
   return `${BACKEND_URL}${imagePath}`;
 };
 
+

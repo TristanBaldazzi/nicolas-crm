@@ -89,3 +89,4 @@ promotionSchema.methods.appliesToProduct = function(productId, categoryId, subCa
 
 export default mongoose.model('Promotion', promotionSchema);
 
+

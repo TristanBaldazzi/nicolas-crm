@@ -171,3 +171,6 @@ cd frontend && npm run dev
 - Vérifiez que `JWT_SECRET` est défini dans `backend/.env`
 - Recréez un admin avec `npm run init-admin`
 
+
+
+
