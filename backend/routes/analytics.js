@@ -169,8 +169,10 @@ router.get('/product/:productId', optionalAuthenticate, async (req, res) => {
 
     console.log('[Analytics] Filtre de recherche:', JSON.stringify(dateFilter, null, 2));
 
-    // Récupérer tous les événements pour ce produit
-    const events = await ProductAnalytics.find(dateFilter).sort({ createdAt: -1 });
+    // Récupérer tous les événements pour ce produit avec populate userId
+    const events = await ProductAnalytics.find(dateFilter)
+      .populate('userId', 'firstName lastName email')
+      .sort({ createdAt: -1 });
     
     console.log('[Analytics] Événements trouvés:', events.length);
 
@@ -298,12 +300,74 @@ router.get('/product/:productId', optionalAuthenticate, async (req, res) => {
     const deviceStatsArray = Object.values(deviceStats)
       .sort((a, b) => b.views - a.views);
 
+    // Statistiques par utilisateur avec tous les événements détaillés
+    const userStats = {};
+    events.forEach(event => {
+      // Gérer le cas où userId est peuplé (objet) ou non (ObjectId)
+      const userIdValue = event.userId;
+      const isPopulated = userIdValue && typeof userIdValue === 'object' && userIdValue._id;
+      const userId = userIdValue 
+        ? (isPopulated ? userIdValue._id.toString() : userIdValue.toString())
+        : 'anonymous';
+      
+      const userObj = isPopulated ? userIdValue : null;
+      const userName = userObj 
+        ? `${userObj.firstName || ''} ${userObj.lastName || ''}`.trim() || userObj.email || 'Utilisateur inconnu'
+        : 'Visiteur anonyme';
+      const userEmail = userObj ? userObj.email : null;
+      
+      if (!userStats[userId]) {
+        userStats[userId] = {
+          userId: userId === 'anonymous' ? null : (isPopulated ? userIdValue._id : userIdValue),
+          userName,
+          userEmail,
+          events: [],
+          views: 0,
+          cartAdds: 0,
+          purchases: 0,
+          favorites: 0,
+          cartRemoves: 0,
+          favoriteRemoves: 0
+        };
+      }
+      
+      // Ajouter l'événement détaillé
+      userStats[userId].events.push({
+        eventType: event.eventType,
+        createdAt: event.createdAt,
+        referrer: event.referrer,
+        source: event.source,
+        userAgent: event.userAgent,
+        ipAddress: event.ipAddress,
+        metadata: event.metadata,
+        sessionId: event.sessionId
+      });
+      
+      // Compter les événements
+      if (event.eventType === 'view') userStats[userId].views++;
+      if (event.eventType === 'cart_add') userStats[userId].cartAdds++;
+      if (event.eventType === 'cart_remove') userStats[userId].cartRemoves++;
+      if (event.eventType === 'purchase') userStats[userId].purchases++;
+      if (event.eventType === 'favorite_add') userStats[userId].favorites++;
+      if (event.eventType === 'favorite_remove') userStats[userId].favoriteRemoves++;
+    });
+
+    // Convertir en tableau et trier par nombre total d'événements décroissant
+    const userStatsArray = Object.values(userStats)
+      .map((user) => ({
+        ...user,
+        totalEvents: user.events.length,
+        events: user.events.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) // Trier les événements par date décroissante
+      }))
+      .sort((a, b) => b.totalEvents - a.totalEvents);
+
     const response = {
       stats,
       trafficSources,
       dailyStats: dailyStatsArray,
       topReferrers,
       deviceStats: deviceStatsArray,
+      userStats: userStatsArray,
       totalEvents: events.length
     };
 

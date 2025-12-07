@@ -556,6 +556,81 @@ export default function ClientDetailPage() {
               </div>
             )}
         </div>
+
+        {/* Consentement au tracking */}
+        <div className="w-full bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+          <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+            Consentement au tracking
+          </h3>
+          
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-gray-700 font-semibold">Statut du consentement</span>
+                {client.trackingConsent === true ? (
+                  <span className="px-4 py-2 rounded-full text-sm font-bold bg-green-100 text-green-700 flex items-center gap-2 shadow-md">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Activé
+                  </span>
+                ) : client.trackingConsent === false ? (
+                  <span className="px-4 py-2 rounded-full text-sm font-bold bg-red-100 text-red-700 flex items-center gap-2 shadow-md">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Désactivé
+                  </span>
+                ) : (
+                  <span className="px-4 py-2 rounded-full text-sm font-bold bg-gray-100 text-gray-700 flex items-center gap-2 shadow-md">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Non défini
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-gray-600">
+                {client.trackingConsent === true 
+                  ? 'L\'utilisateur a accepté le suivi de ses interactions avec les produits.'
+                  : client.trackingConsent === false
+                  ? 'L\'utilisateur a refusé le suivi de ses interactions avec les produits.'
+                  : 'L\'utilisateur n\'a pas encore défini ses préférences de suivi.'}
+              </p>
+            </div>
+
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200">
+              <div className="mb-4">
+                <span className="text-gray-700 font-semibold block mb-2">Date de consentement</span>
+                {client.trackingConsentDate ? (
+                  <p className="font-bold text-gray-900 text-lg">
+                    {new Date(client.trackingConsentDate).toLocaleDateString('fr-FR', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                ) : (
+                  <p className="font-semibold text-gray-500 italic">
+                    Non disponible
+                  </p>
+                )}
+              </div>
+              {client.trackingConsentDate && (
+                <p className="text-sm text-gray-600">
+                  Date à laquelle l'utilisateur a modifié ses préférences de suivi pour la dernière fois.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </AdminLayout>
   );

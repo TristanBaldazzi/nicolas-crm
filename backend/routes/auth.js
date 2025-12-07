@@ -309,6 +309,7 @@ router.get('/users/stats', authenticate, requireAdmin, async (req, res) => {
 });
 
 // Récupérer un utilisateur par ID (admin) - DOIT être après /users/stats
+// Récupérer un utilisateur par ID (admin)
 router.get('/users/:id', authenticate, requireAdmin, async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select('-password').populate('company', 'name code');
@@ -323,6 +324,8 @@ router.get('/users/:id', authenticate, requireAdmin, async (req, res) => {
       role: user.role,
       isActive: user.isActive,
       company: user.company,
+      trackingConsent: user.trackingConsent,
+      trackingConsentDate: user.trackingConsentDate,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     });

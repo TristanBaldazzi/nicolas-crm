@@ -19,6 +19,8 @@ export default function ProductStatsPage() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [showUserModal, setShowUserModal] = useState(false);
 
   useEffect(() => {
     loadProduct();
@@ -583,6 +585,215 @@ export default function ProductStatsPage() {
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Statistiques par utilisateur */}
+      {stats.userStats && stats.userStats.length > 0 && (
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden mt-6">
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-200">
+            <h3 className="text-xl font-bold text-gray-900">Activité par utilisateur</h3>
+            <p className="text-xs text-gray-600 mt-0.5">Détails des actions de chaque utilisateur</p>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200 bg-gray-50">
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">Utilisateur</th>
+                  <th className="text-right py-3 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">Vues</th>
+                  <th className="text-right py-3 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">Ajouts panier</th>
+                  <th className="text-right py-3 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">Achats</th>
+                  <th className="text-right py-3 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">Favoris</th>
+                  <th className="text-right py-3 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">Total actions</th>
+                  <th className="text-center py-3 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.userStats.map((user: any, index: number) => {
+                  const getEventTypeLabel = (type: string) => {
+                    const labels: { [key: string]: string } = {
+                      'view': 'Vue',
+                      'cart_add': 'Ajout panier',
+                      'cart_remove': 'Retrait panier',
+                      'purchase': 'Achat',
+                      'favorite_add': 'Ajout favoris',
+                      'favorite_remove': 'Retrait favoris'
+                    };
+                    return labels[type] || type;
+                  };
+                  
+                  return (
+                    <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                      <td className="py-3 px-4">
+                        <div>
+                          <div className="font-medium text-gray-900">{user.userName}</div>
+                          {user.userEmail && (
+                            <div className="text-xs text-gray-500">{user.userEmail}</div>
+                          )}
+                          {!user.userId && (
+                            <div className="text-xs text-gray-400 italic">Visiteur anonyme</div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-right text-gray-700 font-semibold">{formatNumber(user.views)}</td>
+                      <td className="py-3 px-4 text-right text-gray-700">{formatNumber(user.cartAdds)}</td>
+                      <td className="py-3 px-4 text-right text-gray-700">{formatNumber(user.purchases)}</td>
+                      <td className="py-3 px-4 text-right text-gray-700">{formatNumber(user.favorites)}</td>
+                      <td className="py-3 px-4 text-right font-bold text-gray-900">{formatNumber(user.totalEvents)}</td>
+                      <td className="py-3 px-4 text-center">
+                        <button
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setShowUserModal(true);
+                          }}
+                          className="text-green-600 hover:text-green-700 font-semibold text-sm"
+                        >
+                          Voir détails
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de détails utilisateur */}
+      {showUserModal && selectedUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Détails des actions</h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  {selectedUser.userName}
+                  {selectedUser.userEmail && ` • ${selectedUser.userEmail}`}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowUserModal(false);
+                  setSelectedUser(null);
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <div className="text-sm text-gray-600 mb-1">Vues</div>
+                  <div className="text-2xl font-bold text-blue-600">{selectedUser.views}</div>
+                </div>
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <div className="text-sm text-gray-600 mb-1">Ajouts panier</div>
+                  <div className="text-2xl font-bold text-green-600">{selectedUser.cartAdds}</div>
+                </div>
+                <div className="bg-purple-50 p-4 rounded-lg">
+                  <div className="text-sm text-gray-600 mb-1">Achats</div>
+                  <div className="text-2xl font-bold text-purple-600">{selectedUser.purchases}</div>
+                </div>
+                <div className="bg-red-50 p-4 rounded-lg">
+                  <div className="text-sm text-gray-600 mb-1">Favoris</div>
+                  <div className="text-2xl font-bold text-red-600">{selectedUser.favorites}</div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="font-bold text-gray-900 mb-4">Historique des événements ({selectedUser.events.length})</h4>
+                {selectedUser.events.map((event: any, index: number) => {
+                  const getEventTypeColor = (type: string) => {
+                    const colors: { [key: string]: string } = {
+                      'view': 'bg-blue-100 text-blue-800',
+                      'cart_add': 'bg-green-100 text-green-800',
+                      'cart_remove': 'bg-yellow-100 text-yellow-800',
+                      'purchase': 'bg-purple-100 text-purple-800',
+                      'favorite_add': 'bg-red-100 text-red-800',
+                      'favorite_remove': 'bg-gray-100 text-gray-800'
+                    };
+                    return colors[type] || 'bg-gray-100 text-gray-800';
+                  };
+
+                  const getEventTypeLabel = (type: string) => {
+                    const labels: { [key: string]: string } = {
+                      'view': 'Vue',
+                      'cart_add': 'Ajout panier',
+                      'cart_remove': 'Retrait panier',
+                      'purchase': 'Achat',
+                      'favorite_add': 'Ajout favoris',
+                      'favorite_remove': 'Retrait favoris'
+                    };
+                    return labels[type] || type;
+                  };
+
+                  return (
+                    <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getEventTypeColor(event.eventType)}`}>
+                            {getEventTypeLabel(event.eventType)}
+                          </span>
+                          <span className="text-sm text-gray-600">
+                            {new Date(event.createdAt).toLocaleString('fr-FR', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                        {event.referrer && (
+                          <div>
+                            <span className="text-gray-500">Page d'origine:</span>
+                            <div className="text-gray-900 font-mono text-xs mt-1 truncate">{event.referrer}</div>
+                          </div>
+                        )}
+                        {event.source && (
+                          <div>
+                            <span className="text-gray-500">Source:</span>
+                            <div className="text-gray-900 mt-1 capitalize">{event.source}</div>
+                          </div>
+                        )}
+                        {event.userAgent && (
+                          <div>
+                            <span className="text-gray-500">Appareil:</span>
+                            <div className="text-gray-900 text-xs mt-1 truncate">{event.userAgent}</div>
+                          </div>
+                        )}
+                        {event.sessionId && (
+                          <div>
+                            <span className="text-gray-500">Session:</span>
+                            <div className="text-gray-900 font-mono text-xs mt-1 truncate">{event.sessionId}</div>
+                          </div>
+                        )}
+                        {event.metadata && Object.keys(event.metadata).length > 0 && (
+                          <div className="md:col-span-2">
+                            <span className="text-gray-500">Métadonnées:</span>
+                            <pre className="text-gray-900 text-xs mt-1 bg-gray-50 p-2 rounded overflow-x-auto">
+                              {JSON.stringify(event.metadata, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       )}
