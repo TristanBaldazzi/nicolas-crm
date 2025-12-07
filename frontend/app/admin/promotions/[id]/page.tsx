@@ -457,7 +457,7 @@ export default function PromotionDetailPage() {
                           Réduction: {usage.discount.toFixed(2)} €
                         </div>
                         <span className={`inline-block mt-2 px-2 py-1 rounded-lg text-xs font-semibold ${
-                          usage.status === 'fini' ? 'bg-green-100 text-green-700' :
+                          usage.status === 'traité' ? 'bg-green-100 text-green-700' :
                           usage.status === 'traité' ? 'bg-blue-100 text-blue-700' :
                           'bg-gray-100 text-gray-700'
                         }`}>

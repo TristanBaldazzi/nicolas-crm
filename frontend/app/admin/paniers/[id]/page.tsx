@@ -218,18 +218,6 @@ export default function CartDetailPage() {
             </svg>
           )
         };
-      case 'fini':
-        return {
-          label: 'Fini',
-          bgColor: 'bg-green-50',
-          textColor: 'text-green-800',
-          borderColor: 'border-green-300',
-          icon: (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          )
-        };
       case 'annulé':
         return {
           label: 'Annulé',
@@ -257,7 +245,6 @@ export default function CartDetailPage() {
     { value: 'en_cours', label: 'En cours' },
     { value: 'demande', label: 'Demande' },
     { value: 'traité', label: 'Traité' },
-    { value: 'fini', label: 'Fini' },
     { value: 'annulé', label: 'Annulé' }
   ];
 

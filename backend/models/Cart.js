@@ -25,7 +25,7 @@ const cartSchema = new mongoose.Schema({
   }],
   status: {
     type: String,
-    enum: ['en_cours', 'demande', 'traité', 'fini', 'annulé'],
+    enum: ['en_cours', 'demande', 'traité', 'annulé'],
     default: 'en_cours'
   },
   total: {

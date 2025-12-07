@@ -117,7 +117,7 @@ router.get('/:id', authenticate, requireAdmin, async (req, res) => {
     if (isPromotionActive) {
       // Récupérer tous les paniers de l'entreprise depuis la période sélectionnée
       const carts = await Cart.find({
-        status: { $in: ['traité', 'fini'] },
+        status: 'traité',
         createdAt: { $gte: startDate }
       })
         .populate('user', 'firstName lastName email company')

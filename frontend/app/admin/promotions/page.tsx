@@ -148,24 +148,19 @@ export default function AdminPromotionsPage() {
             {/* Filtre statut */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Statut</label>
-              <div className="relative">
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all appearance-none cursor-pointer"
-                >
-                  <option value="all">Toutes</option>
-                  <option value="active">Actives</option>
-                  <option value="inactive">Inactives</option>
-                  <option value="expired">Expirées</option>
-                  <option value="upcoming">À venir</option>
-                </select>
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
+              <CustomSelect
+                options={[
+                  { value: 'all', label: 'Toutes' },
+                  { value: 'active', label: 'Actives' },
+                  { value: 'inactive', label: 'Inactives' },
+                  { value: 'expired', label: 'Expirées' },
+                  { value: 'upcoming', label: 'À venir' }
+                ]}
+                value={statusFilter}
+                onChange={(value) => setStatusFilter(value)}
+                placeholder="Filtrer par statut..."
+                searchable={false}
+              />
             </div>
           </div>
 

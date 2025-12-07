@@ -89,15 +89,6 @@ export default function AdminCartsPage() {
           borderColor: 'border-blue-300',
           dotColor: 'bg-blue-500'
         };
-      case 'fini':
-        return {
-          label: 'Fini',
-          color: 'green',
-          bgColor: 'bg-green-50',
-          textColor: 'text-green-700',
-          borderColor: 'border-green-300',
-          dotColor: 'bg-green-500'
-        };
       case 'annulé':
         return {
           label: 'Annulé',
@@ -171,7 +162,6 @@ export default function AdminCartsPage() {
                 { value: 'en_cours', label: 'En cours' },
                 { value: 'demande', label: 'Demande' },
                 { value: 'traité', label: 'Traité' },
-                { value: 'fini', label: 'Fini' },
                 { value: 'annulé', label: 'Annulé' },
               ]}
               value={statusFilter}
@@ -286,7 +276,6 @@ export default function AdminCartsPage() {
                             <option value="en_cours">En cours</option>
                             <option value="demande">Demande</option>
                             <option value="traité">Traité</option>
-                            <option value="fini">Fini</option>
                             <option value="annulé">Annulé</option>
                           </select>
                           <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">

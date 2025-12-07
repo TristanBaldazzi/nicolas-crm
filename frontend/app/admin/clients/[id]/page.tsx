@@ -133,18 +133,6 @@ export default function ClientDetailPage() {
             </svg>
           )
         };
-      case 'fini':
-        return {
-          label: 'Fini',
-          bgColor: 'bg-green-50',
-          textColor: 'text-green-800',
-          borderColor: 'border-green-300',
-          icon: (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          )
-        };
       case 'annulé':
         return {
           label: 'Annulé',
@@ -172,7 +160,6 @@ export default function ClientDetailPage() {
     { value: 'en_cours', label: 'En cours' },
     { value: 'demande', label: 'Demande' },
     { value: 'traité', label: 'Traité' },
-    { value: 'fini', label: 'Fini' },
     { value: 'annulé', label: 'Annulé' }
   ];
 
@@ -540,7 +527,6 @@ export default function ClientDetailPage() {
                                   flex items-center gap-2
                                   ${!isActive && option.value === 'demande' ? 'hover:border-yellow-400 hover:bg-yellow-50' : ''}
                                   ${!isActive && option.value === 'traité' ? 'hover:border-blue-400 hover:bg-blue-50' : ''}
-                                  ${!isActive && option.value === 'fini' ? 'hover:border-green-400 hover:bg-green-50' : ''}
                                   ${!isActive && option.value === 'annulé' ? 'hover:border-red-400 hover:bg-red-50' : ''}
                                   ${!isActive && option.value === 'en_cours' ? 'hover:border-gray-400 hover:bg-gray-50' : ''}
                                 `}

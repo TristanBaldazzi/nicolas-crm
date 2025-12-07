@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
 import { categoriesApi } from '@/lib/api';
 import toast from 'react-hot-toast';
+import CustomSelect from '@/components/CustomSelect';
 
 export default function AdminCategoriesPage() {
   const router = useRouter();
@@ -226,33 +227,24 @@ export default function AdminCategoriesPage() {
           </div>
 
           {/* Filtre type */}
-          <div className="relative">
-            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none z-10">
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-              </svg>
-            </div>
-            <select
+          <div>
+            <CustomSelect
+              options={[
+                { value: 'all', label: 'Tous les types' },
+                { value: 'main', label: 'Catégories principales' },
+                { value: 'sub', label: 'Sous-catégories' }
+              ]}
               value={typeFilter}
-              onChange={(e) => {
-                const newFilter = e.target.value;
-                setTypeFilter(newFilter);
+              onChange={(value) => {
+                setTypeFilter(value);
                 // Expand toutes les catégories si on filtre par sous-catégories
-                if (newFilter === 'sub') {
+                if (value === 'sub') {
                   setExpandedCategories(new Set(mainCategories.map(c => c._id)));
                 }
               }}
-              className="w-full pl-10 pr-10 py-2.5 bg-white border-2 border-gray-200 rounded-xl text-gray-700 font-semibold appearance-none cursor-pointer hover:border-green-300 focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md"
-            >
-              <option value="all">Tous les types</option>
-              <option value="main">Catégories principales</option>
-              <option value="sub">Sous-catégories</option>
-            </select>
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
+              placeholder="Filtrer par type..."
+              searchable={false}
+            />
           </div>
         </div>
       </div>
@@ -426,27 +418,21 @@ export default function AdminCategoriesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block mb-2 font-semibold text-gray-700">Catégorie parente</label>
-                  <div className="relative">
-                    <select
-                      value={formData.parentCategory}
-                      onChange={(e) => setFormData({ ...formData, parentCategory: e.target.value })}
-                      className="w-full px-4 py-2.5 pr-10 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all appearance-none cursor-pointer"
-                    >
-                      <option value="">Aucune (catégorie principale)</option>
-                      {mainCategories
+                  <CustomSelect
+                    options={[
+                      { value: '', label: 'Aucune (catégorie principale)' },
+                      ...mainCategories
                         .filter((c) => !editingCategory || c._id !== editingCategory._id)
-                        .map((cat) => (
-                          <option key={cat._id} value={cat._id}>
-                            {cat.name}
-                          </option>
-                        ))}
-                    </select>
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                  </div>
+                        .map((cat) => ({
+                          value: cat._id,
+                          label: cat.name
+                        }))
+                    ]}
+                    value={formData.parentCategory}
+                    onChange={(value) => setFormData({ ...formData, parentCategory: value })}
+                    placeholder="Sélectionner une catégorie parente..."
+                    searchable={true}
+                  />
                 </div>
                 <div>
                   <label className="block mb-2 font-semibold text-gray-700">Ordre d'affichage</label>

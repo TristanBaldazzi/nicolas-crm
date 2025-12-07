@@ -256,19 +256,20 @@ router.get('/stats', authenticate, requireAdmin, async (req, res) => {
     
     // Construire la query selon le statut
     const query = {
-      createdAt: { $gte: startDate }
+      createdAt: { $gte: startDate },
+      status: status
     };
-    
-    // Si le statut est 'traité', inclure aussi 'fini' pour compatibilité
-    if (status === 'traité') {
-      query.status = { $in: ['traité', 'fini'] };
-    } else {
-      query.status = status;
-    }
     
     // Récupérer tous les paniers de la période avec le statut sélectionné
     const carts = await Cart.find(query)
-      .populate('user', 'firstName lastName email company')
+      .populate({
+        path: 'user',
+        select: 'firstName lastName email company',
+        populate: {
+          path: 'company',
+          select: 'name'
+        }
+      })
       .populate('items.product', 'name price');
     
     // Calculs de base
@@ -308,21 +309,34 @@ router.get('/stats', authenticate, requireAdmin, async (req, res) => {
     const companyStats = new Map();
     carts.forEach(cart => {
       if (cart.user && cart.user.company) {
-        const companyId = cart.user.company._id || cart.user.company;
-        const companyName = cart.user.company.name || 'Sans entreprise';
+        // Gérer le cas où company est un objet peuplé ou un ObjectId
+        let companyId;
+        let companyName;
         
-        if (!companyStats.has(companyId)) {
-          companyStats.set(companyId, {
-            id: companyId,
-            name: companyName,
-            count: 0,
-            total: 0
-          });
+        if (typeof cart.user.company === 'object' && cart.user.company !== null) {
+          // Company est peuplé
+          companyId = cart.user.company._id ? cart.user.company._id.toString() : null;
+          companyName = cart.user.company.name || 'Sans entreprise';
+        } else {
+          // Company est un ObjectId non peuplé (ne devrait pas arriver avec le populate imbriqué, mais on gère le cas)
+          companyId = cart.user.company.toString();
+          companyName = 'Sans entreprise';
         }
         
-        const stat = companyStats.get(companyId);
-        stat.count += 1;
-        stat.total += cart.total || 0;
+        if (companyId) {
+          if (!companyStats.has(companyId)) {
+            companyStats.set(companyId, {
+              id: companyId,
+              name: companyName,
+              count: 0,
+              total: 0
+            });
+          }
+          
+          const stat = companyStats.get(companyId);
+          stat.count += 1;
+          stat.total += cart.total || 0;
+        }
       }
     });
     
@@ -468,7 +482,7 @@ router.put('/:id/status', authenticate, requireAdmin, async (req, res) => {
   try {
     const { status } = req.body;
 
-    if (!['en_cours', 'demande', 'traité', 'fini', 'annulé'].includes(status)) {
+    if (!['en_cours', 'demande', 'traité', 'annulé'].includes(status)) {
       return res.status(400).json({ error: 'Statut invalide' });
     }
 

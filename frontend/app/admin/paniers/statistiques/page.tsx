@@ -374,20 +374,24 @@ export default function CartStatsPage() {
           {stats.topCompanies && stats.topCompanies.length > 0 ? (
             <div className="space-y-3">
               {stats.topCompanies.map((company: any, index: number) => (
-                <div key={company.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                <Link
+                  key={company.id}
+                  href={`/admin/entreprises/${company.id}`}
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 hover:shadow-md transition-all cursor-pointer group"
+                >
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
                       {index + 1}
                     </div>
                     <div>
-                      <p className="font-bold text-gray-900">{company.name}</p>
+                      <p className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{company.name}</p>
                       <p className="text-sm text-gray-600">{company.count} panier{company.count > 1 ? 's' : ''}</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-black text-green-600">{company.total.toFixed(2)} €</p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           ) : (
@@ -403,13 +407,17 @@ export default function CartStatsPage() {
           {stats.topClients && stats.topClients.length > 0 ? (
             <div className="space-y-3">
               {stats.topClients.map((client: any, index: number) => (
-                <div key={client.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                <Link
+                  key={client.id}
+                  href={`/admin/clients/${client.id}`}
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 hover:shadow-md transition-all cursor-pointer group"
+                >
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center text-white font-bold">
                       {index + 1}
                     </div>
                     <div>
-                      <p className="font-bold text-gray-900">{client.name}</p>
+                      <p className="font-bold text-gray-900 group-hover:text-green-600 transition-colors">{client.name}</p>
                       {client.email && (
                         <p className="text-sm text-gray-600">{client.email}</p>
                       )}
@@ -419,7 +427,7 @@ export default function CartStatsPage() {
                   <div className="text-right">
                     <p className="text-lg font-black text-green-600">{client.total.toFixed(2)} €</p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           ) : (

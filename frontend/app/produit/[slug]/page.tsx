@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { productsApi, settingsApi, authApi } from '@/lib/api';
@@ -22,8 +22,10 @@ export default function ProductPage() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoritesLoading, setFavoritesLoading] = useState(false);
   const [showAllSpecs, setShowAllSpecs] = useState(false);
-  const { addItem } = useCartStore();
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const { addItem, getItems, updateQuantity, removeItem } = useCartStore();
   const { user } = useAuthStore();
+  const [cartItem, setCartItem] = useState<{ quantity: number } | null>(null);
 
   useEffect(() => {
     loadSettings();
@@ -35,6 +37,31 @@ export default function ProductPage() {
       checkFavorite();
     }
   }, [product, user]);
+
+  // Vérifier si le produit est dans le panier
+  const checkCartItem = useCallback(() => {
+    if (product) {
+      const items = getItems();
+      const item = items.find(item => item.product === product._id);
+      if (item) {
+        setCartItem({ quantity: item.quantity });
+        setQuantity(item.quantity);
+      } else {
+        setCartItem(null);
+        setQuantity(1);
+      }
+    }
+  }, [product, getItems]);
+
+  useEffect(() => {
+    checkCartItem();
+  }, [checkCartItem]);
+
+  // Vérifier périodiquement (pour détecter les changements depuis d'autres onglets)
+  useEffect(() => {
+    const interval = setInterval(checkCartItem, 1000);
+    return () => clearInterval(interval);
+  }, [checkCartItem]);
 
   const checkFavorite = async () => {
     if (!product || !user) return;
@@ -49,8 +76,7 @@ export default function ProductPage() {
 
   const toggleFavorite = async () => {
     if (!user) {
-      toast.error('Vous devez être connecté pour ajouter aux favoris');
-      router.push('/login');
+      setShowLoginModal(true);
       return;
     }
 
@@ -300,69 +326,141 @@ export default function ProductPage() {
             )}
 
             {/* Actions */}
-            {user && user.role !== 'admin' && (
-              <div className="bg-white rounded-lg p-4 border border-gray-200">
-                <div className="flex items-center gap-3 mb-4">
-                  <label className="text-sm font-medium text-gray-700">Quantité:</label>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="w-8 h-8 border border-gray-300 rounded flex items-center justify-center hover:bg-gray-50 transition-colors text-sm"
-                    >
-                      −
-                    </button>
-                    <input
-                      type="number"
-                      min="1"
-                      value={quantity}
-                      onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-16 px-2 py-1.5 border border-gray-300 rounded text-center text-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900"
-                    />
-                    <button
-                      onClick={() => setQuantity(quantity + 1)}
-                      className="w-8 h-8 border border-gray-300 rounded flex items-center justify-center hover:bg-gray-50 transition-colors text-sm"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      addItem(product._id, quantity);
-                      toast.success(`${quantity} article(s) ajouté(s) au panier`);
-                      setQuantity(1);
-                    }}
-                    className="flex-1 bg-gray-900 text-white px-4 py-2.5 rounded text-sm font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            <div className="bg-white rounded-lg p-4 border border-gray-200">
+              {user && user.role !== 'admin' && (
+                <>
+                  {cartItem ? (
+                    // Produit déjà dans le panier
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          <span className="text-sm font-medium text-emerald-700">
+                            Produit dans le panier ({cartItem.quantity} {cartItem.quantity > 1 ? 'articles' : 'article'})
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-1">
+                          <label className="text-sm font-medium text-gray-700">Quantité:</label>
+                          <button
+                            onClick={async () => {
+                              const newQuantity = Math.max(1, cartItem.quantity - 1);
+                              await updateQuantity(product._id, newQuantity);
+                              checkCartItem();
+                            }}
+                            className="w-8 h-8 border border-gray-300 rounded flex items-center justify-center hover:bg-gray-50 transition-colors text-sm"
+                          >
+                            −
+                          </button>
+                          <input
+                            type="number"
+                            min="1"
+                            value={cartItem.quantity}
+                            onChange={async (e) => {
+                              const newQuantity = Math.max(1, parseInt(e.target.value) || 1);
+                              await updateQuantity(product._id, newQuantity);
+                              checkCartItem();
+                            }}
+                            className="w-16 px-2 py-1.5 border border-gray-300 rounded text-center text-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900"
+                          />
+                          <button
+                            onClick={async () => {
+                              const newQuantity = cartItem.quantity + 1;
+                              await updateQuantity(product._id, newQuantity);
+                              checkCartItem();
+                            }}
+                            className="w-8 h-8 border border-gray-300 rounded flex items-center justify-center hover:bg-gray-50 transition-colors text-sm"
+                          >
+                            +
+                          </button>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            await removeItem(product._id);
+                            toast.success('Produit retiré du panier');
+                            checkCartItem();
+                          }}
+                          className="px-4 py-2.5 bg-red-600 text-white rounded text-sm font-medium hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Retirer
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    // Produit pas dans le panier
+                    <>
+                      <div className="flex items-center gap-3 mb-4">
+                        <label className="text-sm font-medium text-gray-700">Quantité:</label>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                            className="w-8 h-8 border border-gray-300 rounded flex items-center justify-center hover:bg-gray-50 transition-colors text-sm"
+                          >
+                            −
+                          </button>
+                          <input
+                            type="number"
+                            min="1"
+                            value={quantity}
+                            onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                            className="w-16 px-2 py-1.5 border border-gray-300 rounded text-center text-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900"
+                          />
+                          <button
+                            onClick={() => setQuantity(quantity + 1)}
+                            className="w-8 h-8 border border-gray-300 rounded flex items-center justify-center hover:bg-gray-50 transition-colors text-sm"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={async () => {
+                            await addItem(product._id, quantity);
+                            toast.success(`${quantity} article(s) ajouté(s) au panier`);
+                            checkCartItem();
+                          }}
+                          className="flex-1 bg-gray-900 text-white px-4 py-2.5 rounded text-sm font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                          Ajouter au panier
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+              <div className={`flex items-center gap-2 ${user && user.role !== 'admin' ? 'mt-3' : ''}`}>
+                <button
+                  onClick={toggleFavorite}
+                  disabled={favoritesLoading}
+                  className={`p-2.5 rounded border transition-colors ${
+                    isFavorite
+                      ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                  }`}
+                  title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                >
+                  {favoritesLoading ? (
+                    <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
-                    Ajouter au panier
-                  </button>
-                  <button
-                    onClick={toggleFavorite}
-                    disabled={favoritesLoading}
-                    className={`p-2.5 rounded border transition-colors ${
-                      isFavorite
-                        ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800'
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                    }`}
-                    title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-                  >
-                    {favoritesLoading ? (
-                      <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                    ) : (
-                      <svg className="w-4 h-4" fill={isFavorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
+                  ) : (
+                    <svg className="w-4 h-4" fill={isFavorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                  )}
+                </button>
               </div>
-            )}
+            </div>
           </div>
         </div>
 
@@ -372,7 +470,7 @@ export default function ProductPage() {
           let specs: Record<string, any> = {};
           if (product.specifications) {
             if (product.specifications instanceof Map) {
-              product.specifications.forEach((value, key) => {
+              product.specifications.forEach((value: any, key: string) => {
                 if (value !== null && value !== undefined && value !== '') {
                   specs[key] = value;
                 }
@@ -509,6 +607,51 @@ export default function ProductPage() {
           </div>
         )}
       </div>
+
+      {/* Modal de connexion pour les favoris */}
+      {showLoginModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowLoginModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                Connectez-vous pour sauvegarder
+              </h3>
+              <p className="text-gray-600">
+                Créez un compte ou connectez-vous pour ajouter ce produit à vos favoris et y accéder facilement plus tard.
+              </p>
+            </div>
+            
+            <div className="space-y-3">
+              <Link
+                href="/login"
+                className="block w-full px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl font-semibold text-center hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl"
+                onClick={() => setShowLoginModal(false)}
+              >
+                Se connecter
+              </Link>
+              <Link
+                href="/login"
+                className="block w-full px-6 py-3 bg-white border-2 border-gray-300 text-gray-700 rounded-xl font-semibold text-center hover:border-gray-400 hover:bg-gray-50 transition-all"
+                onClick={() => setShowLoginModal(false)}
+              >
+                Créer un compte
+              </Link>
+            </div>
+            
+            <button
+              onClick={() => setShowLoginModal(false)}
+              className="mt-4 w-full text-sm text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              Continuer sans compte
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

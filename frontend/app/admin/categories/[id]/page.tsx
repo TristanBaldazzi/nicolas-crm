@@ -7,6 +7,7 @@ import { categoriesApi, productsApi } from '@/lib/api';
 import { getImageUrl } from '@/lib/config';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
+import CustomSelect from '@/components/CustomSelect';
 
 export default function CategoryDetailPage() {
   const params = useParams();
@@ -198,25 +199,19 @@ export default function CategoryDetailPage() {
                   <label className="block mb-2 font-semibold text-gray-700">
                     Catégorie parente
                   </label>
-                  <div className="relative">
-                    <select
-                      value={formData.parentCategory}
-                      onChange={(e) => setFormData({ ...formData, parentCategory: e.target.value })}
-                      className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all appearance-none cursor-pointer"
-                    >
-                      <option value="">Aucune (catégorie principale)</option>
-                      {mainCategories.map((cat) => (
-                        <option key={cat._id} value={cat._id}>
-                          {cat.name}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                  </div>
+                  <CustomSelect
+                    options={[
+                      { value: '', label: 'Aucune (catégorie principale)' },
+                      ...mainCategories.map((cat) => ({
+                        value: cat._id,
+                        label: cat.name
+                      }))
+                    ]}
+                    value={formData.parentCategory}
+                    onChange={(value) => setFormData({ ...formData, parentCategory: value })}
+                    placeholder="Sélectionner une catégorie parente..."
+                    searchable={true}
+                  />
                 </div>
                 <div>
                   <label className="block mb-2 font-semibold text-gray-700">
@@ -231,15 +226,36 @@ export default function CategoryDetailPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.isActive}
-                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                    className="rounded"
-                  />
-                  <span className="text-sm font-semibold">Catégorie active</span>
+              <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={formData.isActive}
+                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                      className="w-6 h-6 rounded border-2 border-gray-300 text-green-600 focus:ring-green-500 focus:ring-2 cursor-pointer transition-all"
+                    />
+                    {formData.isActive && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <span className="text-base font-bold text-gray-900 block">Catégorie active</span>
+                    <span className="text-xs text-gray-600 mt-0.5">
+                      {formData.isActive ? 'La catégorie est actuellement active' : 'La catégorie est actuellement inactive'}
+                    </span>
+                  </div>
+                  <div className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                    formData.isActive
+                      ? 'bg-green-600 text-white shadow-md'
+                      : 'bg-gray-300 text-gray-600'
+                  }`}>
+                    {formData.isActive ? 'Active' : 'Inactive'}
+                  </div>
                 </label>
               </div>
 
