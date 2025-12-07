@@ -161,8 +161,8 @@ export default function FavorisPage() {
                   </p>
                 </div>
 
-                {/* Tableau de produits */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                {/* Tableau de produits - Desktop */}
+                <div className="hidden md:block bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-gray-200">
@@ -177,6 +177,9 @@ export default function FavorisPage() {
                       <tbody className="bg-white divide-y divide-gray-100">
                         {favorites.map((product) => {
                           const primaryImage = product.images?.find((img: any) => img.isPrimary) || product.images?.[0];
+                          const brandName = product.brand 
+                            ? (typeof product.brand === 'object' && product.brand !== null ? product.brand.name : product.brand)
+                            : null;
                           return (
                             <tr key={product._id} className="hover:bg-gray-50 transition-colors">
                               {/* Produit */}
@@ -236,9 +239,9 @@ export default function FavorisPage() {
                               
                               {/* Marque */}
                               <td className="px-6 py-4 whitespace-nowrap">
-                                {product.brand ? (
+                                {brandName ? (
                                   <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold">
-                                    {product.brand}
+                                    {brandName}
                                   </span>
                                 ) : (
                                   <span className="text-gray-400 text-sm">-</span>
@@ -276,12 +279,13 @@ export default function FavorisPage() {
                                   </button>
                                   <button
                                     onClick={() => removeFavorite(product._id)}
-                                    className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                                    className="px-4 py-2 bg-red-50 text-red-600 rounded-lg font-bold hover:bg-red-100 hover:text-red-700 transition-all border-2 border-red-200 hover:border-red-300 text-sm flex items-center gap-2"
                                     title="Retirer des favoris"
                                   >
-                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                       <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
                                     </svg>
+                                    Retirer
                                   </button>
                                 </div>
                               </td>
@@ -291,6 +295,119 @@ export default function FavorisPage() {
                       </tbody>
                     </table>
                   </div>
+                </div>
+
+                {/* Cartes de produits - Mobile */}
+                <div className="md:hidden space-y-4">
+                  {favorites.map((product) => {
+                    const primaryImage = product.images?.find((img: any) => img.isPrimary) || product.images?.[0];
+                    const brandName = product.brand 
+                      ? (typeof product.brand === 'object' && product.brand !== null ? product.brand.name : product.brand)
+                      : null;
+                    return (
+                      <div key={product._id} className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+                        <div className="p-4">
+                          <div className="flex gap-4 mb-4">
+                            <Link href={`/produit/${product.slug}`} className="flex-shrink-0">
+                              {primaryImage ? (
+                                <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl overflow-hidden">
+                                  <img
+                                    src={getImageUrl(primaryImage.url)}
+                                    alt={primaryImage.alt || product.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center">
+                                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                  </svg>
+                                </div>
+                              )}
+                            </Link>
+                            <div className="flex-1 min-w-0">
+                              <Link href={`/produit/${product.slug}`}>
+                                <h3 className="font-bold text-gray-900 hover:text-green-600 transition-colors mb-2">
+                                  {product.name}
+                                </h3>
+                              </Link>
+                              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                {product.isBestSeller && (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-black rounded-full">
+                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                      <path d="M9.049 2.927a1 1 0 011.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                    </svg>
+                                    Best Seller
+                                  </span>
+                                )}
+                                {product.isFeatured && (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white text-xs font-bold rounded-full">
+                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                      <path d="M9.049 2.927a1 1 0 011.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                    </svg>
+                                    Vedette
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                            {product.shortDescription || 'Aucune description'}
+                          </p>
+
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              <p className="text-xs text-gray-500 mb-1">Marque</p>
+                              {brandName ? (
+                                <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-lg text-xs font-semibold">
+                                  {brandName}
+                                </span>
+                              ) : (
+                                <span className="text-gray-400 text-xs">-</span>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-gray-500 mb-1">Prix</p>
+                              {canSeePrice() ? (
+                                <span className="text-xl font-black bg-gradient-to-r from-green-600 to-green-400 bg-clip-text text-transparent">
+                                  {product.price?.toFixed(2)} €
+                                </span>
+                              ) : (
+                                <div className="flex items-center gap-1 text-gray-500">
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                  </svg>
+                                  <span className="text-xs font-semibold">
+                                    {settings?.priceVisibility === 'loggedIn' ? 'Connectez-vous' : 'Sur demande'}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => addToCart(product)}
+                              className="flex-1 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-bold hover:from-green-700 hover:to-emerald-700 transition-all shadow-md text-sm"
+                            >
+                              Panier
+                            </button>
+                            <button
+                              onClick={() => removeFavorite(product._id)}
+                              className="px-4 py-2 bg-red-50 text-red-600 rounded-lg font-bold hover:bg-red-100 hover:text-red-700 transition-all border-2 border-red-200 hover:border-red-300 text-sm flex items-center gap-2"
+                              title="Retirer des favoris"
+                            >
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                              </svg>
+                              <span className="hidden sm:inline">Retirer</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </>
             )}

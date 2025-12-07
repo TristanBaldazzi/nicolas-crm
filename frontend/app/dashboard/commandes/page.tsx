@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { cartsApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 import { getImageUrl } from '@/lib/config';
+import CustomSelect from '@/components/CustomSelect';
 import toast from 'react-hot-toast';
 
 export default function CommandesPage() {
@@ -13,6 +14,8 @@ export default function CommandesPage() {
   const { user, loadFromStorage, isLoading: authLoading } = useAuthStore();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   useEffect(() => {
     loadFromStorage();
@@ -108,6 +111,40 @@ export default function CommandesPage() {
     });
   };
 
+  // Filtrer les commandes
+  const filteredOrders = useMemo(() => {
+    let filtered = [...orders];
+
+    // Filtre par statut
+    if (statusFilter) {
+      filtered = filtered.filter(order => order.status === statusFilter);
+    }
+
+    // Recherche dans le numéro de commande et les produits
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(order => {
+        // Recherche dans le numéro de commande
+        const orderId = order._id.slice(-8).toUpperCase();
+        if (orderId.toLowerCase().includes(query)) {
+          return true;
+        }
+
+        // Recherche dans les noms de produits
+        if (order.items && order.items.length > 0) {
+          return order.items.some((item: any) => {
+            const productName = item.product?.name || '';
+            return productName.toLowerCase().includes(query);
+          });
+        }
+
+        return false;
+      });
+    }
+
+    return filtered;
+  }, [orders, statusFilter, searchQuery]);
+
   // Afficher un loader pendant le chargement de l'auth
   if (authLoading || loading) {
     return (
@@ -157,6 +194,59 @@ export default function CommandesPage() {
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
+            {/* Filtres et recherche */}
+            {orders.length > 0 && (
+              <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-6">
+                <div className="grid md:grid-cols-2 gap-4">
+                  {/* Recherche */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Rechercher
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Numéro de commande, produit..."
+                        className="w-full px-4 py-3 pl-10 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all"
+                      />
+                      <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Filtre par statut */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Filtrer par statut
+                    </label>
+                    <CustomSelect
+                      options={[
+                        { value: '', label: 'Tous les statuts' },
+                        { value: 'en_cours', label: 'En cours' },
+                        { value: 'demande', label: 'En attente' },
+                        { value: 'traité', label: 'Traité' },
+                        { value: 'annulé', label: 'Annulée' }
+                      ]}
+                      value={statusFilter}
+                      onChange={(value) => setStatusFilter(value)}
+                      placeholder="Sélectionner un statut..."
+                      searchable={false}
+                    />
+                  </div>
+                </div>
+
+                {/* Résultats du filtre */}
+                {filteredOrders.length !== orders.length && (
+                  <div className="mt-4 text-sm text-gray-600">
+                    {filteredOrders.length} commande{filteredOrders.length > 1 ? 's' : ''} trouvée{filteredOrders.length > 1 ? 's' : ''} sur {orders.length}
+                  </div>
+                )}
+              </div>
+            )}
+
             {orders.length === 0 ? (
               <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-12 text-center">
                 <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -176,9 +266,28 @@ export default function CommandesPage() {
                   </svg>
                 </Link>
               </div>
+            ) : filteredOrders.length === 0 ? (
+              <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-12 text-center">
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">Aucune commande trouvée</h3>
+                <p className="text-gray-600 mb-8">Aucune commande ne correspond à vos critères de recherche.</p>
+                <button
+                  onClick={() => {
+                    setStatusFilter('');
+                    setSearchQuery('');
+                  }}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors"
+                >
+                  Réinitialiser les filtres
+                </button>
+              </div>
             ) : (
               <div className="space-y-6">
-                {orders.map((order) => {
+                {filteredOrders.map((order) => {
                   const totalItems = order.items?.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0) || 0;
                   const totalPrice = order.items?.reduce((sum: number, item: any) => {
                     const price = item.product?.price || item.price || 0;

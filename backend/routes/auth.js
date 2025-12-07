@@ -396,7 +396,11 @@ router.get('/favorites', authenticate, async (req, res) => {
     const user = await User.findById(req.user.id).populate({
       path: 'favorites',
       match: { isActive: true },
-      select: 'name slug price images shortDescription brand isFeatured isBestSeller isInStock'
+      select: 'name slug price images shortDescription brand isFeatured isBestSeller isInStock',
+      populate: {
+        path: 'brand',
+        select: 'name'
+      }
     });
     
     if (!user) {

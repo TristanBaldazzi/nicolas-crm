@@ -10,7 +10,7 @@ import Link from 'next/link';
 
 export default function ClientFilesPage() {
   const router = useRouter();
-  const { user, loadFromStorage } = useAuthStore();
+  const { user, loadFromStorage, isLoading: authLoading } = useAuthStore();
   const [files, setFiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -20,13 +20,19 @@ export default function ClientFilesPage() {
   }, []);
 
   useEffect(() => {
+    // Attendre que le chargement soit terminé avant de vérifier
+    if (authLoading) return;
+    
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+
     if (user && user.id) {
       loadFiles();
-    } else if (user === null) {
-      router.push('/login');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, authLoading]);
 
   const loadFiles = async () => {
     if (!user?.id) return;
@@ -75,6 +81,18 @@ export default function ClientFilesPage() {
 
   const isImage = (mimetype: string) => mimetype.startsWith('image/');
   const isVideo = (mimetype: string) => mimetype.startsWith('video/');
+
+  // Afficher un loader pendant le chargement de l'auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white via-gray-50 to-white">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-green-200 border-t-green-600 mb-4"></div>
+          <p className="text-gray-600 text-lg font-medium">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return null;
