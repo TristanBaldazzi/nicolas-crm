@@ -132,6 +132,17 @@ router.post('/', optionalAuthenticate, contactUpload.array('files', 10), async (
   }
 });
 
+// Compter les messages non traités (admin)
+router.get('/count-pending', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const count = await Contact.countDocuments({ isRead: false });
+    res.json({ count });
+  } catch (error) {
+    console.error('Error counting pending contacts:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Récupérer tous les messages de contact (admin)
 router.get('/', authenticate, requireAdmin, async (req, res) => {
   try {

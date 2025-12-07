@@ -1,6 +1,7 @@
 import express from 'express';
 import ProductAnalytics from '../models/ProductAnalytics.js';
 import Product from '../models/Product.js';
+import Cart from '../models/Cart.js';
 import { optionalAuthenticate } from '../middleware/auth.js';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -457,6 +458,74 @@ router.get('/products', optionalAuthenticate, async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error('Error fetching products analytics:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Récupérer les statistiques simplifiées pour tous les produits (vues et commandes traitées)
+router.get('/products/summary', optionalAuthenticate, async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Accès refusé' });
+    }
+
+    // Récupérer les vues par produit
+    const viewsStats = await ProductAnalytics.aggregate([
+      {
+        $match: { eventType: 'view' }
+      },
+      {
+        $group: {
+          _id: '$product',
+          views: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Récupérer les commandes traitées par produit
+    const processedOrdersStats = await Cart.aggregate([
+      {
+        $match: { status: 'traité' }
+      },
+      {
+        $unwind: '$items'
+      },
+      {
+        $group: {
+          _id: '$items.product',
+          orders: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Créer des maps pour un accès rapide
+    const viewsMap = {};
+    viewsStats.forEach(stat => {
+      viewsMap[stat._id.toString()] = stat.views;
+    });
+
+    const ordersMap = {};
+    processedOrdersStats.forEach(stat => {
+      ordersMap[stat._id.toString()] = stat.orders;
+    });
+
+    // Combiner les résultats
+    const allProductIds = new Set([
+      ...viewsStats.map(s => s._id.toString()),
+      ...processedOrdersStats.map(s => s._id.toString())
+    ]);
+
+    const result = {};
+    allProductIds.forEach(productId => {
+      result[productId] = {
+        views: viewsMap[productId] || 0,
+        processedOrders: ordersMap[productId] || 0
+      };
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching products summary:', error);
     res.status(500).json({ error: error.message });
   }
 });

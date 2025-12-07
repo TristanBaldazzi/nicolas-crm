@@ -265,6 +265,8 @@ export const contactApi = {
         'Content-Type': 'multipart/form-data',
       },
     }),
+  countPending: () =>
+    api.get('/contact/count-pending'),
   getAll: () =>
     api.get('/contact'),
   getById: (id: string) =>
@@ -286,6 +288,8 @@ export const analyticsApi = {
     api.get(`/analytics/product/${productId}`, { params }),
   getAllProductsStats: (params?: { startDate?: string; endDate?: string; limit?: number }) =>
     api.get('/analytics/products', { params }),
+  getProductsSummary: () =>
+    api.get('/analytics/products/summary'),
 };
 
 // Client Files

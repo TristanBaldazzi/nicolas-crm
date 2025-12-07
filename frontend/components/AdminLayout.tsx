@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/store';
-import { cartsApi } from '@/lib/api';
+import { cartsApi, contactApi } from '@/lib/api';
 import AdminFooter from './AdminFooter';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -14,6 +14,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
+  const [pendingContactsCount, setPendingContactsCount] = useState(0);
   const hasCheckedAuth = useRef<string | undefined | 'null'>(undefined);
 
   useEffect(() => {
@@ -37,6 +38,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       loadPendingCount();
       // Rafraîchir toutes les 30 secondes
       const interval = setInterval(loadPendingCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user, isAdmin]);
+
+  // Charger le nombre de contacts non traités
+  useEffect(() => {
+    if (user && isAdmin()) {
+      const loadPendingContactsCount = async () => {
+        try {
+          const res = await contactApi.countPending();
+          setPendingContactsCount(res.data.count || 0);
+        } catch (error) {
+          console.error('Error loading pending contacts count:', error);
+        }
+      };
+      
+      loadPendingContactsCount();
+      // Rafraîchir toutes les 30 secondes
+      const interval = setInterval(loadPendingContactsCount, 30000);
       return () => clearInterval(interval);
     }
   }, [user, isAdmin]);
@@ -188,7 +208,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               {mainNavItems.map((item) => {
                 const active = isActive(item.href);
                 const isCommandes = item.href === '/admin/paniers';
-                const showBadge = isCommandes && pendingOrdersCount > 0;
+                const isContact = item.href === '/admin/contact';
+                const showBadge = (isCommandes && pendingOrdersCount > 0) || (isContact && pendingContactsCount > 0);
+                const badgeCount = isCommandes ? pendingOrdersCount : isContact ? pendingContactsCount : 0;
                 
                 return (
                   <Link
@@ -209,7 +231,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <span>{item.label}</span>
                     {showBadge && (
                       <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
-                        {pendingOrdersCount > 9 ? '+9' : pendingOrdersCount}
+                        {badgeCount > 9 ? '+9' : badgeCount}
                       </span>
                     )}
                     {active && (
@@ -294,7 +316,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 {mainNavItems.map((item) => {
                   const active = isActive(item.href);
                   const isCommandes = item.href === '/admin/paniers';
-                  const showBadge = isCommandes && pendingOrdersCount > 0;
+                  const isContact = item.href === '/admin/contact';
+                  const showBadge = (isCommandes && pendingOrdersCount > 0) || (isContact && pendingContactsCount > 0);
+                  const badgeCount = isCommandes ? pendingOrdersCount : isContact ? pendingContactsCount : 0;
                   
                   return (
                     <Link
@@ -315,7 +339,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       <span>{item.label}</span>
                       {showBadge && (
                         <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
-                          {pendingOrdersCount > 9 ? '+9' : pendingOrdersCount}
+                          {badgeCount > 9 ? '+9' : badgeCount}
                         </span>
                       )}
                     </Link>
