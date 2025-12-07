@@ -15,12 +15,14 @@ export default function AdvancedSearchPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [allCategoriesFlat, setAllCategoriesFlat] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
   const [specifications, setSpecifications] = useState<Record<string, { type: string; values: string[] }>>({});
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<any>(null);
   const [filters, setFilters] = useState<Record<string, any>>({
     category: '',
+    subCategory: '',
     brand: '',
     search: '',
   });
@@ -41,14 +43,29 @@ export default function AdvancedSearchPage() {
     try {
       const [productsRes, categoriesRes, brandsRes, specsRes, settingsRes] = await Promise.all([
         productsApi.getAll({ limit: 1000 }), // Charger tous les produits pour le filtrage côté client
-        categoriesApi.getAll({ parentOnly: 'true' }),
+        categoriesApi.getAll(), // Charger toutes les catégories (parentes et sous-catégories)
         brandsApi.getAll(),
         productsApi.getUniqueSpecifications(),
         settingsApi.get(),
       ]);
       const loadedProducts = productsRes.data.products || [];
       setAllProducts(loadedProducts);
-      setCategories(categoriesRes.data || []);
+      
+      // Organiser les catégories : parentes avec leurs sous-catégories
+      const allCategories = categoriesRes.data || [];
+      const parentCategories = allCategories.filter((cat: any) => !cat.parentCategory);
+      const subCategories = allCategories.filter((cat: any) => cat.parentCategory);
+      
+      // Créer une structure avec les sous-catégories groupées par parent
+      const organizedCategories = parentCategories.map((parent: any) => {
+        const children = subCategories.filter((sub: any) => 
+          (sub.parentCategory?._id || sub.parentCategory) === parent._id
+        );
+        return { ...parent, subCategories: children };
+      });
+      
+      setCategories(organizedCategories);
+      setAllCategoriesFlat(allCategories); // Garder une version plate pour le filtrage
       setBrands(brandsRes.data || []);
       setSpecifications(specsRes.data || {});
       setSettings(settingsRes.data);
@@ -79,12 +96,29 @@ export default function AdvancedSearchPage() {
       );
     }
 
-    // Filtre par catégorie
-    if (filters.category) {
+    // Filtre par sous-catégorie (priorité sur la catégorie)
+    if (filters.subCategory) {
       filtered = filtered.filter((p) => {
         const catId = p.category?._id || p.category;
-        return catId === filters.category;
+        return catId === filters.subCategory;
       });
+    } else if (filters.category) {
+      // Filtre par catégorie parente (inclut toutes ses sous-catégories)
+      const selectedCategory = allCategoriesFlat.find((cat: any) => 
+        (cat._id || cat) === filters.category
+      );
+      if (selectedCategory && !selectedCategory.parentCategory) {
+        // C'est une catégorie parente, récupérer toutes ses sous-catégories
+        const subCategories = allCategoriesFlat.filter((cat: any) => 
+          (cat.parentCategory?._id || cat.parentCategory) === filters.category
+        );
+        const subCategoryIds = subCategories.map((sub: any) => sub._id || sub);
+        const categoryIds = [filters.category, ...subCategoryIds];
+        filtered = filtered.filter((p) => {
+          const catId = p.category?._id || p.category;
+          return categoryIds.includes(catId);
+        });
+      }
     }
 
     // Filtre par marque
@@ -143,11 +177,11 @@ export default function AdvancedSearchPage() {
   };
 
   const clearFilters = () => {
-    setFilters({ category: '', brand: '', search: '' });
+    setFilters({ category: '', subCategory: '', brand: '', search: '' });
     setSpecFilters({});
   };
 
-  const hasActiveFilters = filters.category || filters.brand || filters.search || Object.values(specFilters).some(v => v);
+  const hasActiveFilters = filters.category || filters.subCategory || filters.brand || filters.search || Object.values(specFilters).some(v => v);
 
   const sortedSpecKeys = Object.keys(specifications).sort();
 
@@ -221,10 +255,13 @@ export default function AdvancedSearchPage() {
                   <CustomSelect
                     options={[
                       { value: '', label: 'Toutes les catégories' },
-                      ...categories.map((cat) => ({
-                        value: cat._id,
-                        label: cat.name,
-                      })),
+                      ...categories.flatMap((cat: any) => [
+                        { value: cat._id, label: cat.name },
+                        ...(cat.subCategories || []).map((sub: any) => ({
+                          value: sub._id,
+                          label: `  └ ${sub.name}`,
+                        })),
+                      ]),
                     ]}
                     value={filters.category || ''}
                     onChange={(value) => setFilters({ ...filters, category: value })}

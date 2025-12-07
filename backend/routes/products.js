@@ -109,11 +109,25 @@ router.get('/', async (req, res) => {
 
     const query = { isActive: true };
 
-    if (category) {
-      query.category = category;
-    }
     if (subCategory) {
-      query.subCategory = subCategory;
+      // Si une sous-catégorie est spécifiée, filtrer uniquement par celle-ci
+      query.category = subCategory;
+    } else if (category) {
+      // Si c'est une catégorie parente, inclure aussi les sous-catégories
+      const categoryDoc = await Category.findById(category);
+      if (categoryDoc && !categoryDoc.parentCategory) {
+        // C'est une catégorie parente, récupérer toutes ses sous-catégories
+        const subCategories = await Category.find({ 
+          parentCategory: category,
+          isActive: true 
+        }).select('_id');
+        const subCategoryIds = subCategories.map(sub => sub._id);
+        // Inclure la catégorie parente et toutes ses sous-catégories
+        query.category = { $in: [category, ...subCategoryIds] };
+      } else {
+        // C'est une sous-catégorie, filtrer uniquement par celle-ci
+        query.category = category;
+      }
     }
     if (brand) {
       query.brand = brand;

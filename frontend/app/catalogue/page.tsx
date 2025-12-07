@@ -19,6 +19,7 @@ export default function CataloguePage() {
   const { user } = useAuthStore();
   const [filters, setFilters] = useState({
     category: '',
+    subCategory: '',
     brand: '',
     search: '',
     page: 1,
@@ -72,7 +73,7 @@ export default function CataloguePage() {
       loadData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.category, filters.brand, filters.search, filters.page, initialized]);
+  }, [filters.category, filters.subCategory, filters.brand, filters.search, filters.page, initialized]);
 
   const loadSettings = async () => {
     try {
@@ -95,12 +96,37 @@ export default function CataloguePage() {
   const loadData = async () => {
     setLoading(true);
     try {
+      // Préparer les paramètres pour l'API
+      const apiFilters: any = {
+        ...filters,
+      };
+      
+      // Si une sous-catégorie est sélectionnée, l'utiliser au lieu de la catégorie
+      if (filters.subCategory) {
+        apiFilters.subCategory = filters.subCategory;
+        delete apiFilters.category; // Ne pas envoyer la catégorie parente si on a une sous-catégorie
+      }
+      
       const [productsRes, categoriesRes] = await Promise.all([
-        productsApi.getAll(filters),
-        categoriesApi.getAll({ parentOnly: 'true' }),
+        productsApi.getAll(apiFilters),
+        categoriesApi.getAll(), // Charger toutes les catégories (parentes et sous-catégories)
       ]);
+      
+      // Organiser les catégories : parentes avec leurs sous-catégories
+      const allCategories = categoriesRes.data || [];
+      const parentCategories = allCategories.filter((cat: any) => !cat.parentCategory);
+      const subCategories = allCategories.filter((cat: any) => cat.parentCategory);
+      
+      // Créer une structure avec les sous-catégories groupées par parent
+      const organizedCategories = parentCategories.map((parent: any) => {
+        const children = subCategories.filter((sub: any) => 
+          (sub.parentCategory?._id || sub.parentCategory) === parent._id
+        );
+        return { ...parent, subCategories: children };
+      });
+      
       setProducts(productsRes.data.products || []);
-      setCategories(categoriesRes.data || []);
+      setCategories(organizedCategories);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -118,7 +144,7 @@ export default function CataloguePage() {
 
 
   const clearFilters = () => {
-    setFilters({ category: '', brand: '', search: '', page: 1 });
+    setFilters({ category: '', subCategory: '', brand: '', search: '', page: 1 });
   };
 
   const hasActiveFilters = filters.category || filters.brand || filters.search;
@@ -251,18 +277,51 @@ export default function CataloguePage() {
                     <CustomSelect
                       options={[
                         { value: '', label: 'Toutes les catégories' },
-                        ...categories.map((cat) => ({
+                        ...categories.map((cat: any) => ({
                           value: cat._id,
                           label: cat.name,
                         })),
                       ]}
                       value={filters.category}
-                      onChange={(value) => setFilters({ ...filters, category: value, page: 1 })}
+                      onChange={(value) => setFilters({ ...filters, category: value, subCategory: '', page: 1 })}
                       placeholder="Sélectionner une catégorie"
                       searchable={true}
                       className="shadow-sm hover:shadow-md focus-within:shadow-lg"
                     />
                   </div>
+
+                  {/* Sous-catégorie (affichée seulement si une catégorie est sélectionnée) */}
+                  {filters.category && (() => {
+                    const selectedCategory = categories.find((cat: any) => cat._id === filters.category);
+                    const subCategories = selectedCategory?.subCategories || [];
+                    if (subCategories.length > 0) {
+                      return (
+                        <div className="group">
+                          <label className="block text-sm font-black text-gray-900 mb-3 flex items-center gap-2">
+                            <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                            Sous-catégorie
+                          </label>
+                          <CustomSelect
+                            options={[
+                              { value: '', label: 'Toutes les sous-catégories' },
+                              ...subCategories.map((sub: any) => ({
+                                value: sub._id,
+                                label: sub.name,
+                              })),
+                            ]}
+                            value={filters.subCategory}
+                            onChange={(value) => setFilters({ ...filters, subCategory: value, page: 1 })}
+                            placeholder="Sélectionner une sous-catégorie"
+                            searchable={true}
+                            className="shadow-sm hover:shadow-md focus-within:shadow-lg"
+                          />
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
 
                   {/* Marque */}
                   <div className="group">
