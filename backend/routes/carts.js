@@ -422,6 +422,86 @@ router.get('/user/:userId', authenticate, requireAdmin, async (req, res) => {
   }
 });
 
+// Vérifier si un utilisateur a un panier en cours (admin)
+router.get('/user/:userId/active', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const activeCart = await Cart.findOne({ 
+      user: req.params.userId, 
+      status: 'en_cours' 
+    })
+      .populate('items.product', 'name slug price images brand')
+      .populate('user', 'firstName lastName email');
+
+    res.json({ hasActiveCart: !!activeCart, cart: activeCart });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Créer un panier pour un utilisateur spécifique (admin)
+router.post('/user/:userId', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const { items, notes, replaceActive = false } = req.body;
+    const userId = req.params.userId;
+    
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'Le panier doit contenir au moins un produit' });
+    }
+
+    // Vérifier que l'utilisateur existe
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'Utilisateur non trouvé' });
+    }
+
+    // Vérifier que tous les produits existent et récupérer leurs prix
+    const productIds = items.map(item => item.product);
+    const products = await Product.find({ _id: { $in: productIds } });
+    
+    if (products.length !== productIds.length) {
+      return res.status(400).json({ error: 'Un ou plusieurs produits sont introuvables' });
+    }
+
+    // Créer les items avec les prix actuels
+    const cartItems = items.map(item => {
+      const product = products.find(p => p._id.toString() === item.product);
+      return {
+        product: item.product,
+        quantity: item.quantity,
+        price: product.price
+      };
+    });
+
+    // Si replaceActive est true, supprimer le panier en cours
+    if (replaceActive) {
+      const existingCart = await Cart.findOne({ 
+        user: userId, 
+        status: 'en_cours' 
+      });
+      
+      if (existingCart) {
+        await Cart.findByIdAndDelete(existingCart._id);
+      }
+    }
+
+    // Créer le nouveau panier (le total sera calculé automatiquement par le modèle)
+    const cart = new Cart({
+      user: userId,
+      items: cartItems,
+      notes: notes || '',
+      status: 'en_cours'
+    });
+    await cart.save();
+
+    await cart.populate('items.product', 'name slug price images brand');
+    await cart.populate('user', 'firstName lastName email');
+
+    res.json(cart);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Récupérer les commandes d'une entreprise (admin)
 router.get('/company/:companyId', authenticate, requireAdmin, async (req, res) => {
   try {

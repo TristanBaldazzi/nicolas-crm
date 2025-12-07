@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
 import CustomSelect from '@/components/CustomSelect';
 import { productsApi, uploadApi, productSpecsApi, brandsApi } from '@/lib/api';
@@ -10,6 +11,7 @@ import toast from 'react-hot-toast';
 import Link from 'next/link';
 
 export default function AdminProductsPage() {
+  const router = useRouter();
   const [products, setProducts] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -17,7 +19,6 @@ export default function AdminProductsPage() {
   const [brands, setBrands] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<any>(null);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [brandFilter, setBrandFilter] = useState('');
@@ -168,16 +169,9 @@ export default function AdminProductsPage() {
         specifications: formData.specifications,
       };
 
-      if (editingProduct) {
-        await productsApi.update(editingProduct._id, data);
-        toast.success('Produit modifié');
-      } else {
-        await productsApi.create(data);
-        toast.success('Produit créé');
-      }
-
+      await productsApi.create(data);
+      toast.success('Produit créé');
       setShowForm(false);
-      setEditingProduct(null);
       resetForm();
       loadData();
     } catch (error: any) {
@@ -206,36 +200,7 @@ export default function AdminProductsPage() {
   };
 
   const handleEdit = (product: any) => {
-    setEditingProduct(product);
-    // Convertir les specifications Map en objet si nécessaire
-    const specs = product.specifications || {};
-    const specsObj: Record<string, any> = {};
-    if (specs instanceof Map) {
-      specs.forEach((value, key) => {
-        specsObj[key] = value;
-      });
-    } else if (typeof specs === 'object') {
-      Object.assign(specsObj, specs);
-    }
-    
-    setFormData({
-      name: product.name,
-      description: product.description || '',
-      shortDescription: product.shortDescription || '',
-      sku: product.sku || '',
-      price: product.price.toString(),
-      compareAtPrice: product.compareAtPrice?.toString() || '',
-      brand: product.brand?._id || product.brand || '',
-      category: product.category?._id || product.category || '',
-      subCategory: product.subCategory?._id || product.subCategory || '',
-      stock: product.stock.toString(),
-      isInStock: product.isInStock,
-      isFeatured: product.isFeatured,
-      isBestSeller: product.isBestSeller || false,
-      images: product.images || [],
-      specifications: specsObj,
-    });
-    setShowForm(true);
+    router.push(`/admin/produits/${product._id}/edit`);
   };
 
   const handleDelete = async (id: string) => {
@@ -389,7 +354,6 @@ export default function AdminProductsPage() {
       setShowAIModal(false);
       setAiDescription('');
       setShowForm(true);
-      setEditingProduct(null);
       
       toast.success('Produit généré avec succès ! Vérifiez et complétez les informations si nécessaire.');
     } catch (error: any) {
@@ -449,7 +413,6 @@ export default function AdminProductsPage() {
           <button
             onClick={() => {
               setShowForm(true);
-              setEditingProduct(null);
               resetForm();
             }}
             className="inline-flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:from-green-700 hover:to-green-800 transition-all shadow-md hover:shadow-lg"
@@ -807,20 +770,18 @@ export default function AdminProductsPage() {
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden mb-8">
           <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <h2 className="text-2xl font-black text-gray-900">
-              {editingProduct ? 'Modifier' : 'Créer'} un produit
+              Créer un produit
             </h2>
-            {!editingProduct && (
-              <button
-                type="button"
-                onClick={() => setShowAIModal(true)}
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                Génération IA
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => setShowAIModal(true)}
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Génération IA
+            </button>
           </div>
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
             {/* Ligne 1: Nom et Code barre */}
@@ -1156,13 +1117,12 @@ export default function AdminProductsPage() {
                 type="submit"
                 className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-2.5 rounded-lg font-bold text-sm hover:from-green-700 hover:to-green-800 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {editingProduct ? 'Enregistrer' : 'Créer le produit'}
+                Créer le produit
               </button>
               <button
                 type="button"
                 onClick={() => {
                   setShowForm(false);
-                  setEditingProduct(null);
                   resetForm();
                 }}
                 className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-bold text-sm hover:bg-gray-200 transition-all border border-gray-200"
@@ -1301,7 +1261,6 @@ export default function AdminProductsPage() {
             <button
               onClick={() => {
                 setShowForm(true);
-                setEditingProduct(null);
                 resetForm();
               }}
               className="inline-flex items-center gap-3 bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"

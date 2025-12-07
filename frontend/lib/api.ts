@@ -171,6 +171,10 @@ export const cartsApi = {
     api.get(`/carts/${id}`),
   getUserCarts: (userId: string) =>
     api.get(`/carts/user/${userId}`),
+  getUserActiveCart: (userId: string) =>
+    api.get(`/carts/user/${userId}/active`),
+  createForUser: (userId: string, data: any) =>
+    api.post(`/carts/user/${userId}`, data),
   getCompanyOrders: (companyId: string) =>
     api.get(`/carts/company/${companyId}`),
   getStats: (params?: any) =>

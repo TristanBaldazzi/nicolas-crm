@@ -216,15 +216,55 @@ export default function NewCompanyPage() {
               />
             </div>
 
-            <div>
-              <label className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={formData.isActive}
-                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                  className="w-5 h-5 rounded border-2 border-gray-300 text-green-600 focus:ring-green-500 focus:ring-2"
-                />
-                <span className="text-sm font-semibold">Entreprise active</span>
+            {/* Statut de l'entreprise */}
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200">
+              <h3 className="text-sm font-bold text-gray-900 mb-4">Statut de l'entreprise</h3>
+              <label className="flex items-center p-4 bg-white rounded-lg border cursor-pointer transition-all hover:border-green-300 hover:bg-green-50"
+                style={{
+                  borderColor: formData.isActive ? '#10b981' : '#e5e7eb',
+                  backgroundColor: formData.isActive ? '#f0fdf4' : 'white'
+                }}>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={formData.isActive}
+                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                    className="sr-only"
+                  />
+                  <div className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
+                    formData.isActive 
+                      ? 'bg-green-600 border-green-600' 
+                      : 'bg-white border-gray-300'
+                  }`}>
+                    {formData.isActive && (
+                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <div className="ml-4 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base font-bold text-gray-900">Entreprise active</span>
+                    {formData.isActive && (
+                      <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
+                        Activée
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {formData.isActive 
+                      ? 'L\'entreprise est active et visible dans le système'
+                      : 'L\'entreprise est inactive et masquée dans le système'}
+                  </p>
+                </div>
+                {formData.isActive && (
+                  <div className="ml-4">
+                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                )}
               </label>
             </div>
 
