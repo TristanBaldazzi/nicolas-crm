@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import AdminLayout from '@/components/AdminLayout';
 import { authApi } from '@/lib/api';
 import toast from 'react-hot-toast';
+import CustomSelect from '@/components/CustomSelect';
 
 export default function AdminClientsPage() {
   const router = useRouter();
@@ -78,6 +80,15 @@ export default function AdminClientsPage() {
           <h1 className="text-3xl font-bold">Gestion des clients</h1>
           <p className="text-gray-600 mt-1">{allClients.length} client{allClients.length > 1 ? 's' : ''} au total</p>
         </div>
+        <Link
+          href="/admin/clients/nouveau"
+          className="inline-flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-xl font-bold hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Nouveau client
+        </Link>
       </div>
 
       {/* Barre de recherche et filtres */}
@@ -104,43 +115,35 @@ export default function AdminClientsPage() {
             {/* Filtre rôle */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Rôle</label>
-              <div className="relative">
-                <select
-                  value={roleFilter}
-                  onChange={(e) => setRoleFilter(e.target.value)}
-                  className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all appearance-none cursor-pointer"
-                >
-                  <option value="all">Tous</option>
-                  <option value="user">Utilisateurs</option>
-                  <option value="admin">Administrateurs</option>
-                </select>
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
+              <CustomSelect
+                options={[
+                  { value: 'all', label: 'Tous' },
+                  { value: 'user', label: 'Utilisateurs' },
+                  { value: 'admin', label: 'Administrateurs' },
+                ]}
+                value={roleFilter}
+                onChange={(value) => setRoleFilter(value)}
+                placeholder="Sélectionner un rôle"
+                searchable={false}
+                className="shadow-sm hover:shadow-md focus-within:shadow-lg"
+              />
             </div>
 
             {/* Filtre statut */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Statut</label>
-              <div className="relative">
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all appearance-none cursor-pointer"
-                >
-                  <option value="all">Tous</option>
-                  <option value="active">Actifs</option>
-                  <option value="inactive">Inactifs</option>
-                </select>
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
+              <CustomSelect
+                options={[
+                  { value: 'all', label: 'Tous' },
+                  { value: 'active', label: 'Actifs' },
+                  { value: 'inactive', label: 'Inactifs' },
+                ]}
+                value={statusFilter}
+                onChange={(value) => setStatusFilter(value)}
+                placeholder="Sélectionner un statut"
+                searchable={false}
+                className="shadow-sm hover:shadow-md focus-within:shadow-lg"
+              />
             </div>
           </div>
 

@@ -17,6 +17,7 @@ export default function AdminDashboard() {
     campaigns: 0,
   });
   const [userStats, setUserStats] = useState<any[]>([]);
+  const [period, setPeriod] = useState<'7d' | '14d' | '30d' | '365d'>('7d');
 
   useEffect(() => {
     // Vérifier que l'utilisateur est admin avant de charger les données
@@ -26,7 +27,7 @@ export default function AdminDashboard() {
     loadStats();
     loadUserStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, user?.role]);
+  }, [user?.id, user?.role, period]);
 
   const loadStats = async () => {
     try {
@@ -45,15 +46,27 @@ export default function AdminDashboard() {
 
   const loadUserStats = async () => {
     try {
-      const res = await authApi.getUserStats();
+      const res = await authApi.getUserStats({ period });
       const stats = res.data?.stats || res.data || [];
       setUserStats(stats);
-      console.log('User stats loaded:', stats);
-      console.log('Total users in stats:', stats.reduce((sum: number, s: any) => sum + (s.count || 0), 0));
     } catch (error: any) {
       console.error('Error loading user stats:', error);
-      console.error('Error response:', error.response?.data);
       setUserStats([]);
+    }
+  };
+
+  const getPeriodLabel = () => {
+    switch (period) {
+      case '7d':
+        return '7 derniers jours';
+      case '14d':
+        return '14 derniers jours';
+      case '30d':
+        return '30 derniers jours';
+      case '365d':
+        return '365 derniers jours';
+      default:
+        return '7 derniers jours';
     }
   };
 
@@ -86,15 +99,59 @@ export default function AdminDashboard() {
       {/* Graphique des nouveaux utilisateurs */}
       <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-xl font-bold text-gray-900">Nouveaux utilisateurs</h2>
-              <p className="text-xs text-gray-600 mt-0.5">7 derniers jours</p>
+              <p className="text-xs text-gray-600 mt-0.5">{getPeriodLabel()}</p>
             </div>
             <div className="text-right">
               <div className="text-2xl font-black text-green-600">{totalUsers}</div>
               <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Total</div>
             </div>
+          </div>
+          
+          {/* Filtres de période */}
+          <div className="flex gap-2 mt-4">
+            <button
+              onClick={() => setPeriod('7d')}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                period === '7d' 
+                  ? 'bg-green-600 text-white shadow-md' 
+                  : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+              }`}
+            >
+              7j
+            </button>
+            <button
+              onClick={() => setPeriod('14d')}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                period === '14d' 
+                  ? 'bg-green-600 text-white shadow-md' 
+                  : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+              }`}
+            >
+              14j
+            </button>
+            <button
+              onClick={() => setPeriod('30d')}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                period === '30d' 
+                  ? 'bg-green-600 text-white shadow-md' 
+                  : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+              }`}
+            >
+              30j
+            </button>
+            <button
+              onClick={() => setPeriod('365d')}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                period === '365d' 
+                  ? 'bg-green-600 text-white shadow-md' 
+                  : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+              }`}
+            >
+              365j
+            </button>
           </div>
         </div>
         
@@ -161,17 +218,22 @@ export default function AdminDashboard() {
                 </svg>
               </div>
               <p className="text-gray-700 text-xl font-bold mb-2">Aucun nouvel utilisateur</p>
-              <p className="text-gray-500 text-sm">Les nouveaux utilisateurs apparaîtront ici sur les 7 derniers jours</p>
+              <p className="text-gray-500 text-sm">Les nouveaux utilisateurs apparaîtront ici sur {getPeriodLabel().toLowerCase()}</p>
             </div>
             
-            {/* Tableau des 7 derniers jours avec design amélioré */}
+            {/* Tableau détaillé avec design amélioré */}
             <div className="border-t border-gray-200 pt-6">
-              <h3 className="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wider">Détail des 7 derniers jours</h3>
-              <div className="grid grid-cols-7 gap-3">
+              <h3 className="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wider">Détail {getPeriodLabel().toLowerCase()}</h3>
+              <div className={`grid gap-2 ${
+                period === '7d' ? 'grid-cols-7' :
+                period === '14d' ? 'grid-cols-7' :
+                period === '30d' ? 'grid-cols-10' :
+                'grid-cols-12'
+              } overflow-x-auto`}>
                 {userStats.map((stat: any, index: number) => (
-                  <div key={index} className="text-center p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200 hover:from-gray-100 hover:to-gray-200 transition-all">
-                    <div className="text-3xl font-black text-gray-400 mb-2">{stat.count}</div>
-                    <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide">{stat.day}</div>
+                  <div key={index} className="text-center p-3 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border border-gray-200 hover:from-gray-100 hover:to-gray-200 transition-all min-w-[80px]">
+                    <div className="text-2xl font-black text-gray-400 mb-1">{stat.count}</div>
+                    <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide leading-tight">{stat.day}</div>
                   </div>
                 ))}
               </div>

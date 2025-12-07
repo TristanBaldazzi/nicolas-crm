@@ -6,6 +6,7 @@ import AdminLayout from '@/components/AdminLayout';
 import { authApi, cartsApi, companiesApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
+import CustomSelect from '@/components/CustomSelect';
 
 export default function ClientDetailPage() {
   const params = useParams();
@@ -220,13 +221,14 @@ export default function ClientDetailPage() {
         <p className="text-gray-600 mt-2">Détails et modification de l'utilisateur</p>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8">
+      <div className="space-y-8">
         {/* Informations principales */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Informations personnelles</h2>
-            
-            <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Informations personnelles</h2>
+              
+              <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <label className="block mb-2 font-semibold text-gray-700">
@@ -268,86 +270,58 @@ export default function ClientDetailPage() {
               </div>
 
               <div className="grid md:grid-cols-2 gap-6">
-                <div className="relative">
+                <div>
                   <label className="block mb-3 font-bold text-gray-900 text-sm uppercase tracking-wide">
                     Rôle
                   </label>
-                  <div className="relative">
-                    <div className="absolute left-4 top-1/2 transform -translate-y-1/2 pointer-events-none z-10">
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                      </svg>
-                    </div>
-                    <select
-                      value={formData.role}
-                      onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                      className="w-full pl-12 pr-10 py-4 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all bg-white font-semibold appearance-none cursor-pointer hover:border-green-300 shadow-sm hover:shadow-md"
-                    >
-                      <option value="user">Utilisateur</option>
-                      <option value="admin">Administrateur</option>
-                    </select>
-                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none z-10">
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                  </div>
+                  <CustomSelect
+                    options={[
+                      { value: 'user', label: 'Utilisateur' },
+                      { value: 'admin', label: 'Administrateur' },
+                    ]}
+                    value={formData.role}
+                    onChange={(value) => setFormData({ ...formData, role: value })}
+                    placeholder="Sélectionner un rôle"
+                    searchable={false}
+                    className="shadow-sm hover:shadow-md focus-within:shadow-lg"
+                  />
                 </div>
-                <div className="relative">
+                <div>
                   <label className="block mb-3 font-bold text-gray-900 text-sm uppercase tracking-wide">
                     Statut du compte
                   </label>
-                  <div className="relative">
-                    <div className="absolute left-4 top-1/2 transform -translate-y-1/2 pointer-events-none z-10">
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <select
-                      value={formData.isActive ? 'active' : 'inactive'}
-                      onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'active' })}
-                      className="w-full pl-12 pr-10 py-4 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all bg-white font-semibold appearance-none cursor-pointer hover:border-green-300 shadow-sm hover:shadow-md"
-                    >
-                      <option value="active">Actif</option>
-                      <option value="inactive">Inactif</option>
-                    </select>
-                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none z-10">
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                  </div>
+                  <CustomSelect
+                    options={[
+                      { value: 'active', label: 'Actif' },
+                      { value: 'inactive', label: 'Inactif' },
+                    ]}
+                    value={formData.isActive ? 'active' : 'inactive'}
+                    onChange={(value) => setFormData({ ...formData, isActive: value === 'active' })}
+                    placeholder="Sélectionner un statut"
+                    searchable={false}
+                    className="shadow-sm hover:shadow-md focus-within:shadow-lg"
+                  />
                 </div>
               </div>
 
-              <div className="relative">
+              <div>
                 <label className="block mb-3 font-bold text-gray-900 text-sm uppercase tracking-wide">
                   Entreprise
                 </label>
-                <div className="relative">
-                  <div className="absolute left-4 top-1/2 transform -translate-y-1/2 pointer-events-none z-10">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
-                  </div>
-                  <select
-                    value={formData.company}
-                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                    className="w-full pl-12 pr-10 py-4 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all bg-white font-semibold appearance-none cursor-pointer hover:border-green-300 shadow-sm hover:shadow-md"
-                  >
-                    <option value="">Aucune entreprise</option>
-                    {companies.map((company) => (
-                      <option key={company._id} value={company._id}>
-                        {company.name}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none z-10">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
+                <CustomSelect
+                  options={[
+                    { value: '', label: 'Aucune entreprise' },
+                    ...companies.map((company) => ({
+                      value: company._id,
+                      label: company.name,
+                    })),
+                  ]}
+                  value={formData.company}
+                  onChange={(value) => setFormData({ ...formData, company: value })}
+                  placeholder="Sélectionner une entreprise"
+                  searchable={true}
+                  className="shadow-sm hover:shadow-md focus-within:shadow-lg"
+                />
               </div>
 
               <div className="flex gap-4 pt-6 border-t border-gray-200">
@@ -366,11 +340,11 @@ export default function ClientDetailPage() {
                 </Link>
               </div>
             </form>
+            </div>
           </div>
-        </div>
 
-        {/* Sidebar avec informations */}
-        <div className="space-y-6">
+          {/* Sidebar avec informations */}
+          <div className="space-y-6">
           {/* Carte profil */}
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
             <div className="text-center mb-6">
@@ -408,9 +382,19 @@ export default function ClientDetailPage() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-600">Entreprise</span>
-                <span className="font-semibold text-gray-900">
-                  {client.company?.name || 'Aucune'}
-                </span>
+                {client.company ? (
+                  <Link
+                    href={`/admin/entreprises/${client.company._id || client.company}`}
+                    className="font-semibold text-green-600 hover:text-green-700 hover:underline transition-colors flex items-center gap-1 group"
+                  >
+                    {client.company.name || client.company}
+                    <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                ) : (
+                  <span className="font-semibold text-gray-900">Aucune</span>
+                )}
               </div>
             </div>
           </div>
@@ -451,46 +435,50 @@ export default function ClientDetailPage() {
               </div>
             </div>
           </div>
+        </div>
+        </div>
 
-          {/* Paniers du client */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        {/* Paniers du client - Pleine largeur */}
+        <div className="w-full bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+          <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
-              Paniers du client
-            </h3>
+            </div>
+            Paniers du client
+          </h3>
             {clientCarts.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="text-center py-16">
+                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                 </div>
-                <p className="text-gray-500 text-sm">Aucun panier pour ce client</p>
+                <p className="text-gray-500 font-semibold text-lg">Aucun panier pour ce client</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {clientCarts.map((cart) => {
                   const statusConfig = getStatusConfig(cart.status);
                   return (
                     <Link
                       key={cart._id}
                       href={`/admin/paniers/${cart._id}`}
-                      className={`block border-2 ${statusConfig.borderColor} rounded-xl p-4 ${statusConfig.bgColor} hover:shadow-lg transition-all cursor-pointer group`}
+                      className={`block border-2 ${statusConfig.borderColor} rounded-xl p-6 ${statusConfig.bgColor} hover:shadow-xl transition-all cursor-pointer group transform hover:-translate-y-1`}
                     >
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className={`w-8 h-8 ${statusConfig.bgColor} ${statusConfig.borderColor} border-2 rounded-lg flex items-center justify-center ${statusConfig.textColor}`}>
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className={`w-12 h-12 ${statusConfig.bgColor} ${statusConfig.borderColor} border-2 rounded-xl flex items-center justify-center ${statusConfig.textColor} shadow-md`}>
                               {statusConfig.icon}
                             </div>
                             <div>
-                              <p className="font-bold text-gray-900">Panier #{cart._id.slice(-8)}</p>
-                              <p className="text-xs text-gray-500 mt-0.5">
+                              <p className="font-bold text-lg text-gray-900">Panier #{cart._id.slice(-8)}</p>
+                              <p className="text-sm text-gray-500 mt-1">
                                 {new Date(cart.createdAt).toLocaleDateString('fr-FR', {
                                   day: 'numeric',
-                                  month: 'short',
+                                  month: 'long',
                                   year: 'numeric',
                                   hour: '2-digit',
                                   minute: '2-digit'
@@ -498,17 +486,28 @@ export default function ClientDetailPage() {
                               </p>
                             </div>
                           </div>
-                          <div className="text-xs text-gray-600 mb-3">
-                            {cart.items.length} article{cart.items.length > 1 ? 's' : ''} • Total: <span className="font-bold text-green-600">{cart.total.toFixed(2)} €</span>
+                          <div className="flex items-center gap-4 mb-3">
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-white/70 rounded-lg">
+                              <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                              </svg>
+                              <span className="text-sm font-semibold text-gray-700">{cart.items.length} article{cart.items.length > 1 ? 's' : ''}</span>
+                            </div>
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-green-100 rounded-lg">
+                              <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <span className="text-sm font-bold text-green-700">{cart.total.toFixed(2)} €</span>
+                            </div>
                           </div>
                           {cart.notes && (
-                            <div className="text-xs text-gray-700 bg-white/50 rounded-lg p-2 mb-3 italic">
+                            <div className="text-sm text-gray-700 bg-white/70 rounded-lg p-3 mb-3 italic border-l-4 border-gray-300">
                               "{cart.notes}"
                             </div>
                           )}
                         </div>
                         <div className="ml-4">
-                          <span className={`px-3 py-1.5 rounded-lg text-xs font-bold ${statusConfig.bgColor} ${statusConfig.textColor} border ${statusConfig.borderColor} inline-flex items-center gap-1`}>
+                          <span className={`px-4 py-2 rounded-xl text-sm font-bold ${statusConfig.bgColor} ${statusConfig.textColor} border-2 ${statusConfig.borderColor} inline-flex items-center gap-2 shadow-md`}>
                             {statusConfig.icon}
                             {statusConfig.label}
                           </span>
@@ -516,8 +515,8 @@ export default function ClientDetailPage() {
                       </div>
                       
                       {/* Boutons de changement de statut */}
-                      <div className="pt-4 border-t border-gray-200" onClick={(e) => e.stopPropagation()}>
-                        <label className="block text-xs font-bold text-gray-700 mb-2 uppercase tracking-wide">Changer le statut</label>
+                      <div className="pt-4 border-t-2 border-gray-200" onClick={(e) => e.stopPropagation()}>
+                        <label className="block text-xs font-bold text-gray-700 mb-3 uppercase tracking-wide">Changer le statut</label>
                         <div className="flex flex-wrap gap-2">
                           {statusOptions.map((option) => {
                             const optionConfig = getStatusConfig(option.value);
@@ -532,17 +531,18 @@ export default function ClientDetailPage() {
                                 }}
                                 disabled={isActive}
                                 className={`
-                                  px-3 py-1.5 rounded-lg text-xs font-semibold
+                                  px-4 py-2 rounded-lg text-xs font-bold
                                   transition-all duration-200 transform
                                   ${isActive 
-                                    ? `${optionConfig.bgColor} ${optionConfig.textColor} border-2 ${optionConfig.borderColor} cursor-default` 
-                                    : `bg-white border border-gray-300 text-gray-700 hover:scale-105 active:scale-95 cursor-pointer`
+                                    ? `${optionConfig.bgColor} ${optionConfig.textColor} border-2 ${optionConfig.borderColor} cursor-default shadow-md` 
+                                    : `bg-white border-2 border-gray-300 text-gray-700 hover:scale-105 active:scale-95 cursor-pointer hover:shadow-md`
                                   }
-                                  flex items-center gap-1.5
-                                  ${!isActive && optionConfig.color === 'yellow' ? 'hover:border-yellow-300 hover:bg-yellow-50' : ''}
-                                  ${!isActive && optionConfig.color === 'blue' ? 'hover:border-blue-300 hover:bg-blue-50' : ''}
-                                  ${!isActive && optionConfig.color === 'green' ? 'hover:border-green-300 hover:bg-green-50' : ''}
-                                  ${!isActive && optionConfig.color === 'red' ? 'hover:border-red-300 hover:bg-red-50' : ''}
+                                  flex items-center gap-2
+                                  ${!isActive && option.value === 'demande' ? 'hover:border-yellow-400 hover:bg-yellow-50' : ''}
+                                  ${!isActive && option.value === 'traité' ? 'hover:border-blue-400 hover:bg-blue-50' : ''}
+                                  ${!isActive && option.value === 'fini' ? 'hover:border-green-400 hover:bg-green-50' : ''}
+                                  ${!isActive && option.value === 'annulé' ? 'hover:border-red-400 hover:bg-red-50' : ''}
+                                  ${!isActive && option.value === 'en_cours' ? 'hover:border-gray-400 hover:bg-gray-50' : ''}
                                 `}
                               >
                                 {optionConfig.icon && (
@@ -556,10 +556,10 @@ export default function ClientDetailPage() {
                           })}
                         </div>
                       </div>
-                      <div className="mt-3 flex items-center justify-end">
-                        <span className="text-xs text-gray-500 group-hover:text-green-600 transition-colors flex items-center gap-1">
+                      <div className="mt-4 flex items-center justify-end pt-3 border-t border-gray-200">
+                        <span className="text-sm text-gray-600 group-hover:text-green-600 transition-colors font-semibold flex items-center gap-2">
                           Voir les détails
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
                         </span>
@@ -569,7 +569,6 @@ export default function ClientDetailPage() {
                 })}
               </div>
             )}
-          </div>
         </div>
       </div>
     </AdminLayout>

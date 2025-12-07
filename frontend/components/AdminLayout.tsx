@@ -4,13 +4,14 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/store';
+import AdminFooter from './AdminFooter';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, isAdmin, loadFromStorage, isLoading: authLoading } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const hasCheckedAuth = useRef(false);
+  const hasCheckedAuth = useRef<string | undefined | 'null'>(undefined);
 
   useEffect(() => {
     // Charger depuis le storage une seule fois au montage
@@ -24,7 +25,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     
     // Ne vérifier qu'une seule fois par changement d'utilisateur
     const currentUserId = user?.id;
-    if (hasCheckedAuth.current === currentUserId) return;
+    if (hasCheckedAuth.current === currentUserId || (hasCheckedAuth.current === 'null' && !currentUserId)) return;
     
     // Vérifier l'authentification et rediriger si nécessaire
     // Note: on vérifie pathname dans le corps mais ne l'inclut pas dans les dépendances
@@ -119,7 +120,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Bande verte Admin Mode */}
       <div className="bg-gradient-to-r from-green-600 to-green-700 text-white py-2 shadow-md">
         <div className="container mx-auto px-6">
@@ -227,7 +228,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           )}
         </div>
       </nav>
-      <main className="container mx-auto px-4 sm:px-6 py-8">{children}</main>
+      <main className="container mx-auto px-4 sm:px-6 py-8 flex-1">{children}</main>
+      
+      <AdminFooter />
     </div>
   );
 }

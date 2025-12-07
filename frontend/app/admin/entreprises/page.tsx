@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import AdminLayout from '@/components/AdminLayout';
 import { companiesApi } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -13,21 +14,6 @@ export default function AdminCompaniesPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [showModal, setShowModal] = useState(false);
-  const [editingCompany, setEditingCompany] = useState<any>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    code: '',
-    address: '',
-    city: '',
-    postalCode: '',
-    country: 'LU',
-    phone: '',
-    email: '',
-    vatNumber: '',
-    notes: '',
-    isActive: true
-  });
 
   useEffect(() => {
     loadData();
@@ -75,62 +61,6 @@ export default function AdminCompaniesPage() {
     setCompanies(filtered);
   };
 
-  const handleOpenModal = (company?: any) => {
-    if (company) {
-      setEditingCompany(company);
-      setFormData({
-        name: company.name || '',
-        code: company.code || '',
-        address: company.address || '',
-        city: company.city || '',
-        postalCode: company.postalCode || '',
-        country: company.country || 'LU',
-        phone: company.phone || '',
-        email: company.email || '',
-        vatNumber: company.vatNumber || '',
-        notes: company.notes || '',
-        isActive: company.isActive !== undefined ? company.isActive : true
-      });
-    } else {
-      setEditingCompany(null);
-      setFormData({
-        name: '',
-        code: '',
-        address: '',
-        city: '',
-        postalCode: '',
-        country: 'LU',
-        phone: '',
-        email: '',
-        vatNumber: '',
-        notes: '',
-        isActive: true
-      });
-    }
-    setShowModal(true);
-  };
-
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setEditingCompany(null);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      if (editingCompany) {
-        await companiesApi.update(editingCompany._id, formData);
-        toast.success('Entreprise mise à jour');
-      } else {
-        await companiesApi.create(formData);
-        toast.success('Entreprise créée');
-      }
-      handleCloseModal();
-      loadData();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Erreur lors de la sauvegarde');
-    }
-  };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cette entreprise ?')) {
@@ -217,224 +147,150 @@ export default function AdminCompaniesPage() {
           <h1 className="text-3xl font-bold">Gestion des entreprises</h1>
           <p className="text-gray-600 mt-1">{allCompanies.length} entreprise{allCompanies.length > 1 ? 's' : ''} au total</p>
         </div>
-        <button
-          onClick={() => handleOpenModal()}
-          className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
+        <Link
+          href="/admin/entreprises/nouveau"
+          className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors inline-block"
         >
           + Nouvelle entreprise
-        </button>
+        </Link>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left">Nom</th>
-              <th className="px-6 py-3 text-left">Code</th>
-              <th className="px-6 py-3 text-left">Email</th>
-              <th className="px-6 py-3 text-left">Ville</th>
-              <th className="px-6 py-3 text-left">Statut</th>
-              <th className="px-6 py-3 text-left">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
               <tr>
-                <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
-                  Chargement...
-                </td>
+                <th className="px-6 py-4 text-left text-xs font-black text-gray-700 uppercase tracking-wider">Nom</th>
+                <th className="px-6 py-4 text-left text-xs font-black text-gray-700 uppercase tracking-wider">Code</th>
+                <th className="px-6 py-4 text-left text-xs font-black text-gray-700 uppercase tracking-wider">Email</th>
+                <th className="px-6 py-4 text-left text-xs font-black text-gray-700 uppercase tracking-wider">Ville</th>
+                <th className="px-6 py-4 text-left text-xs font-black text-gray-700 uppercase tracking-wider">Statut</th>
+                <th className="px-6 py-4 text-left text-xs font-black text-gray-700 uppercase tracking-wider">Actions</th>
               </tr>
-            ) : companies.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
-                  Aucune entreprise
-                </td>
-              </tr>
-            ) : (
-              companies.map((company) => (
-                <tr 
-                  key={company._id} 
-                  className="border-t hover:bg-gray-50 cursor-pointer"
-                  onClick={() => router.push(`/admin/entreprises/${company._id}`)}
-                >
-                  <td className="px-6 py-4 font-semibold">{company.name}</td>
-                  <td className="px-6 py-4">{company.code || '-'}</td>
-                  <td className="px-6 py-4">{company.email || '-'}</td>
-                  <td className="px-6 py-4">{company.city || '-'}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      company.isActive 
-                        ? 'bg-green-100 text-green-700' 
-                        : 'bg-gray-100 text-gray-700'
-                    }`}>
-                      {company.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          router.push(`/admin/entreprises/${company._id}`);
-                        }}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        Voir
-                      </button>
-                      <button
-                        onClick={() => handleOpenModal(company)}
-                        className="text-green-600 hover:text-green-800"
-                      >
-                        Modifier
-                      </button>
-                      <button
-                        onClick={() => handleDelete(company._id)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        Supprimer
-                      </button>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-green-200 border-t-green-600 mb-3"></div>
+                      <p className="text-gray-500 font-medium">Chargement...</p>
                     </div>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-4">
-              {editingCompany ? 'Modifier l\'entreprise' : 'Nouvelle entreprise'}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold mb-1">Nom *</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-1">Code</label>
-                  <input
-                    type="text"
-                    value={formData.code}
-                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-1">Adresse</label>
-                <input
-                  type="text"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold mb-1">Code postal</label>
-                  <input
-                    type="text"
-                    value={formData.postalCode}
-                    onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-1">Ville</label>
-                  <input
-                    type="text"
-                    value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-1">Pays</label>
-                  <input
-                    type="text"
-                    value={formData.country}
-                    onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold mb-1">Téléphone</label>
-                  <input
-                    type="text"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-1">Numéro TVA</label>
-                <input
-                  type="text"
-                  value={formData.vatNumber}
-                  onChange={(e) => setFormData({ ...formData, vatNumber: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold mb-1">Notes</label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  rows={3}
-                />
-              </div>
-              <div>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.isActive}
-                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                    className="rounded"
-                  />
-                  <span className="text-sm font-semibold">Active</span>
-                </label>
-              </div>
-              <div className="flex justify-end gap-4">
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="px-6 py-2 border rounded-lg hover:bg-gray-50"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                >
-                  {editingCompany ? 'Enregistrer' : 'Créer'}
-                </button>
-              </div>
-            </form>
-          </div>
+              ) : companies.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      <p className="text-gray-500 font-semibold text-lg">Aucune entreprise</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                companies.map((company, index) => (
+                  <tr 
+                    key={company._id} 
+                    className="hover:bg-gradient-to-r hover:from-green-50/50 hover:to-emerald-50/50 transition-all duration-200 cursor-pointer group"
+                    onClick={() => router.push(`/admin/entreprises/${company._id}`)}
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-md">
+                          <span className="text-white font-bold text-sm">
+                            {company.name?.charAt(0)?.toUpperCase() || 'E'}
+                          </span>
+                        </div>
+                        <span className="font-bold text-gray-900 group-hover:text-green-700 transition-colors">{company.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold inline-block">
+                        {company.code || '-'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        {company.email ? (
+                          <>
+                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            <span className="text-sm text-gray-700 font-medium">{company.email}</span>
+                          </>
+                        ) : (
+                          <span className="text-sm text-gray-400">-</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        {company.city ? (
+                          <>
+                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span className="text-sm text-gray-700 font-medium">{company.city}</span>
+                          </>
+                        ) : (
+                          <span className="text-sm text-gray-400">-</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-3 py-1.5 rounded-full text-xs font-bold inline-flex items-center gap-1.5 ${
+                        company.isActive 
+                          ? 'bg-green-100 text-green-700 border border-green-200' 
+                          : 'bg-gray-100 text-gray-600 border border-gray-200'
+                      }`}>
+                        <span className={`w-2 h-2 rounded-full ${company.isActive ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                        {company.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            router.push(`/admin/entreprises/${company._id}`);
+                          }}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Voir"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        </button>
+                        <Link
+                          href={`/admin/entreprises/${company._id}/edit`}
+                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          title="Modifier"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(company._id)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Supprimer"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
     </AdminLayout>
   );
 }

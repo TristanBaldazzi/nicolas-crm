@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import AdminLayout from '@/components/AdminLayout';
 import { cartsApi } from '@/lib/api';
 import toast from 'react-hot-toast';
+import CustomSelect from '@/components/CustomSelect';
 
 export default function AdminCartsPage() {
   const router = useRouter();
@@ -123,9 +125,20 @@ export default function AdminCartsPage() {
 
   return (
     <AdminLayout>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Gestion des paniers</h1>
-        <p className="text-gray-600">Gérez tous les paniers de commande</p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Gestion des paniers</h1>
+          <p className="text-gray-600">Gérez tous les paniers de commande</p>
+        </div>
+        <Link
+          href="/admin/paniers/statistiques"
+          className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+          Statistiques
+        </Link>
       </div>
 
       {/* Filtres et recherche */}
@@ -151,61 +164,47 @@ export default function AdminCartsPage() {
           </div>
 
           {/* Filtre statut */}
-          <div className="relative">
-            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none z-10">
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <select
+          <div>
+            <CustomSelect
+              options={[
+                { value: '', label: 'Tous les statuts' },
+                { value: 'en_cours', label: 'En cours' },
+                { value: 'demande', label: 'Demande' },
+                { value: 'traité', label: 'Traité' },
+                { value: 'fini', label: 'Fini' },
+                { value: 'annulé', label: 'Annulé' },
+              ]}
               value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
+              onChange={(value) => {
+                setStatusFilter(value);
                 setPage(1);
               }}
-              className="w-full pl-10 pr-10 py-2.5 bg-white border-2 border-gray-200 rounded-xl text-gray-700 font-semibold appearance-none cursor-pointer hover:border-green-300 focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md"
-            >
-              <option value="">Tous les statuts</option>
-              <option value="en_cours">En cours</option>
-              <option value="demande">Demande</option>
-              <option value="traité">Traité</option>
-              <option value="fini">Fini</option>
-              <option value="annulé">Annulé</option>
-            </select>
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
+              placeholder="Tous les statuts"
+              searchable={false}
+              className="shadow-sm hover:shadow-md focus-within:shadow-lg"
+            />
           </div>
 
           {/* Tri */}
-          <div className="relative">
-            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none z-10">
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
-              </svg>
-            </div>
-            <select
+          <div>
+            <CustomSelect
+              options={[
+                { value: 'createdAt-desc', label: 'Plus récent' },
+                { value: 'createdAt-asc', label: 'Plus ancien' },
+                { value: 'total-desc', label: 'Montant décroissant' },
+                { value: 'total-asc', label: 'Montant croissant' },
+              ]}
               value={`${sortBy}-${sortOrder}`}
-              onChange={(e) => {
-                const [field, order] = e.target.value.split('-');
+              onChange={(value) => {
+                const [field, order] = value.split('-');
                 setSortBy(field);
                 setSortOrder(order);
                 setPage(1);
               }}
-              className="w-full pl-10 pr-10 py-2.5 bg-white border-2 border-gray-200 rounded-xl text-gray-700 font-semibold appearance-none cursor-pointer hover:border-green-300 focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md"
-            >
-              <option value="createdAt-desc">Plus récent</option>
-              <option value="createdAt-asc">Plus ancien</option>
-              <option value="total-desc">Montant décroissant</option>
-              <option value="total-asc">Montant croissant</option>
-            </select>
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
+              placeholder="Trier par"
+              searchable={false}
+              className="shadow-sm hover:shadow-md focus-within:shadow-lg"
+            />
           </div>
         </div>
       </div>
@@ -306,16 +305,19 @@ export default function AdminCartsPage() {
                           })}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCartClick(cart._id);
-                          }}
-                          className="text-green-600 hover:text-green-900 font-semibold"
-                        >
-                          Voir détails
-                        </button>
+                      <td className="px-6 py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleCartClick(cart._id)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Voir les détails"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

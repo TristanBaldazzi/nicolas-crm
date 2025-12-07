@@ -178,14 +178,35 @@ router.get('/users', authenticate, requireAdmin, async (req, res) => {
   }
 });
 
-// Statistiques des nouveaux utilisateurs sur 7 jours (DOIT être avant /users/:id)
+// Statistiques des nouveaux utilisateurs (DOIT être avant /users/:id)
 router.get('/users/stats', authenticate, requireAdmin, async (req, res) => {
   try {
-    // Créer un tableau pour les 7 derniers jours (toujours 7 jours, même si 0 utilisateurs)
+    const { period = '7d' } = req.query;
+    
+    // Déterminer le nombre de jours selon la période
+    let days;
+    switch (period) {
+      case '7d':
+        days = 7;
+        break;
+      case '14d':
+        days = 14;
+        break;
+      case '30d':
+        days = 30;
+        break;
+      case '365d':
+        days = 365;
+        break;
+      default:
+        days = 7;
+    }
+    
+    // Créer un tableau pour les N derniers jours
     const stats = [];
     const now = new Date();
     
-    for (let i = 6; i >= 0; i--) {
+    for (let i = days - 1; i >= 0; i--) {
       const date = new Date(now);
       date.setDate(date.getDate() - i);
       date.setUTCHours(0, 0, 0, 0);

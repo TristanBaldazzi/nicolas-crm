@@ -6,6 +6,7 @@ import AdminLayout from '@/components/AdminLayout';
 import { companiesApi, authApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
+import CustomSelect from '@/components/CustomSelect';
 
 export default function CompanyDetailPage() {
   const params = useParams();
@@ -295,15 +296,36 @@ export default function CompanyDetailPage() {
                 />
               </div>
 
-              <div>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.isActive}
-                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                    className="rounded"
-                  />
-                  <span className="text-sm font-semibold">Entreprise active</span>
+              <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={formData.isActive}
+                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                      className="w-6 h-6 rounded border-2 border-gray-300 text-green-600 focus:ring-green-500 focus:ring-2 cursor-pointer transition-all"
+                    />
+                    {formData.isActive && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <span className="text-base font-bold text-gray-900 block">Entreprise active</span>
+                    <span className="text-xs text-gray-600 mt-0.5">
+                      {formData.isActive ? 'L\'entreprise est actuellement active' : 'L\'entreprise est actuellement inactive'}
+                    </span>
+                  </div>
+                  <div className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                    formData.isActive
+                      ? 'bg-green-600 text-white shadow-md'
+                      : 'bg-gray-300 text-gray-600'
+                  }`}>
+                    {formData.isActive ? 'Active' : 'Inactive'}
+                  </div>
                 </label>
               </div>
 
@@ -473,45 +495,56 @@ export default function CompanyDetailPage() {
 
       {/* Modal d'ajout de membre */}
       {showAddMemberModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-2xl font-bold mb-4">Ajouter un membre</h2>
-            <div className="mb-4">
-              <label className="block text-sm font-semibold mb-2">Sélectionner un utilisateur</label>
-              <select
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900">Ajouter un membre</h2>
+            </div>
+            <div className="mb-6">
+              <label className="block mb-3 font-semibold text-gray-700">Sélectionner un utilisateur</label>
+              <CustomSelect
+                options={[
+                  { value: '', label: 'Sélectionner un utilisateur' },
+                  ...allUsers.map((user) => ({
+                    value: user._id || user.id,
+                    label: `${user.firstName} ${user.lastName} (${user.email})`,
+                  })),
+                ]}
                 value={selectedUserId}
-                onChange={(e) => setSelectedUserId(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg"
-              >
-                <option value="">Sélectionner...</option>
-                {allUsers.map((user) => (
-                  <option key={user._id || user.id} value={user._id || user.id}>
-                    {user.firstName} {user.lastName} ({user.email})
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setSelectedUserId(value)}
+                placeholder="Sélectionner un utilisateur"
+                searchable={true}
+                className="shadow-sm hover:shadow-md focus-within:shadow-lg"
+              />
             </div>
             {allUsers.length === 0 && (
-              <p className="text-sm text-gray-500 mb-4">
-                Tous les utilisateurs sont déjà membres de cette entreprise ou d'une autre.
-              </p>
+              <div className="mb-6 p-4 bg-yellow-50 border-2 border-yellow-200 rounded-xl">
+                <p className="text-sm text-yellow-800 font-semibold">
+                  Tous les utilisateurs sont déjà membres de cette entreprise ou d'une autre.
+                </p>
+              </div>
             )}
-            <div className="flex justify-end gap-4">
+            <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
               <button
                 onClick={() => {
                   setShowAddMemberModal(false);
                   setSelectedUserId('');
                 }}
-                className="px-6 py-2 border rounded-lg hover:bg-gray-50"
+                className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all"
               >
                 Annuler
               </button>
               <button
                 onClick={handleAddMember}
                 disabled={!selectedUserId || allUsers.length === 0}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl font-semibold hover:from-green-700 hover:to-green-800 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Ajouter
+                Ajouter le membre
               </button>
             </div>
           </div>

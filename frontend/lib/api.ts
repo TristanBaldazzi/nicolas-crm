@@ -42,8 +42,8 @@ export const authApi = {
     api.get('/auth/users', { params }),
   getUserById: (id: string) =>
     api.get(`/auth/users/${id}`),
-  getUserStats: () =>
-    api.get('/auth/users/stats'),
+  getUserStats: (params?: any) =>
+    api.get('/auth/users/stats', { params }),
   updateUser: (id: string, data: any) =>
     api.put(`/auth/users/${id}`, data),
   getFavorites: () =>
@@ -159,6 +159,8 @@ export const cartsApi = {
     api.get(`/carts/${id}`),
   getUserCarts: (userId: string) =>
     api.get(`/carts/user/${userId}`),
+  getStats: (params?: any) =>
+    api.get('/carts/stats', { params }),
   update: (id: string, data: any) =>
     api.put(`/carts/${id}`, data),
   updateStatus: (id: string, status: string) =>
@@ -183,6 +185,8 @@ export const companiesApi = {
     api.put(`/companies/${id}`, data),
   delete: (id: string) =>
     api.delete(`/companies/${id}`),
+  generateAI: (description: string, existingData?: any) =>
+    api.post('/companies/generate-ai', { description, existingData }),
 };
 
 // Promotions
@@ -191,8 +195,8 @@ export const promotionsApi = {
     api.get('/promotions', { params }),
   getMy: () =>
     api.get('/promotions/my'),
-  getById: (id: string) =>
-    api.get(`/promotions/${id}`),
+  getById: (id: string, params?: any) =>
+    api.get(`/promotions/${id}`, { params }),
   create: (data: any) =>
     api.post('/promotions', data),
   update: (id: string, data: any) =>

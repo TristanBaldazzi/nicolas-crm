@@ -2,6 +2,7 @@ import express from 'express';
 import Cart from '../models/Cart.js';
 import Product from '../models/Product.js';
 import User from '../models/User.js';
+import Company from '../models/Company.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -220,6 +221,155 @@ router.get('/', authenticate, requireAdmin, async (req, res) => {
       }
     });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Statistiques des paniers (admin) - DOIT être avant /user/:userId
+router.get('/stats', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const { period = '7d', status = 'traité' } = req.query;
+    
+    // Déterminer le nombre de jours selon la période
+    let days;
+    switch (period) {
+      case '7d':
+        days = 7;
+        break;
+      case '14d':
+        days = 14;
+        break;
+      case '30d':
+        days = 30;
+        break;
+      case '365d':
+        days = 365;
+        break;
+      default:
+        days = 7;
+    }
+    
+    const now = new Date();
+    const startDate = new Date(now);
+    startDate.setDate(startDate.getDate() - days);
+    startDate.setUTCHours(0, 0, 0, 0);
+    
+    // Construire la query selon le statut
+    const query = {
+      createdAt: { $gte: startDate }
+    };
+    
+    // Si le statut est 'traité', inclure aussi 'fini' pour compatibilité
+    if (status === 'traité') {
+      query.status = { $in: ['traité', 'fini'] };
+    } else {
+      query.status = status;
+    }
+    
+    // Récupérer tous les paniers de la période avec le statut sélectionné
+    const carts = await Cart.find(query)
+      .populate('user', 'firstName lastName email company')
+      .populate('items.product', 'name price');
+    
+    // Calculs de base
+    const totalCarts = carts.length;
+    const totalAmount = carts.reduce((sum, cart) => sum + (cart.total || 0), 0);
+    const averageCart = totalCarts > 0 ? totalAmount / totalCarts : 0;
+    
+    // Statistiques par jour
+    const dailyStats = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      date.setUTCHours(0, 0, 0, 0);
+      
+      const nextDate = new Date(date);
+      nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+      
+      const dayCarts = carts.filter(cart => {
+        const cartDate = new Date(cart.createdAt);
+        return cartDate >= date && cartDate < nextDate;
+      });
+      
+      const dayTotal = dayCarts.reduce((sum, cart) => sum + (cart.total || 0), 0);
+      const dayCount = dayCarts.length;
+      const dayAverage = dayCount > 0 ? dayTotal / dayCount : 0;
+      
+      dailyStats.push({
+        date: date.toISOString().split('T')[0],
+        day: date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }),
+        count: dayCount,
+        total: dayTotal,
+        average: dayAverage
+      });
+    }
+    
+    // Top entreprises
+    const companyStats = new Map();
+    carts.forEach(cart => {
+      if (cart.user && cart.user.company) {
+        const companyId = cart.user.company._id || cart.user.company;
+        const companyName = cart.user.company.name || 'Sans entreprise';
+        
+        if (!companyStats.has(companyId)) {
+          companyStats.set(companyId, {
+            id: companyId,
+            name: companyName,
+            count: 0,
+            total: 0
+          });
+        }
+        
+        const stat = companyStats.get(companyId);
+        stat.count += 1;
+        stat.total += cart.total || 0;
+      }
+    });
+    
+    const topCompanies = Array.from(companyStats.values())
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 10);
+    
+    // Top clients
+    const clientStats = new Map();
+    carts.forEach(cart => {
+      if (cart.user) {
+        const userId = cart.user._id || cart.user;
+        const userName = `${cart.user.firstName || ''} ${cart.user.lastName || ''}`.trim() || cart.user.email || 'Client inconnu';
+        
+        if (!clientStats.has(userId)) {
+          clientStats.set(userId, {
+            id: userId,
+            name: userName,
+            email: cart.user.email || '',
+            count: 0,
+            total: 0
+          });
+        }
+        
+        const stat = clientStats.get(userId);
+        stat.count += 1;
+        stat.total += cart.total || 0;
+      }
+    });
+    
+    const topClients = Array.from(clientStats.values())
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 10);
+    
+    res.json({
+      period,
+      summary: {
+        totalCarts,
+        totalAmount,
+        averageCart
+      },
+      dailyStats,
+      topCompanies,
+      topClients
+    });
+  } catch (error) {
+    console.error('Error in cart stats:', error);
     res.status(500).json({ error: error.message });
   }
 });
