@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
-import { companiesApi, authApi } from '@/lib/api';
+import { companiesApi, authApi, cartsApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import CustomSelect from '@/components/CustomSelect';
@@ -15,6 +15,8 @@ export default function CompanyDetailPage() {
   const [company, setCompany] = useState<any>(null);
   const [members, setMembers] = useState<any[]>([]);
   const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
@@ -69,12 +71,66 @@ export default function CompanyDetailPage() {
           isActive: companyRes.data.isActive !== undefined ? companyRes.data.isActive : true
         });
       }
+      
+      // Charger les commandes de l'entreprise
+      loadOrders();
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Erreur lors du chargement');
       router.push('/admin/entreprises');
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadOrders = async () => {
+    setLoadingOrders(true);
+    try {
+      const res = await cartsApi.getCompanyOrders(id);
+      setOrders(res.data.carts || []);
+    } catch (error: any) {
+      console.error('Error loading orders:', error);
+      toast.error('Erreur lors du chargement des commandes');
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'traité':
+        return 'bg-green-100 text-green-700 border-green-200';
+      case 'en_cours':
+        return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'annulé':
+        return 'bg-red-100 text-red-700 border-red-200';
+      case 'demande':
+      default:
+        return 'bg-gray-100 text-gray-700 border-gray-200';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'traité':
+        return 'Traité';
+      case 'en_cours':
+        return 'En cours';
+      case 'annulé':
+        return 'Annulée';
+      case 'demande':
+      default:
+        return 'En attente';
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -339,6 +395,123 @@ export default function CompanyDetailPage() {
                 </button>
               </div>
             </form>
+          </div>
+
+          {/* Commandes de l'entreprise */}
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Commandes de l'entreprise</h2>
+              {orders.length > 1 && (
+                <Link
+                  href={`/admin/entreprises/${id}/commandes`}
+                  className="text-green-600 hover:text-green-700 font-semibold text-sm flex items-center gap-2"
+                >
+                  Voir toutes les commandes
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              )}
+            </div>
+            
+            {loadingOrders ? (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-green-200 border-t-green-600"></div>
+                <p className="mt-4 text-gray-600">Chargement des commandes...</p>
+              </div>
+            ) : orders.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <p className="text-gray-500 text-sm">Aucune commande pour cette entreprise</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {orders.slice(0, 3).map((order) => (
+                  <div
+                    key={order._id}
+                    className="border-2 border-gray-100 rounded-xl p-6 hover:border-green-300 transition-colors"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-bold text-gray-900">
+                            Commande #{order._id.slice(-8).toUpperCase()}
+                          </h3>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(order.status)}`}>
+                            {getStatusLabel(order.status)}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          {order.user && (
+                            <>
+                              Par {order.user.firstName} {order.user.lastName} ({order.user.email})
+                            </>
+                          )}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {formatDate(order.createdAt)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-gray-900">
+                          {order.total?.toFixed(2) || '0.00'} €
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {order.items?.length || 0} article(s)
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {order.items && order.items.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-gray-100">
+                        <div className="space-y-2">
+                          {order.items.slice(0, 3).map((item: any, index: number) => (
+                            <div key={index} className="flex items-center justify-between text-sm">
+                              <span className="text-gray-700">
+                                {item.product?.name || 'Produit supprimé'} × {item.quantity}
+                              </span>
+                              <span className="text-gray-600">
+                                {(item.price * item.quantity).toFixed(2)} €
+                              </span>
+                            </div>
+                          ))}
+                          {order.items.length > 3 && (
+                            <p className="text-xs text-gray-500 mt-2">
+                              + {order.items.length - 3} autre(s) article(s)
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {order.notes && (
+                      <div className="mt-4 pt-4 border-t border-gray-100">
+                        <p className="text-sm text-gray-600">
+                          <span className="font-semibold">Notes:</span> {order.notes}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {orders.length > 3 && (
+                  <div className="pt-4 border-t border-gray-200 text-center">
+                    <Link
+                      href={`/admin/entreprises/${id}/commandes`}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors"
+                    >
+                      Voir toutes les commandes ({orders.length})
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Liste des membres */}

@@ -130,6 +130,24 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   </div>
+
+                  {user.company && (
+                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Entreprise</p>
+                          <p className="font-semibold text-gray-900">
+                            {typeof user.company === 'object' && user.company !== null ? user.company.name : user.company}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -202,7 +220,10 @@ export default function DashboardPage() {
             <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8">
               <h3 className="text-2xl font-black text-gray-900 mb-6">Mes informations</h3>
               <div className="grid md:grid-cols-3 gap-6">
-                <div className="p-6 bg-gradient-to-br from-green-50 to-white rounded-2xl border border-green-100">
+                <Link
+                  href="/dashboard/profil"
+                  className="p-6 bg-gradient-to-br from-green-50 to-white rounded-2xl border border-green-100 hover:from-green-100 hover:to-white transition-all cursor-pointer"
+                >
                   <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-4">
                     <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -210,9 +231,12 @@ export default function DashboardPage() {
                   </div>
                   <h4 className="font-bold text-gray-900 mb-2">Profil</h4>
                   <p className="text-sm text-gray-600">Gérez vos informations personnelles</p>
-                </div>
+                </Link>
 
-                <div className="p-6 bg-gradient-to-br from-blue-50 to-white rounded-2xl border border-blue-100">
+                <Link
+                  href="/dashboard/commandes"
+                  className="p-6 bg-gradient-to-br from-blue-50 to-white rounded-2xl border border-blue-100 hover:from-blue-100 hover:to-white transition-all cursor-pointer"
+                >
                   <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
                     <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -220,7 +244,7 @@ export default function DashboardPage() {
                   </div>
                   <h4 className="font-bold text-gray-900 mb-2">Commandes</h4>
                   <p className="text-sm text-gray-600">Historique de vos commandes</p>
-                </div>
+                </Link>
 
                 <Link
                   href="/dashboard/favoris"

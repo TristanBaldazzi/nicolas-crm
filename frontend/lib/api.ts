@@ -38,6 +38,8 @@ export const authApi = {
     api.post('/auth/logout'),
   me: () =>
     api.get('/auth/me'),
+  updateProfile: (data: { firstName: string; lastName: string }) =>
+    api.put('/auth/profile', data),
   getUsers: (params?: any) =>
     api.get('/auth/users', { params }),
   getUserById: (id: string) =>
@@ -62,6 +64,8 @@ export const productsApi = {
     api.get(`/products/${slug}`),
   getRecommended: (id: string) =>
     api.get(`/products/recommended/${id}`),
+  getUniqueSpecifications: () =>
+    api.get('/products/specifications/unique'),
   create: (data: any) =>
     api.post('/products', data),
   update: (id: string, data: any) =>
@@ -151,6 +155,8 @@ export const cartsApi = {
     api.post('/carts', data),
   getMy: () =>
     api.get('/carts/my'),
+  getMyOrders: () =>
+    api.get('/carts/my-orders'),
   sync: (data: any) =>
     api.post('/carts/sync', data),
   getAll: (params?: any) =>
@@ -159,6 +165,8 @@ export const cartsApi = {
     api.get(`/carts/${id}`),
   getUserCarts: (userId: string) =>
     api.get(`/carts/user/${userId}`),
+  getCompanyOrders: (companyId: string) =>
+    api.get(`/carts/company/${companyId}`),
   getStats: (params?: any) =>
     api.get('/carts/stats', { params }),
   update: (id: string, data: any) =>

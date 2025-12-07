@@ -26,6 +26,7 @@ export default function ProductPage() {
   const { addItem, getItems, updateQuantity, removeItem } = useCartStore();
   const { user } = useAuthStore();
   const [cartItem, setCartItem] = useState<{ quantity: number } | null>(null);
+  const [hasCheckedCart, setHasCheckedCart] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -38,7 +39,7 @@ export default function ProductPage() {
     }
   }, [product, user]);
 
-  // Vérifier si le produit est dans le panier
+  // Fonction pour vérifier et mettre à jour l'état du panier
   const checkCartItem = useCallback(() => {
     if (product) {
       const items = getItems();
@@ -48,20 +49,48 @@ export default function ProductPage() {
         setQuantity(item.quantity);
       } else {
         setCartItem(null);
-        setQuantity(1);
+        // Ne pas réinitialiser la quantité - laisser l'utilisateur modifier librement
       }
     }
   }, [product, getItems]);
 
+  // Vérifier si le produit est dans le panier (une seule fois au chargement)
   useEffect(() => {
-    checkCartItem();
-  }, [checkCartItem]);
+    if (product && !hasCheckedCart) {
+      const items = getItems();
+      const item = items.find(item => item.product === product._id);
+      if (item) {
+        setCartItem({ quantity: item.quantity });
+        setQuantity(item.quantity);
+      } else {
+        setCartItem(null);
+        setQuantity(1);
+      }
+      setHasCheckedCart(true);
+    }
+  }, [product, hasCheckedCart, getItems]);
 
   // Vérifier périodiquement (pour détecter les changements depuis d'autres onglets)
+  // Mais seulement si le produit est déjà dans le panier
   useEffect(() => {
-    const interval = setInterval(checkCartItem, 1000);
+    if (!product) return;
+    
+    const interval = setInterval(() => {
+      const items = getItems();
+      const item = items.find(item => item.product === product._id);
+      // Si le produit est dans le panier, mettre à jour la quantité
+      if (item) {
+        setCartItem({ quantity: item.quantity });
+        setQuantity(item.quantity);
+      } else if (cartItem) {
+        // Si le produit était dans le panier mais ne l'est plus, réinitialiser
+        setCartItem(null);
+        setQuantity(1);
+      }
+      // Si le produit n'est pas dans le panier et n'y était pas, ne rien faire pour préserver la quantité locale
+    }, 2000);
     return () => clearInterval(interval);
-  }, [checkCartItem]);
+  }, [product, getItems, cartItem]);
 
   const checkFavorite = async () => {
     if (!product || !user) return;
@@ -424,7 +453,13 @@ export default function ProductPage() {
                           onClick={async () => {
                             await addItem(product._id, quantity);
                             toast.success(`${quantity} article(s) ajouté(s) au panier`);
-                            checkCartItem();
+                            // Mettre à jour l'état immédiatement après l'ajout
+                            const items = getItems();
+                            const item = items.find(item => item.product === product._id);
+                            if (item) {
+                              setCartItem({ quantity: item.quantity });
+                              setQuantity(item.quantity);
+                            }
                           }}
                           className="flex-1 bg-gray-900 text-white px-4 py-2.5 rounded text-sm font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
                         >

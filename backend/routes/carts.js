@@ -34,10 +34,10 @@ router.post('/', authenticate, async (req, res) => {
       };
     });
 
-    // Chercher un panier en statut "en_cours" ou "demande" pour cet utilisateur
+    // Chercher un panier en statut "en_cours" pour cet utilisateur (pas les commandes validées en "demande")
     let cart = await Cart.findOne({ 
       user: req.user.id, 
-      status: { $in: ['en_cours', 'demande'] }
+      status: 'en_cours'
     });
 
     if (cart) {
@@ -66,13 +66,13 @@ router.post('/', authenticate, async (req, res) => {
   }
 });
 
-// Récupérer mon panier actif (client)
+// Récupérer mon panier actif (client) - seulement les paniers en cours (pas les commandes validées)
 router.get('/my', authenticate, async (req, res) => {
   try {
-    // Récupérer le panier en cours ou en demande
+    // Récupérer uniquement le panier en statut "en_cours" (pas les commandes validées en "demande" ou "traité")
     const cart = await Cart.findOne({ 
       user: req.user.id, 
-      status: { $in: ['en_cours', 'demande'] }
+      status: 'en_cours'
     })
     .populate('items.product', 'name slug price images brand')
     .populate('user', 'firstName lastName email');
@@ -87,16 +87,30 @@ router.get('/my', authenticate, async (req, res) => {
   }
 });
 
+// Récupérer toutes mes commandes (client)
+router.get('/my-orders', authenticate, async (req, res) => {
+  try {
+    const carts = await Cart.find({ user: req.user.id })
+      .populate('items.product', 'name slug price images brand')
+      .populate('user', 'firstName lastName email')
+      .sort({ createdAt: -1 });
+
+    res.json(carts);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Synchroniser le panier (créer ou mettre à jour le panier actif)
 router.post('/sync', authenticate, async (req, res) => {
   try {
     const { items, notes } = req.body;
     
-    // Si pas d'items, supprimer le panier actif s'il existe
+    // Si pas d'items, supprimer seulement le panier "en_cours" (pas les commandes validées en "demande")
     if (!items || !Array.isArray(items) || items.length === 0) {
       const existingCart = await Cart.findOne({ 
         user: req.user.id, 
-        status: { $in: ['en_cours', 'demande'] }
+        status: 'en_cours' // Ne supprimer que les paniers en cours, pas les commandes validées
       });
       
       if (existingCart) {
@@ -124,20 +138,16 @@ router.post('/sync', authenticate, async (req, res) => {
       };
     });
 
-    // Chercher un panier en statut "en_cours" ou "demande" pour cet utilisateur
+    // Chercher un panier en statut "en_cours" pour cet utilisateur (pas les commandes validées)
     let cart = await Cart.findOne({ 
       user: req.user.id, 
-      status: { $in: ['en_cours', 'demande'] }
+      status: 'en_cours'
     });
 
     if (cart) {
       // Mettre à jour le panier existant
       cart.items = cartItems;
       cart.notes = notes || cart.notes;
-      // Si le panier était en "demande", on le remet en "en_cours" car il est modifié
-      if (cart.status === 'demande') {
-        cart.status = 'en_cours';
-      }
       await cart.save();
     } else {
       // Créer un nouveau panier en statut "en_cours"
@@ -394,6 +404,25 @@ router.get('/user/:userId', authenticate, requireAdmin, async (req, res) => {
     const carts = await Cart.find({ user: req.params.userId })
       .populate('items.product', 'name slug price images brand')
       .populate('user', 'firstName lastName email')
+      .sort({ createdAt: -1 });
+
+    res.json({ carts });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Récupérer les commandes d'une entreprise (admin)
+router.get('/company/:companyId', authenticate, requireAdmin, async (req, res) => {
+  try {
+    // Trouver tous les utilisateurs de cette entreprise
+    const users = await User.find({ company: req.params.companyId }).select('_id');
+    const userIds = users.map(u => u._id);
+    
+    // Récupérer toutes les commandes de ces utilisateurs
+    const carts = await Cart.find({ user: { $in: userIds } })
+      .populate('items.product', 'name slug price images brand')
+      .populate('user', 'firstName lastName email company')
       .sort({ createdAt: -1 });
 
     res.json({ carts });

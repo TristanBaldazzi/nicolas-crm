@@ -7,6 +7,11 @@ interface User {
   firstName: string;
   lastName: string;
   role: 'admin' | 'user';
+  company?: {
+    _id: string;
+    name: string;
+    code?: string;
+  } | null;
 }
 
 interface AuthState {

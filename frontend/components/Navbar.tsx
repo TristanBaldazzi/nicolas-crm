@@ -7,16 +7,37 @@ import { useState, useEffect } from 'react';
 
 export default function Navbar() {
   const { user, logout, isAdmin, loadFromStorage } = useAuthStore();
-  const { getTotalItems } = useCartStore();
+  const { items, loadCart } = useCartStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const cartItemsCount = getTotalItems();
+  
+  // Calculer le nombre d'items dans le panier
+  const cartItemsCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
   useEffect(() => {
     // Charger depuis le storage une seule fois au montage
     loadFromStorage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Charger le panier depuis le backend quand l'utilisateur est connecté
+  useEffect(() => {
+    if (user && !isAdmin()) {
+      loadCart();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  // Vérifier périodiquement les changements du panier (pour détecter les changements depuis d'autres onglets)
+  useEffect(() => {
+    if (!user || isAdmin()) return;
+    
+    const interval = setInterval(() => {
+      loadCart();
+    }, 2000); // Vérifier toutes les 2 secondes
+    
+    return () => clearInterval(interval);
+  }, [user, isAdmin, loadCart]);
 
   return (
     <>

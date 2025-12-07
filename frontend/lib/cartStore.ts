@@ -15,6 +15,7 @@ interface CartState {
   removeItem: (productId: string) => Promise<void>;
   updateQuantity: (productId: string, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;
+  clearCartLocal: () => void; // Vider le panier local sans synchroniser
   syncCart: () => Promise<void>;
   loadCart: () => Promise<void>;
   getTotalItems: () => number;
@@ -53,7 +54,7 @@ export const useCartStore = create<CartState>()(
       loadCart: async () => {
         try {
           const res = await cartsApi.getMy();
-          if (res.data && res.data.items) {
+          if (res.data && res.data.items && res.data.items.length > 0) {
             set({
               items: res.data.items.map((item: any) => ({
                 product: item.product._id || item.product,
@@ -61,9 +62,14 @@ export const useCartStore = create<CartState>()(
                 price: item.price
               }))
             });
+          } else {
+            // Si pas de panier actif (statut changé par admin), vider le panier local
+            set({ items: [] });
           }
         } catch (error) {
           console.error('Error loading cart:', error);
+          // En cas d'erreur, vider le panier local pour éviter des incohérences
+          set({ items: [] });
         }
       },
 
@@ -121,6 +127,11 @@ export const useCartStore = create<CartState>()(
         
         // Synchroniser avec le backend
         await get().syncCart();
+      },
+
+      clearCartLocal: () => {
+        // Vider le panier local sans synchroniser (utile après validation de commande)
+        set({ items: [] });
       },
 
       getTotalItems: () => {

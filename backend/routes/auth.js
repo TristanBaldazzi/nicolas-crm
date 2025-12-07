@@ -149,6 +149,38 @@ router.get('/me', optionalAuthenticate, async (req, res) => {
   });
 });
 
+// Mettre à jour son propre profil (utilisateur connecté)
+router.put('/profile', authenticate, async (req, res) => {
+  try {
+    const { firstName, lastName } = req.body;
+    
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'Utilisateur non trouvé' });
+    }
+
+    // Seuls le prénom et le nom peuvent être modifiés par l'utilisateur
+    if (firstName) user.firstName = firstName;
+    if (lastName) user.lastName = lastName;
+
+    await user.save();
+    await user.populate('company', 'name code');
+
+    res.json({
+      user: {
+        id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        company: user.company
+      }
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 // Récupérer tous les utilisateurs (non-admin) - pour les admins
 router.get('/users', authenticate, requireAdmin, async (req, res) => {
   try {

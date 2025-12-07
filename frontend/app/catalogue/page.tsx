@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { productsApi, categoriesApi, settingsApi, brandsApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
@@ -8,6 +9,8 @@ import { getImageUrl } from '@/lib/config';
 import CustomSelect from '@/components/CustomSelect';
 
 export default function CataloguePage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
@@ -21,18 +24,55 @@ export default function CataloguePage() {
     page: 1,
   });
   const [showFilters, setShowFilters] = useState(true);
+  const [initialized, setInitialized] = useState(false);
 
-  // Charger les settings une seule fois au montage
+  // Charger les settings et les marques une seule fois au montage
   useEffect(() => {
     loadSettings();
+    loadBrands();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Initialiser les filtres depuis l'URL une fois que les marques sont chargées
+  useEffect(() => {
+    if (brands.length > 0 && !initialized) {
+      const brandParam = searchParams.get('brand');
+      if (brandParam) {
+        // Vérifier si c'est déjà un ID (format ObjectId)
+        const isObjectId = /^[0-9a-fA-F]{24}$/.test(brandParam);
+        
+        if (isObjectId) {
+          // C'est déjà un ID, vérifier qu'il existe
+          const foundBrand = brands.find((b) => b._id === brandParam);
+          if (foundBrand) {
+            setFilters((prev) => ({ ...prev, brand: brandParam }));
+          }
+        } else {
+          // C'est un nom, chercher la marque par son nom (insensible à la casse)
+          const foundBrand = brands.find(
+            (b) => b.name.toLowerCase() === brandParam.toLowerCase()
+          );
+          if (foundBrand) {
+            setFilters((prev) => ({ ...prev, brand: foundBrand._id }));
+            // Mettre à jour l'URL pour utiliser l'ID au lieu du nom
+            const params = new URLSearchParams(searchParams.toString());
+            params.set('brand', foundBrand._id);
+            router.replace(`/catalogue?${params.toString()}`, { scroll: false });
+          }
+        }
+      }
+      setInitialized(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brands, initialized]);
+
   // Charger les données quand les filtres changent
   useEffect(() => {
-    loadData();
+    if (initialized) {
+      loadData();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.category, filters.brand, filters.search, filters.page]);
+  }, [filters.category, filters.brand, filters.search, filters.page, initialized]);
 
   const loadSettings = async () => {
     try {
@@ -43,17 +83,24 @@ export default function CataloguePage() {
     }
   };
 
+  const loadBrands = async () => {
+    try {
+      const brandsRes = await brandsApi.getAll();
+      setBrands(brandsRes.data || []);
+    } catch (error) {
+      console.error('Error loading brands:', error);
+    }
+  };
+
   const loadData = async () => {
     setLoading(true);
     try {
-      const [productsRes, categoriesRes, brandsRes] = await Promise.all([
+      const [productsRes, categoriesRes] = await Promise.all([
         productsApi.getAll(filters),
         categoriesApi.getAll({ parentOnly: 'true' }),
-        brandsApi.getAll(),
       ]);
       setProducts(productsRes.data.products || []);
       setCategories(categoriesRes.data || []);
-      setBrands(brandsRes.data || []);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -182,6 +229,15 @@ export default function CataloguePage() {
                         className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-2xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all bg-white font-semibold shadow-sm hover:shadow-md focus:shadow-lg"
                       />
                     </div>
+                    <Link
+                      href="/catalogue/recherche-avancee"
+                      className="mt-2 inline-flex items-center gap-2 text-sm text-green-600 hover:text-green-700 font-semibold transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                      </svg>
+                      Recherche avancée
+                    </Link>
                   </div>
 
                   {/* Catégorie */}
@@ -340,11 +396,11 @@ export default function CataloguePage() {
                           {canSeePrice() ? (
                             <>
                               <div className="flex items-baseline gap-2">
-                                <span className="text-3xl font-black bg-gradient-to-r from-green-600 to-green-400 bg-clip-text text-transparent">
+                                <span className="text-lg font-bold text-green-600">
                                   {product.discountedPrice ? product.discountedPrice.toFixed(2) : product.price.toFixed(2)} €
                                 </span>
                                 {(product.discountedPrice || product.originalPrice) && (product.discountedPrice || product.originalPrice) !== product.price && (
-                                  <span className="text-sm text-gray-400 line-through">
+                                  <span className="text-xs text-gray-400 line-through">
                                     {product.price.toFixed(2)} €
                                   </span>
                                 )}

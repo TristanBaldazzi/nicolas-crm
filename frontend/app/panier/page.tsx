@@ -12,7 +12,7 @@ import toast from 'react-hot-toast';
 export default function CartPage() {
   const router = useRouter();
   const { user, loadFromStorage, isLoading: authLoading } = useAuthStore();
-  const { items, removeItem, updateQuantity, clearCart, getTotalItems, loadCart } = useCartStore();
+  const { items, removeItem, updateQuantity, clearCart, clearCartLocal, getTotalItems, loadCart } = useCartStore();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -76,32 +76,19 @@ export default function CartPage() {
 
     setSubmitting(true);
     try {
-      // Le panier est déjà synchronisé, on change juste le statut
-      // Récupérer le panier actif
-      const cartRes = await cartsApi.getMy();
-      if (cartRes.data && cartRes.data._id) {
-        // Mettre à jour les notes et changer le statut
-        await cartsApi.update(cartRes.data._id, {
-          items: items.map(item => ({
-            product: item.product,
-            quantity: item.quantity
-          })),
-          notes
-        });
-        // Le statut reste "demande" - l'admin pourra le changer
-      } else {
-        // Créer le panier si il n'existe pas
-        await cartsApi.create({
-          items: items.map(item => ({
-            product: item.product,
-            quantity: item.quantity
-          })),
-          notes
-        });
-      }
+      // Créer ou mettre à jour la commande en statut "demande"
+      // Utiliser la route POST qui gère automatiquement le statut "demande"
+      await cartsApi.create({
+        items: items.map(item => ({
+          product: item.product,
+          quantity: item.quantity
+        })),
+        notes
+      });
       
       toast.success('Votre commande a été envoyée avec succès !');
-      clearCart();
+      // Vider le panier local sans synchroniser pour éviter de supprimer la commande qui vient d'être validée
+      clearCartLocal();
       setNotes('');
       router.push('/');
     } catch (error: any) {

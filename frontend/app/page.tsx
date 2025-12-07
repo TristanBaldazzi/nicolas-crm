@@ -620,7 +620,7 @@ export default function HomePage() {
                   </svg>
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Email</h3>
-                <p className="text-emerald-600 font-semibold text-lg break-all">contact@rcmplay-reparation.lu</p>
+                <p className="text-emerald-600 font-semibold text-sm" style={{ wordBreak: 'keep-all', overflowWrap: 'normal' }}>contact@rcmplay-reparation.lu</p>
               </a>
 
               <div className="p-8 bg-gradient-to-br from-green-50 to-white rounded-3xl border-2 border-green-100 text-center">

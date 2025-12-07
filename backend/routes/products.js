@@ -194,6 +194,64 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Récupérer toutes les spécifications uniques et leurs valeurs possibles
+router.get('/specifications/unique', async (req, res) => {
+  try {
+    const products = await Product.find({ isActive: true }).select('specifications');
+    
+    // Collecter toutes les spécifications uniques et leurs valeurs
+    const specsMap = new Map();
+    
+    products.forEach(product => {
+      if (product.specifications && product.specifications instanceof Map) {
+        product.specifications.forEach((value, key) => {
+          if (value !== null && value !== undefined && value !== '') {
+            if (!specsMap.has(key)) {
+              specsMap.set(key, new Set());
+            }
+            // Ajouter la valeur (convertir en string pour les comparaisons)
+            const valueStr = String(value);
+            specsMap.get(key).add(valueStr);
+          }
+        });
+      } else if (product.specifications && typeof product.specifications === 'object') {
+        Object.entries(product.specifications).forEach(([key, value]) => {
+          if (value !== null && value !== undefined && value !== '') {
+            if (!specsMap.has(key)) {
+              specsMap.set(key, new Set());
+            }
+            const valueStr = String(value);
+            specsMap.get(key).add(valueStr);
+          }
+        });
+      }
+    });
+    
+    // Convertir en format JSON
+    const result = {};
+    specsMap.forEach((values, key) => {
+      const valuesArray = Array.from(values).sort();
+      // Détecter le type (number, boolean, text)
+      const firstValue = valuesArray[0];
+      let type = 'text';
+      if (!isNaN(Number(firstValue)) && firstValue !== '') {
+        type = 'number';
+      } else if (firstValue === 'true' || firstValue === 'false') {
+        type = 'boolean';
+      }
+      
+      result[key] = {
+        type,
+        values: valuesArray
+      };
+    });
+    
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Récupérer les produits recommandés pour un produit
 router.get('/recommended/:id', async (req, res) => {
   try {
