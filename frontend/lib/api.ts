@@ -40,6 +40,8 @@ export const authApi = {
     api.get('/auth/me'),
   updateProfile: (data: { firstName: string; lastName: string }) =>
     api.put('/auth/profile', data),
+  updateTrackingConsent: (consent: boolean) =>
+    api.put('/auth/tracking-consent', { consent }),
   getUsers: (params?: any) =>
     api.get('/auth/users', { params }),
   getUserById: (id: string) =>
@@ -62,6 +64,8 @@ export const productsApi = {
     api.get('/products', { params }),
   getBySlug: (slug: string) =>
     api.get(`/products/${slug}`),
+  getById: (id: string) =>
+    api.get(`/products/${id}`), // La route backend gère maintenant les IDs dans /:slug
   getRecommended: (id: string) =>
     api.get(`/products/recommended/${id}`),
   getUniqueSpecifications: () =>
@@ -151,6 +155,8 @@ export const uploadApi = {
 
 // Carts
 export const cartsApi = {
+  countPending: () =>
+    api.get('/carts/count-pending'),
   create: (data: any) =>
     api.post('/carts', data),
   getMy: () =>
@@ -259,6 +265,21 @@ export const contactApi = {
     api.get(`/contact/${id}`),
   markAsRead: (id: string) =>
     api.put(`/contact/${id}/traite`),
+};
+
+// Analytics
+export const analyticsApi = {
+  track: (data: {
+    productId: string;
+    eventType: 'view' | 'cart_add' | 'cart_remove' | 'purchase' | 'favorite_add' | 'favorite_remove';
+    referrer?: string;
+    currentUrl?: string;
+    metadata?: any;
+  }) => api.post('/analytics/track', data),
+  getProductStats: (productId: string, params?: { startDate?: string; endDate?: string }) =>
+    api.get(`/analytics/product/${productId}`, { params }),
+  getAllProductsStats: (params?: { startDate?: string; endDate?: string; limit?: number }) =>
+    api.get('/analytics/products', { params }),
 };
 
 export default api;

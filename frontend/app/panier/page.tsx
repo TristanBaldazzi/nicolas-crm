@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useCartStore } from '@/lib/cartStore';
 import { useAuthStore } from '@/lib/store';
-import { productsApi, cartsApi } from '@/lib/api';
+import { productsApi, cartsApi, analyticsApi } from '@/lib/api';
 import { getImageUrl } from '@/lib/config';
 import toast from 'react-hot-toast';
 
@@ -85,6 +85,24 @@ export default function CartPage() {
         })),
         notes
       });
+      
+      // Tracker les achats pour chaque produit
+      if (user && user.trackingConsent !== false) {
+        items.forEach(async (item) => {
+          try {
+            await analyticsApi.track({
+              productId: item.product,
+              eventType: 'purchase',
+              referrer: document.referrer || undefined,
+              currentUrl: window.location.href,
+              metadata: { quantity: item.quantity }
+            });
+          } catch (error) {
+            // Ne pas afficher d'erreur pour le tracking
+            console.error('Tracking error:', error);
+          }
+        });
+      }
       
       toast.success('Votre commande a été envoyée avec succès !');
       // Vider le panier local sans synchroniser pour éviter de supprimer la commande qui vient d'être validée
@@ -189,7 +207,11 @@ export default function CartPage() {
                     )}
                     <div className="flex-1">
                       <h3 className="text-xl font-bold mb-2">{product.name}</h3>
-                      <p className="text-gray-600 mb-4">{product.brand}</p>
+                      <p className="text-gray-600 mb-4">
+                        {typeof product.brand === 'object' && product.brand !== null 
+                          ? product.brand.name 
+                          : product.brand || 'Sans marque'}
+                      </p>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           <div className="flex items-center gap-2">

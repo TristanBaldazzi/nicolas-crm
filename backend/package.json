@@ -26,6 +26,7 @@
     "nodemailer": "^6.9.7",
     "openai": "^6.10.0",
     "sharp": "^0.33.1",
+    "uuid": "^13.0.0",
     "validator": "^13.11.0"
   },
   "devDependencies": {

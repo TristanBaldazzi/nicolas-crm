@@ -45,6 +45,14 @@ const userSchema = new mongoose.Schema({
   lastActivity: {
     type: Date,
     default: null
+  },
+  trackingConsent: {
+    type: Boolean,
+    default: null // null = pas encore décidé, true = accepté, false = refusé
+  },
+  trackingConsentDate: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true

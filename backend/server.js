@@ -22,6 +22,7 @@ import settingsRoutes from './routes/settings.js';
 import productSpecRoutes from './routes/productSpecs.js';
 import brandRoutes from './routes/brands.js';
 import contactRoutes from './routes/contact.js';
+import analyticsRoutes from './routes/analytics.js';
 
 dotenv.config();
 
@@ -30,6 +31,9 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5001;
+
+// Trust proxy pour obtenir la vraie IP
+app.set('trust proxy', true);
 
 // Middleware de sécurité
 app.use(helmet({
@@ -44,7 +48,18 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10000 // limite chaque IP à 100 requêtes par windowMs
+  max: 10000, // limite chaque IP à 100 requêtes par windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  keyGenerator: (req) => {
+    // Utiliser l'IP depuis req.ip (qui fonctionne avec trust proxy)
+    // ou depuis x-forwarded-for si disponible
+    return req.ip || req.headers['x-forwarded-for']?.split(',')[0] || req.connection?.remoteAddress || 'unknown';
+  },
+  // Désactiver la validation trust proxy car on gère manuellement l'IP
+  validate: {
+    trustProxy: false
+  }
 });
 app.use('/api/', limiter);
 
@@ -85,6 +100,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/product-specs', productSpecRoutes);
 app.use('/api/brands', brandRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Route de santé
 app.get('/api/health', (req, res) => {

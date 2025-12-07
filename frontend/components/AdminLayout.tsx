@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/store';
+import { cartsApi } from '@/lib/api';
 import AdminFooter from './AdminFooter';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -12,6 +13,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { user, isAdmin, loadFromStorage, isLoading: authLoading } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
   const hasCheckedAuth = useRef<string | undefined | 'null'>(undefined);
 
   useEffect(() => {
@@ -19,6 +21,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     loadFromStorage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Charger le nombre de commandes en demande
+  useEffect(() => {
+    if (user && isAdmin()) {
+      const loadPendingCount = async () => {
+        try {
+          const res = await cartsApi.countPending();
+          setPendingOrdersCount(res.data.count || 0);
+        } catch (error) {
+          console.error('Error loading pending orders count:', error);
+        }
+      };
+      
+      loadPendingCount();
+      // Rafraîchir toutes les 30 secondes
+      const interval = setInterval(loadPendingCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user, isAdmin]);
 
   useEffect(() => {
     // Ne rien faire si on est encore en train de charger
@@ -166,6 +187,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="hidden lg:flex items-center gap-1 flex-1 justify-center px-8">
               {mainNavItems.map((item) => {
                 const active = isActive(item.href);
+                const isCommandes = item.href === '/admin/paniers';
+                const showBadge = isCommandes && pendingOrdersCount > 0;
+                
                 return (
                   <Link
                     key={item.href}
@@ -183,6 +207,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       {item.icon}
                     </span>
                     <span>{item.label}</span>
+                    {showBadge && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
+                        {pendingOrdersCount > 9 ? '+9' : pendingOrdersCount}
+                      </span>
+                    )}
                     {active && (
                       <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"></div>
                     )}
@@ -264,13 +293,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <div className="space-y-2">
                 {mainNavItems.map((item) => {
                   const active = isActive(item.href);
+                  const isCommandes = item.href === '/admin/paniers';
+                  const showBadge = isCommandes && pendingOrdersCount > 0;
+                  
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
                       onClick={() => setMobileMenuOpen(false)}
                       className={`
-                        flex items-center gap-3 px-4 py-3 rounded-lg font-semibold text-sm transition-all
+                        relative flex items-center gap-3 px-4 py-3 rounded-lg font-semibold text-sm transition-all
                         ${active
                           ? 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-700'
                           : 'text-gray-600 hover:text-green-600 hover:bg-gray-50'
@@ -281,6 +313,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         {item.icon}
                       </span>
                       <span>{item.label}</span>
+                      {showBadge && (
+                        <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
+                          {pendingOrdersCount > 9 ? '+9' : pendingOrdersCount}
+                        </span>
+                      )}
                     </Link>
                   );
                 })}

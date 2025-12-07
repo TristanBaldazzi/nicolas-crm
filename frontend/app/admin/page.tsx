@@ -1,10 +1,11 @@
 'use client';
 
 import AdminLayout from '@/components/AdminLayout';
-import { productsApi, authApi, categoriesApi, emailApi } from '@/lib/api';
+import { productsApi, authApi, categoriesApi, emailApi, cartsApi } from '@/lib/api';
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/store';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function AdminDashboard() {
@@ -18,6 +19,7 @@ export default function AdminDashboard() {
   });
   const [userStats, setUserStats] = useState<any[]>([]);
   const [period, setPeriod] = useState<'7d' | '14d' | '30d' | '365d'>('7d');
+  const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
 
   useEffect(() => {
     // Vérifier que l'utilisateur est admin avant de charger les données
@@ -26,8 +28,18 @@ export default function AdminDashboard() {
     }
     loadStats();
     loadUserStats();
+    loadPendingOrdersCount();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, user?.role, period]);
+
+  const loadPendingOrdersCount = async () => {
+    try {
+      const res = await cartsApi.countPending();
+      setPendingOrdersCount(res.data.count || 0);
+    } catch (error) {
+      console.error('Error loading pending orders count:', error);
+    }
+  };
 
   const loadStats = async () => {
     try {
@@ -76,6 +88,35 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout>
+      {/* Avertissement pour les commandes en attente */}
+      {pendingOrdersCount > 0 && (
+        <div className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-500 rounded-lg shadow-md p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0">
+                <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-amber-900">
+                  {pendingOrdersCount} commande{pendingOrdersCount > 1 ? 's' : ''} en attente
+                </h3>
+                <p className="text-sm text-amber-700 mt-1">
+                  Des commandes nécessitent votre attention. Veuillez les traiter.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/admin/paniers?status=demande"
+              className="flex-shrink-0 bg-amber-600 hover:bg-amber-700 text-white px-6 py-2 rounded-lg font-semibold text-sm transition-colors shadow-md hover:shadow-lg"
+            >
+              Voir les commandes
+            </Link>
+          </div>
+        </div>
+      )}
+
       <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg shadow-md">

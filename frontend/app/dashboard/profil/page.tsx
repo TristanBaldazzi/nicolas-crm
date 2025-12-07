@@ -14,6 +14,8 @@ export default function ProfilPage() {
   const [lastName, setLastName] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [trackingConsent, setTrackingConsent] = useState<boolean | null>(null);
+  const [savingConsent, setSavingConsent] = useState(false);
 
   useEffect(() => {
     loadFromStorage();
@@ -31,6 +33,7 @@ export default function ProfilPage() {
     // Initialiser les champs avec les valeurs actuelles
     setFirstName(user.firstName || '');
     setLastName(user.lastName || '');
+    setTrackingConsent(user.trackingConsent ?? null);
   }, [user, authLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,6 +53,20 @@ export default function ProfilPage() {
       toast.error(error.response?.data?.error || 'Erreur lors de la mise à jour du profil');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleConsentChange = async (consent: boolean) => {
+    setSavingConsent(true);
+    try {
+      const res = await authApi.updateTrackingConsent(consent);
+      setAuth(res.data.user, 'cookie');
+      setTrackingConsent(consent);
+      toast.success(consent ? 'Consentement enregistré' : 'Refus enregistré');
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erreur lors de la mise à jour');
+    } finally {
+      setSavingConsent(false);
     }
   };
 
@@ -164,6 +181,59 @@ export default function ProfilPage() {
                     <p className="mt-2 text-xs text-gray-500">Vous êtes rattaché à cette entreprise</p>
                   </div>
                 )}
+
+                {/* Consentement de tracking */}
+                <div className="pt-6 border-t border-gray-200">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">
+                      Confidentialité et suivi d'activité
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Nous collectons des données anonymisées sur votre navigation pour améliorer nos services et analyser la performance de nos produits. Ces données nous permettent de comprendre comment vous utilisez notre site et d'optimiser votre expérience.
+                    </p>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                      <p className="text-sm text-blue-900">
+                        <strong>Données collectées :</strong> Pages visitées, produits consultés, ajouts au panier, achats effectués, sources de trafic. Toutes les données sont anonymisées et ne permettent pas de vous identifier personnellement.
+                      </p>
+                    </div>
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+                      <p className="text-xs text-gray-600">
+                        <strong>Conformité RGPD :</strong> Conformément au Règlement Général sur la Protection des Données (RGPD), vous avez le droit de refuser le suivi de votre activité. Votre choix n'affectera pas votre accès aux services du site.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={() => handleConsentChange(true)}
+                      disabled={savingConsent || trackingConsent === true}
+                      className={`flex-1 px-6 py-3 rounded-xl font-semibold transition-all ${
+                        trackingConsent === true
+                          ? 'bg-green-600 text-white'
+                          : 'bg-white border-2 border-green-600 text-green-600 hover:bg-green-50'
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      {savingConsent && trackingConsent === null ? 'Enregistrement...' : trackingConsent === true ? '✓ Consentement donné' : 'Accepter le suivi'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleConsentChange(false)}
+                      disabled={savingConsent || trackingConsent === false}
+                      className={`flex-1 px-6 py-3 rounded-xl font-semibold transition-all ${
+                        trackingConsent === false
+                          ? 'bg-red-600 text-white'
+                          : 'bg-white border-2 border-red-600 text-red-600 hover:bg-red-50'
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      {savingConsent && trackingConsent === null ? 'Enregistrement...' : trackingConsent === false ? '✗ Suivi refusé' : 'Refuser le suivi'}
+                    </button>
+                  </div>
+                  {trackingConsent !== null && (
+                    <p className="mt-3 text-xs text-gray-500 text-center">
+                      Dernière modification : {user.trackingConsentDate ? new Date(user.trackingConsentDate).toLocaleDateString('fr-FR') : 'Aujourd\'hui'}
+                    </p>
+                  )}
+                </div>
 
                 {/* Boutons */}
                 <div className="flex items-center gap-4 pt-6">

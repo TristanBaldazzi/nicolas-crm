@@ -12,6 +12,8 @@ interface User {
     name: string;
     code?: string;
   } | null;
+  trackingConsent?: boolean | null;
+  trackingConsentDate?: string | null;
 }
 
 interface AuthState {
@@ -64,10 +66,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // La réponse peut être { user: {...} } ou { user: null }
         const user = res.data.user || res.data;
         
-        // Ne mettre à jour que si les valeurs ont changé pour éviter les boucles infinies
+        // Mettre à jour l'utilisateur si les données ont changé (notamment le consentement)
         const currentState = get();
-        if (user && currentState.user?.id !== user.id) {
-          set({ user, token: 'cookie', isLoading: false });
+        if (user) {
+          // Vérifier si les données utilisateur ont changé (notamment trackingConsent)
+          const userChanged = 
+            currentState.user?.id !== user.id ||
+            currentState.user?.trackingConsent !== user.trackingConsent ||
+            currentState.user?.email !== user.email ||
+            currentState.user?.firstName !== user.firstName ||
+            currentState.user?.lastName !== user.lastName;
+          
+          if (userChanged) {
+            set({ user, token: 'cookie', isLoading: false });
+          } else {
+            set({ isLoading: false });
+          }
         } else if (!user && (currentState.user !== null || currentState.token !== null)) {
           set({ user: null, token: null, isLoading: false });
         } else {

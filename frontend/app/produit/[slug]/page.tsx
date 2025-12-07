@@ -3,10 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { productsApi, settingsApi, authApi } from '@/lib/api';
+import { productsApi, settingsApi, authApi, analyticsApi } from '@/lib/api';
 import { useCartStore } from '@/lib/cartStore';
 import { useAuthStore } from '@/lib/store';
 import { getImageUrl } from '@/lib/config';
+import { useProductTracking } from '@/lib/useProductTracking';
 import toast from 'react-hot-toast';
 
 export default function ProductPage() {
@@ -38,6 +39,19 @@ export default function ProductPage() {
       checkFavorite();
     }
   }, [product, user]);
+
+  // Tracking de la vue du produit
+  useEffect(() => {
+    console.log('[ProductPage] État du produit pour tracking:', { 
+      hasProduct: !!product, 
+      productId: product?._id, 
+      productName: product?.name,
+      user: user?.id,
+      userConsent: user?.trackingConsent 
+    });
+  }, [product, user]);
+  
+  useProductTracking(product?._id || null, 'view');
 
   // Fonction pour vérifier et mettre à jour l'état du panier
   const checkCartItem = useCallback(() => {
@@ -103,6 +117,29 @@ export default function ProductPage() {
     }
   };
 
+  // Fonction helper pour tracker les événements
+  const trackEvent = async (eventType: 'cart_add' | 'cart_remove' | 'purchase' | 'favorite_add' | 'favorite_remove') => {
+    if (!product) return;
+    // Vérifier le consentement - on track si l'utilisateur n'a pas explicitement refusé
+    if (user && user.trackingConsent === false) {
+      console.log('[Tracking] Événement refusé:', eventType);
+      return;
+    }
+    
+    try {
+      console.log('[Tracking] Envoi événement:', { productId: product._id, eventType, user: user?.id, consent: user?.trackingConsent });
+      await analyticsApi.track({
+        productId: product._id,
+        eventType,
+        referrer: document.referrer || undefined,
+        currentUrl: window.location.href,
+      });
+      console.log('[Tracking] Événement enregistré:', eventType);
+    } catch (error: any) {
+      console.error('[Tracking] Erreur:', error.response?.data || error.message);
+    }
+  };
+
   const toggleFavorite = async () => {
     if (!user) {
       setShowLoginModal(true);
@@ -117,10 +154,12 @@ export default function ProductPage() {
         await authApi.removeFavorite(product._id);
         setIsFavorite(false);
         toast.success('Produit retiré des favoris');
+        trackEvent('favorite_remove');
       } else {
         await authApi.addFavorite(product._id);
         setIsFavorite(true);
         toast.success('Produit ajouté aux favoris');
+        trackEvent('favorite_add');
       }
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Erreur lors de la modification des favoris');
@@ -148,7 +187,9 @@ export default function ProductPage() {
 
   const loadProduct = async () => {
     try {
+      console.log('[ProductPage] Chargement du produit:', slug);
       const res = await productsApi.getBySlug(slug);
+      console.log('[ProductPage] Produit chargé:', res.data._id, res.data.name);
       setProduct(res.data);
       
       // Charger les produits recommandés
@@ -410,6 +451,7 @@ export default function ProductPage() {
                           onClick={async () => {
                             await removeItem(product._id);
                             toast.success('Produit retiré du panier');
+                            trackEvent('cart_remove');
                             checkCartItem();
                           }}
                           className="px-4 py-2.5 bg-red-600 text-white rounded text-sm font-medium hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
@@ -453,6 +495,7 @@ export default function ProductPage() {
                           onClick={async () => {
                             await addItem(product._id, quantity);
                             toast.success(`${quantity} article(s) ajouté(s) au panier`);
+                            trackEvent('cart_add');
                             // Mettre à jour l'état immédiatement après l'ajout
                             const items = getItems();
                             const item = items.find(item => item.product === product._id);

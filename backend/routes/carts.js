@@ -235,6 +235,16 @@ router.get('/', authenticate, requireAdmin, async (req, res) => {
   }
 });
 
+// Compter les commandes en statut "demande" (admin)
+router.get('/count-pending', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const count = await Cart.countDocuments({ status: 'demande' });
+    res.json({ count });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Statistiques des paniers (admin) - DOIT être avant /user/:userId
 router.get('/stats', authenticate, requireAdmin, async (req, res) => {
   try {

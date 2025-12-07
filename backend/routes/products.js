@@ -348,9 +348,76 @@ router.get('/recommended/:id', async (req, res) => {
   }
 });
 
+// Récupérer un produit par ID (pour admin)
+router.get('/id/:id', authenticate, requireAdmin, async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'ID invalide' });
+    }
+
+    const product = await Product.findById(req.params.id)
+      .populate('category', 'name slug')
+      .populate('subCategory', 'name slug')
+      .populate('brand', 'name');
+
+    if (!product) {
+      return res.status(404).json({ error: 'Produit non trouvé' });
+    }
+
+    const productObj = product.toObject();
+    
+    // Convertir les specifications Map en objet pour la réponse JSON
+    if (productObj.specifications instanceof Map) {
+      productObj.specifications = Object.fromEntries(productObj.specifications);
+    }
+
+    res.json(productObj);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Récupérer un produit par slug
 router.get('/:slug', async (req, res) => {
   try {
+    // Si c'est un ObjectId valide, essayer de trouver par ID d'abord (pour compatibilité)
+    if (mongoose.Types.ObjectId.isValid(req.params.slug)) {
+      const productById = await Product.findById(req.params.slug)
+        .populate('category', 'name slug')
+        .populate('subCategory', 'name slug')
+        .populate('brand', 'name');
+      
+      if (productById) {
+        // Appliquer les promotions si l'utilisateur est connecté
+        let userId = null;
+        try {
+          const token = req.headers.authorization?.replace('Bearer ', '');
+          if (token) {
+            const jwt = (await import('jsonwebtoken')).default;
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            userId = decoded.userId;
+          }
+        } catch (e) {
+          // Pas d'utilisateur connecté ou token invalide
+        }
+
+        const pricing = await applyPromotions(productById, userId);
+        const productObj = productById.toObject();
+        
+        // Convertir les specifications Map en objet pour la réponse JSON
+        if (productObj.specifications instanceof Map) {
+          productObj.specifications = Object.fromEntries(productObj.specifications);
+        }
+
+        res.json({
+          ...productObj,
+          pricing
+        });
+        return;
+      }
+    }
+
+    // Sinon, chercher par slug
     const product = await Product.findOne({ slug: req.params.slug, isActive: true })
       .populate('category', 'name slug')
       .populate('subCategory', 'name slug')
