@@ -245,6 +245,22 @@ export const brandsApi = {
     api.put(`/brands/${id}/order`, { order }),
 };
 
+// Contact
+export const contactApi = {
+  submit: (data: FormData) =>
+    api.post('/contact', data, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }),
+  getAll: () =>
+    api.get('/contact'),
+  getById: (id: string) =>
+    api.get(`/contact/${id}`),
+  markAsRead: (id: string) =>
+    api.put(`/contact/${id}/traite`),
+};
+
 export default api;
 
 

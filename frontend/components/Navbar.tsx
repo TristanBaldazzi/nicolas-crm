@@ -133,6 +133,13 @@ export default function Navbar() {
               Notre société
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-green-600 transition-all group-hover:w-full"></span>
             </Link>
+            <Link 
+              href="/contact" 
+              className="text-gray-700 hover:text-green-600 font-medium transition-colors relative group"
+            >
+              Contact
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-green-600 transition-all group-hover:w-full"></span>
+            </Link>
             {user ? (
               <>
                 {!isAdmin() && (
@@ -198,6 +205,7 @@ export default function Navbar() {
               <Link href="/" className="text-gray-700 hover:text-green-600 font-medium">Accueil</Link>
               <Link href="/catalogue" className="text-gray-700 hover:text-green-600 font-medium">Catalogue</Link>
               <Link href="/notre-societe" className="text-gray-700 hover:text-green-600 font-medium">Notre société</Link>
+              <Link href="/contact" className="text-gray-700 hover:text-green-600 font-medium">Contact</Link>
               {user ? (
                 <>
                   {!isAdmin() && (
