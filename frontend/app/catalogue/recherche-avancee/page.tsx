@@ -170,6 +170,17 @@ export default function AdvancedSearchPage() {
             <p className="text-sm md:text-base text-gray-600 text-center max-w-lg mx-auto leading-relaxed">
               Filtrez les produits selon leurs caractéristiques techniques
             </p>
+            <div className="mt-6 flex justify-center">
+              <Link
+                href="/catalogue/recherche-ia"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                Recherche IA
+              </Link>
+            </div>
           </div>
         </div>
       </section>
@@ -192,7 +203,7 @@ export default function AdvancedSearchPage() {
               </div>
 
               <div className="space-y-6">
-                {/* Recherche */}
+                {/* Recherche classique */}
                 <div>
                   <label className="block text-sm font-bold text-gray-900 mb-2">Recherche</label>
                   <input

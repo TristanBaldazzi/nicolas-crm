@@ -260,6 +260,30 @@ export default function DashboardPage() {
                 </Link>
               </div>
             </div>
+
+            {/* Fichiers */}
+            <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8 mt-8">
+              <h3 className="text-2xl font-black text-gray-900 mb-6">Fichiers</h3>
+              <Link
+                href="/dashboard/fichiers"
+                className="block p-6 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border-2 border-indigo-200 hover:border-indigo-400 hover:shadow-lg transition-all group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-bold text-gray-900 mb-2">Consultez vos fichiers partagés</h4>
+                    <p className="text-sm text-gray-600">Accédez aux fichiers que l'administrateur a partagés avec vous</p>
+                  </div>
+                  <svg className="w-5 h-5 text-gray-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </Link>
+            </div>
           </div>
         </div>
       </section>

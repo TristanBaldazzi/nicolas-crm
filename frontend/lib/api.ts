@@ -78,6 +78,8 @@ export const productsApi = {
     api.delete(`/products/${id}`),
   generateAI: (description: string) =>
     api.post('/products/generate-ai', { description }),
+  aiSearch: (query: string) =>
+    api.post('/products/ai-search', { query }),
 };
 
 // Categories
@@ -284,6 +286,22 @@ export const analyticsApi = {
     api.get(`/analytics/product/${productId}`, { params }),
   getAllProductsStats: (params?: { startDate?: string; endDate?: string; limit?: number }) =>
     api.get('/analytics/products', { params }),
+};
+
+// Client Files
+export const clientFilesApi = {
+  upload: (userId: string, formData: FormData) =>
+    api.post(`/client-files/${userId}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  getByUser: (userId: string) =>
+    api.get(`/client-files/${userId}`),
+  getPublicByUser: (userId: string) =>
+    api.get(`/client-files/${userId}/public`),
+  toggleVisibility: (fileId: string, isPublic: boolean) =>
+    api.put(`/client-files/${fileId}/visibility`, { isPublic }),
+  delete: (fileId: string) =>
+    api.delete(`/client-files/${fileId}`),
 };
 
 export default api;

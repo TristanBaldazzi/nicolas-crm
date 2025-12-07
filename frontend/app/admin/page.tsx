@@ -18,7 +18,7 @@ export default function AdminDashboard() {
     campaigns: 0,
   });
   const [userStats, setUserStats] = useState<any[]>([]);
-  const [period, setPeriod] = useState<'7d' | '14d' | '30d' | '365d'>('7d');
+  const [period, setPeriod] = useState<'7d' | '14d' | '30d' | '365d'>('14d');
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
 
   useEffect(() => {

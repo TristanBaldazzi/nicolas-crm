@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
-import { authApi, cartsApi, companiesApi } from '@/lib/api';
+import { authApi, cartsApi, companiesApi, clientFilesApi } from '@/lib/api';
+import { BACKEND_URL } from '@/lib/config';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import CustomSelect from '@/components/CustomSelect';
@@ -17,6 +18,10 @@ export default function ClientDetailPage() {
   const [saving, setSaving] = useState(false);
   const [clientCarts, setClientCarts] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
+  const [clientFiles, setClientFiles] = useState<any[]>([]);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [isPublic, setIsPublic] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -30,6 +35,7 @@ export default function ClientDetailPage() {
     loadClient();
     loadClientCarts();
     loadCompanies();
+    loadClientFiles();
   }, [id]);
 
   const loadCompanies = async () => {
@@ -69,6 +75,73 @@ export default function ClientDetailPage() {
     } catch (error) {
       console.error('Error loading client carts:', error);
     }
+  };
+
+  const loadClientFiles = async () => {
+    try {
+      const res = await clientFilesApi.getByUser(id);
+      setClientFiles(res.data.files || []);
+    } catch (error) {
+      console.error('Error loading client files:', error);
+    }
+  };
+
+  const handleFileUpload = async () => {
+    if (selectedFiles.length === 0) {
+      toast.error('Veuillez sélectionner au moins un fichier');
+      return;
+    }
+
+    setUploadingFiles(true);
+    try {
+      const formData = new FormData();
+      selectedFiles.forEach((file) => {
+        formData.append('files', file);
+      });
+      formData.append('isPublic', isPublic.toString());
+
+      await clientFilesApi.upload(id, formData);
+      toast.success(`${selectedFiles.length} fichier${selectedFiles.length > 1 ? 's' : ''} uploadé${selectedFiles.length > 1 ? 's' : ''} avec succès`);
+      setSelectedFiles([]);
+      setIsPublic(false);
+      loadClientFiles();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erreur lors de l\'upload');
+    } finally {
+      setUploadingFiles(false);
+    }
+  };
+
+  const handleToggleVisibility = async (fileId: string, currentVisibility: boolean) => {
+    try {
+      await clientFilesApi.toggleVisibility(fileId, !currentVisibility);
+      toast.success('Visibilité modifiée avec succès');
+      loadClientFiles();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erreur lors de la modification');
+    }
+  };
+
+  const handleDeleteFile = async (fileId: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce fichier ?')) {
+      return;
+    }
+
+    try {
+      await clientFilesApi.delete(fileId);
+      toast.success('Fichier supprimé avec succès');
+      loadClientFiles();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erreur lors de la suppression');
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
   const handleStatusChange = async (cartId: string, newStatus: string) => {
@@ -566,6 +639,262 @@ export default function ClientDetailPage() {
                 })}
               </div>
             )}
+        </div>
+
+        {/* Fichiers du client */}
+        <div className="w-full bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+          <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+            </div>
+            Fichiers du client
+          </h3>
+
+          {/* Upload de fichiers */}
+          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border-2 border-indigo-200 mb-6">
+            <h4 className="text-lg font-bold text-gray-900 mb-4">Ajouter des fichiers</h4>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Sélectionner des fichiers (max 10, 100 MB par fichier)
+                </label>
+                <div className="relative">
+                  <input
+                    type="file"
+                    multiple
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      if (files.length > 10) {
+                        toast.error('Maximum 10 fichiers autorisés');
+                        return;
+                      }
+                      setSelectedFiles(files);
+                    }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    disabled={uploadingFiles}
+                    id="file-upload"
+                  />
+                  <label
+                    htmlFor="file-upload"
+                    className={`flex items-center justify-between w-full px-4 py-3 bg-white border-2 border-dashed rounded-xl transition-all cursor-pointer ${
+                      selectedFiles.length > 0
+                        ? 'border-indigo-400 bg-indigo-50'
+                        : 'border-gray-300 hover:border-indigo-400 hover:bg-indigo-50'
+                    } ${uploadingFiles ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                        selectedFiles.length > 0
+                          ? 'bg-indigo-100'
+                          : 'bg-gray-100'
+                      }`}>
+                        <svg className={`w-5 h-5 ${
+                          selectedFiles.length > 0 ? 'text-indigo-600' : 'text-gray-500'
+                        }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className={`text-sm font-semibold block ${
+                          selectedFiles.length > 0 ? 'text-indigo-700' : 'text-gray-700'
+                        }`}>
+                          {selectedFiles.length > 0
+                            ? `${selectedFiles.length} fichier${selectedFiles.length > 1 ? 's' : ''} sélectionné${selectedFiles.length > 1 ? 's' : ''}`
+                            : 'Cliquez pour sélectionner des fichiers'}
+                        </span>
+                        <span className="text-xs text-gray-500 mt-0.5 block">
+                          {selectedFiles.length > 0
+                            ? selectedFiles.map(f => f.name).join(', ').substring(0, 50) + (selectedFiles.some(f => f.name.length > 50) ? '...' : '')
+                            : 'ou glissez-déposez vos fichiers ici'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      selectedFiles.length > 0
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-gray-200 text-gray-700'
+                    }`}>
+                      Parcourir
+                    </div>
+                  </label>
+                </div>
+                {selectedFiles.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    {selectedFiles.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:border-indigo-300 hover:bg-indigo-50 transition-all">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 truncate">{file.name}</p>
+                            <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedFiles(selectedFiles.filter((_, i) => i !== index));
+                          }}
+                          className="ml-3 p-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
+                          title="Supprimer"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-white rounded-lg p-4 border-2 border-gray-200">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={isPublic}
+                      onChange={(e) => setIsPublic(e.target.checked)}
+                      className="w-5 h-5 rounded border-2 border-gray-300 text-indigo-600 focus:ring-indigo-500 focus:ring-2"
+                    />
+                    {isPublic && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <svg className="w-3 h-3 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <span className="text-sm font-bold text-gray-900">Fichier public</span>
+                    <p className="text-xs text-gray-600 mt-0.5">
+                      Le client pourra voir ce fichier dans sa liste de fichiers
+                    </p>
+                  </div>
+                  <span className={`px-3 py-1 rounded-lg text-xs font-bold ${
+                    isPublic
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {isPublic ? 'Public' : 'Privé'}
+                  </span>
+                </label>
+              </div>
+
+              <button
+                onClick={handleFileUpload}
+                disabled={uploadingFiles || selectedFiles.length === 0}
+                className="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {uploadingFiles ? (
+                  <>
+                    <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Upload en cours...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    Uploader {selectedFiles.length > 0 ? `${selectedFiles.length} fichier${selectedFiles.length > 1 ? 's' : ''}` : 'les fichiers'}
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Liste des fichiers */}
+          {clientFiles.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <p className="text-gray-500 font-semibold">Aucun fichier pour ce client</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {clientFiles.map((file: any) => (
+                <div
+                  key={file._id}
+                  className="flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:border-indigo-300 hover:bg-indigo-50 transition-all"
+                >
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                      file.isPublic ? 'bg-green-100' : 'bg-gray-100'
+                    }`}>
+                      <svg className={`w-6 h-6 ${file.isPublic ? 'text-green-600' : 'text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-gray-900 truncate">{file.originalName}</p>
+                      <div className="flex items-center gap-3 mt-1">
+                        <span className="text-xs text-gray-500">{formatFileSize(file.size)}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          file.isPublic
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {file.isPublic ? 'Public' : 'Privé'}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {new Date(file.createdAt).toLocaleDateString('fr-FR')}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <a
+                      href={`${BACKEND_URL}${file.path}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-100 rounded-lg transition-colors"
+                      title="Télécharger"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                    </a>
+                    <button
+                      onClick={() => handleToggleVisibility(file._id, file.isPublic)}
+                      className={`p-2 rounded-lg transition-colors ${
+                        file.isPublic
+                          ? 'text-green-600 hover:bg-green-100'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                      title={file.isPublic ? 'Rendre privé' : 'Rendre public'}
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        {file.isPublic ? (
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        ) : (
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                        )}
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => handleDeleteFile(file._id)}
+                      className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Supprimer"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Consentement au tracking */}

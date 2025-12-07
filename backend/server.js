@@ -23,6 +23,7 @@ import productSpecRoutes from './routes/productSpecs.js';
 import brandRoutes from './routes/brands.js';
 import contactRoutes from './routes/contact.js';
 import analyticsRoutes from './routes/analytics.js';
+import clientFilesRoutes from './routes/clientFiles.js';
 
 dotenv.config();
 
@@ -86,6 +87,14 @@ app.use('/uploads/contact', (req, res, next) => {
   next();
 }, express.static(path.join(__dirname, 'uploads/contact')));
 
+// Servir les fichiers clients
+app.use('/uploads/client-files', (req, res, next) => {
+  res.header('Access-Control-Allow-Origin', process.env.FRONTEND_URL || 'http://localhost:3000');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(path.join(__dirname, 'uploads/client-files')));
+
 // Routes API
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
@@ -101,6 +110,7 @@ app.use('/api/product-specs', productSpecRoutes);
 app.use('/api/brands', brandRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/client-files', clientFilesRoutes);
 
 // Route de santé
 app.get('/api/health', (req, res) => {

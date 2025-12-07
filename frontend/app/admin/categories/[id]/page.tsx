@@ -125,7 +125,7 @@ export default function CategoryDetailPage() {
   }
 
   const isMain = !category.parentCategory;
-  const parent = category.parentCategory;
+  const parent = category.parentCategory ? (typeof category.parentCategory === 'object' ? category.parentCategory : null) : null;
 
   return (
     <AdminLayout>
@@ -325,7 +325,11 @@ export default function CategoryDetailPage() {
                       )}
                       <div>
                         <p className="font-bold text-gray-900">{product.name}</p>
-                        <p className="text-sm text-gray-600">{product.brand}</p>
+                        <p className="text-sm text-gray-600">
+                          {typeof product.brand === 'object' && product.brand !== null
+                            ? product.brand.name
+                            : product.brand || 'Sans marque'}
+                        </p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -373,10 +377,10 @@ export default function CategoryDetailPage() {
                 <div>
                   <span className="text-gray-600 text-sm">Catégorie parente</span>
                   <Link
-                    href={`/admin/categories/${parent._id || parent}`}
+                    href={`/admin/categories/${parent._id || category.parentCategory}`}
                     className="block font-semibold text-gray-900 mt-1 hover:text-green-600 transition-colors"
                   >
-                    {parent.name}
+                    {typeof parent === 'object' && parent !== null ? (parent.name || 'Sans nom') : 'Catégorie parente'}
                   </Link>
                 </div>
               )}

@@ -880,6 +880,176 @@ Retourne UNIQUEMENT un objet JSON valide avec cette structure exacte (sans markd
   }
 });
 
+// Recherche IA - Analyse une requête en langage naturel et retourne les filtres appropriés
+router.post('/ai-search', async (req, res) => {
+  try {
+    const { query } = req.body;
+
+    if (!query || !query.trim()) {
+      return res.status(400).json({ error: 'La requête de recherche est requise' });
+    }
+
+    // Vérifier si OpenAI est configuré
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(500).json({ error: 'OpenAI API key non configurée' });
+    }
+
+    // Récupérer toutes les données disponibles pour le contexte
+    const [categories, brands, specs, products] = await Promise.all([
+      Category.find({ isActive: true }).select('name _id slug parentCategory'),
+      Brand.find().select('name _id'),
+      ProductSpec.find().select('name type'),
+      Product.find({ isActive: { $ne: false } }).select('name specifications brand category').limit(100)
+    ]);
+
+    // Organiser les données
+    const mainCategories = categories.filter(c => c.isMainCategory || !c.parentCategory).map(c => ({ name: c.name, id: c._id.toString() }));
+    const subCategories = categories.filter(c => !c.isMainCategory && c.parentCategory).map(c => ({ name: c.name, id: c._id.toString() }));
+    const brandList = brands.map(b => ({ name: b.name, id: b._id.toString() }));
+    const specList = specs.map(s => ({ name: s.name, type: s.type }));
+
+    // Récupérer toutes les valeurs possibles pour chaque spécification
+    const specValues = {};
+    products.forEach(product => {
+      if (product.specifications) {
+        Object.entries(product.specifications).forEach(([key, value]) => {
+          if (!specValues[key]) {
+            specValues[key] = [];
+          }
+          const strValue = String(value);
+          if (!specValues[key].includes(strValue)) {
+            specValues[key].push(strValue);
+          }
+        });
+      }
+    });
+
+    // Initialiser OpenAI
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    // Créer le prompt pour OpenAI
+    const prompt = `Tu es un assistant expert en recherche de produits e-commerce. 
+
+À partir de la requête de recherche suivante en langage naturel, analyse-la et retourne les filtres appropriés à appliquer pour trouver les produits correspondants.
+
+Requête de recherche: "${query}"
+
+Données disponibles:
+- Catégories principales: ${mainCategories.map(c => c.name).join(', ') || 'Aucune'}
+- Sous-catégories: ${subCategories.map(c => c.name).join(', ') || 'Aucune'}
+- Marques: ${brandList.map(b => b.name).join(', ') || 'Aucune'}
+- Spécifications disponibles: ${specList.map(s => s.name).join(', ') || 'Aucune'}
+
+IMPORTANT:
+- Si une catégorie, marque ou spécification mentionnée dans la requête correspond exactement (ou très proche) à une option disponible, utilise-la.
+- Pour les spécifications, utilise les valeurs exactes disponibles.
+- Si la requête mentionne un type de produit, une caractéristique, un usage, etc., essaie de trouver la catégorie ou spécification correspondante.
+- Pour le champ "search", extrais les mots-clés importants de la requête (nom de produit, modèle, etc.).
+- Retourne UNIQUEMENT un objet JSON valide avec cette structure exacte (sans markdown, sans code blocks):
+
+{
+  "search": "mots-clés extraits de la requête" ou "",
+  "category": "ID de la catégorie si trouvée" ou "",
+  "brand": "ID de la marque si trouvée" ou "",
+  "specifications": {
+    "nom_specification": "valeur exacte" ou nombre ou boolean
+  }
+}
+
+Exemples:
+- Requête: "monobrosse pour sols durs" → { "search": "monobrosse sols durs", "category": "", "brand": "", "specifications": {} }
+- Requête: "aspirateur Electrolux avec sac" → { "search": "aspirateur", "category": "", "brand": "ID_ELECTROLUX", "specifications": { "Type de sac": "avec sac" } }
+- Requête: "machine de plus de 1000W" → { "search": "", "category": "", "brand": "", "specifications": { "Puissance": ">1000" } }`;
+
+    // Appeler OpenAI
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'Tu es un assistant expert en recherche de produits e-commerce. Tu retournes UNIQUEMENT du JSON valide, sans markdown, sans code blocks, sans explications. Réponds toujours avec un objet JSON valide.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.3,
+      response_format: { type: 'json_object' }
+    });
+
+    // Parser la réponse
+    let aiFilters;
+    try {
+      const content = completion.choices[0].message.content;
+      const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      aiFilters = JSON.parse(cleanedContent);
+    } catch (parseError) {
+      console.error('Erreur parsing OpenAI response:', parseError);
+      return res.status(500).json({ error: 'Erreur lors de l\'analyse de la requête' });
+    }
+
+    // Mapper les noms aux IDs
+    const result = {
+      search: aiFilters.search || '',
+      category: '',
+      brand: '',
+      specifications: {}
+    };
+
+    // Trouver l'ID de la catégorie
+    if (aiFilters.category) {
+      const foundCategory = [...mainCategories, ...subCategories].find(c => 
+        c.id === aiFilters.category || c.name.toLowerCase() === aiFilters.category.toLowerCase()
+      );
+      if (foundCategory) {
+        result.category = foundCategory.id;
+      }
+    }
+
+    // Trouver l'ID de la marque
+    if (aiFilters.brand) {
+      const foundBrand = brandList.find(b => 
+        b.id === aiFilters.brand || b.name.toLowerCase() === aiFilters.brand.toLowerCase()
+      );
+      if (foundBrand) {
+        result.brand = foundBrand.id;
+      }
+    }
+
+    // Mapper les spécifications
+    if (aiFilters.specifications && typeof aiFilters.specifications === 'object') {
+      Object.entries(aiFilters.specifications).forEach(([specName, specValue]) => {
+        // Trouver la spécification correspondante
+        const foundSpec = specList.find(s => s.name.toLowerCase() === specName.toLowerCase());
+        if (foundSpec) {
+          // Vérifier si la valeur existe dans les valeurs possibles
+          const possibleValues = specValues[foundSpec.name] || [];
+          const matchingValue = possibleValues.find(v => 
+            String(v).toLowerCase() === String(specValue).toLowerCase()
+          );
+          if (matchingValue !== undefined) {
+            result.specifications[foundSpec.name] = matchingValue;
+          } else if (foundSpec.type === 'number' && !isNaN(Number(specValue))) {
+            result.specifications[foundSpec.name] = Number(specValue);
+          } else if (foundSpec.type === 'boolean') {
+            result.specifications[foundSpec.name] = specValue === true || specValue === 'true';
+          } else {
+            result.specifications[foundSpec.name] = String(specValue);
+          }
+        }
+      });
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Erreur recherche IA:', error);
+    res.status(500).json({ error: error.message || 'Erreur lors de la recherche IA' });
+  }
+});
+
 export default router;
 
 
