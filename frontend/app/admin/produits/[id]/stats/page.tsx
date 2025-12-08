@@ -120,14 +120,69 @@ export default function ProductStatsPage() {
     );
   }
 
+  // Fonction pour remplir tous les jours de la période
+  const fillAllDays = (dailyStats: any[], dateRange: string) => {
+    const endDate = new Date();
+    const startDate = new Date();
+    let daysCount = 0;
+    
+    if (dateRange === '7d') {
+      startDate.setDate(startDate.getDate() - 7);
+      daysCount = 7;
+    } else if (dateRange === '30d') {
+      startDate.setDate(startDate.getDate() - 30);
+      daysCount = 30;
+    } else if (dateRange === '90d') {
+      startDate.setDate(startDate.getDate() - 90);
+      daysCount = 90;
+    } else {
+      // Pour 'all', on retourne les stats telles quelles
+      return dailyStats.map((day: any) => ({
+        date: new Date(day.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
+        Vues: day.views,
+        'Ajouts panier': day.cartAdds,
+        'Achats': day.purchases,
+        'Favoris': day.favorites,
+      }));
+    }
+
+    // Créer un map des stats existantes par date
+    const statsMap = new Map();
+    dailyStats.forEach((day: any) => {
+      const dateKey = new Date(day.date).toISOString().split('T')[0];
+      statsMap.set(dateKey, {
+        views: day.views || 0,
+        cartAdds: day.cartAdds || 0,
+        purchases: day.purchases || 0,
+        favorites: day.favorites || 0,
+      });
+    });
+
+    // Générer tous les jours de la période
+    const allDays = [];
+    const currentDate = new Date(startDate);
+    currentDate.setHours(0, 0, 0, 0);
+    
+    for (let i = 0; i < daysCount; i++) {
+      const dateKey = currentDate.toISOString().split('T')[0];
+      const dayStats = statsMap.get(dateKey) || { views: 0, cartAdds: 0, purchases: 0, favorites: 0 };
+      
+      allDays.push({
+        date: currentDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
+        Vues: dayStats.views,
+        'Ajouts panier': dayStats.cartAdds,
+        'Achats': dayStats.purchases,
+        'Favoris': dayStats.favorites,
+      });
+      
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return allDays;
+  };
+
   // Préparer les données pour les graphiques
-  const dailyData = stats.dailyStats.map((day: any) => ({
-    date: new Date(day.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
-    Vues: day.views,
-    'Ajouts panier': day.cartAdds,
-    'Achats': day.purchases,
-    'Favoris': day.favorites,
-  }));
+  const dailyData = fillAllDays(stats.dailyStats || [], dateRange);
 
   const trafficData = Object.entries(stats.trafficSources).map(([source, data]: [string, any]) => ({
     name: source === 'direct' ? 'Direct' : 

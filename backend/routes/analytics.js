@@ -398,16 +398,41 @@ router.get('/products', optionalAuthenticate, async (req, res) => {
       return res.status(403).json({ error: 'Accès refusé' });
     }
 
-    const { startDate, endDate, limit = 50 } = req.query;
+    const { startDate, endDate, limit = 50, sortBy = 'views', period } = req.query;
 
-    const dateFilter = {};
-    if (startDate || endDate) {
+    // Calculer les dates selon la période
+    let dateFilter = {};
+    if (period) {
+      const now = new Date();
+      const start = new Date();
+      
+      if (period === 'today') {
+        start.setHours(0, 0, 0, 0);
+        dateFilter.createdAt = { $gte: start, $lte: now };
+      } else if (period === '7d') {
+        start.setDate(start.getDate() - 7);
+        dateFilter.createdAt = { $gte: start, $lte: now };
+      } else if (period === '30d') {
+        start.setDate(start.getDate() - 30);
+        dateFilter.createdAt = { $gte: start, $lte: now };
+      } else if (period === 'all') {
+        // Pas de filtre de date
+      }
+    } else if (startDate || endDate) {
       dateFilter.createdAt = {};
-      if (startDate) dateFilter.createdAt.$gte = new Date(startDate);
-      if (endDate) dateFilter.createdAt.$lte = new Date(endDate);
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        dateFilter.createdAt.$gte = start;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        dateFilter.createdAt.$lte = end;
+      }
     }
 
-    // Agrégation pour obtenir les stats par produit
+    // Agrégation pour obtenir les stats par produit depuis ProductAnalytics
     const productStats = await ProductAnalytics.aggregate([
       { $match: dateFilter },
       {
@@ -429,13 +454,111 @@ router.get('/products', optionalAuthenticate, async (req, res) => {
             ]
           }
         }
-      },
-      { $sort: { views: -1 } },
-      { $limit: parseInt(limit) }
+      }
     ]);
 
+    // Récupérer les ventes depuis les commandes traitées
+    let cartDateFilter = {};
+    if (period) {
+      const now = new Date();
+      const start = new Date();
+      
+      if (period === 'today') {
+        start.setHours(0, 0, 0, 0);
+        cartDateFilter.updatedAt = { $gte: start, $lte: now };
+      } else if (period === '7d') {
+        start.setDate(start.getDate() - 7);
+        cartDateFilter.updatedAt = { $gte: start, $lte: now };
+      } else if (period === '30d') {
+        start.setDate(start.getDate() - 30);
+        cartDateFilter.updatedAt = { $gte: start, $lte: now };
+      }
+    } else if (startDate || endDate) {
+      cartDateFilter.updatedAt = {};
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        cartDateFilter.updatedAt.$gte = start;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        cartDateFilter.updatedAt.$lte = end;
+      }
+    }
+
+    const salesStats = await Cart.aggregate([
+      { 
+        $match: { 
+          status: 'traité',
+          ...cartDateFilter
+        } 
+      },
+      { $unwind: '$items' },
+      {
+        $group: {
+          _id: '$items.product',
+          sales: { $sum: '$items.quantity' },
+          revenue: { $sum: { $multiply: ['$items.price', '$items.quantity'] } }
+        }
+      }
+    ]);
+
+    // Combiner les stats
+    const statsMap = {};
+    productStats.forEach(stat => {
+      statsMap[stat._id.toString()] = {
+        views: stat.views,
+        cartAdds: stat.cartAdds,
+        purchases: stat.purchases,
+        favorites: stat.favorites,
+        conversionRate: stat.conversionRate,
+        sales: 0,
+        revenue: 0
+      };
+    });
+
+    salesStats.forEach(stat => {
+      const id = stat._id.toString();
+      if (!statsMap[id]) {
+        statsMap[id] = {
+          views: 0,
+          cartAdds: 0,
+          purchases: 0,
+          favorites: 0,
+          conversionRate: 0,
+          sales: 0,
+          revenue: 0
+        };
+      }
+      statsMap[id].sales = stat.sales;
+      statsMap[id].revenue = stat.revenue;
+    });
+
+    // Convertir en tableau et trier
+    const sortField = sortBy === 'sales' ? 'sales' : 
+                     sortBy === 'revenue' ? 'revenue' :
+                     sortBy === 'cartAdds' ? 'cartAdds' :
+                     sortBy === 'purchases' ? 'purchases' :
+                     sortBy === 'favorites' ? 'favorites' :
+                     sortBy === 'conversionRate' ? 'conversionRate' : 'views';
+
+    const sortedStats = Object.entries(statsMap)
+      .map(([productId, stats]) => ({
+        _id: productId,
+        ...stats
+      }))
+      .sort((a, b) => {
+        // Trier par la métrique choisie (décroissant)
+        if (sortField === 'conversionRate') {
+          return b.conversionRate - a.conversionRate;
+        }
+        return (b[sortField] || 0) - (a[sortField] || 0);
+      })
+      .slice(0, parseInt(limit));
+
     // Populate les produits
-    const productIds = productStats.map(stat => stat._id);
+    const productIds = sortedStats.map(stat => stat._id);
     const products = await Product.find({ _id: { $in: productIds } })
       .select('name slug images price');
 
@@ -444,16 +567,18 @@ router.get('/products', optionalAuthenticate, async (req, res) => {
       productsMap[product._id.toString()] = product;
     });
 
-    const result = productStats.map(stat => ({
-      product: productsMap[stat._id.toString()],
+    const result = sortedStats.map(stat => ({
+      product: productsMap[stat._id] || null,
       stats: {
         views: stat.views,
         cartAdds: stat.cartAdds,
         purchases: stat.purchases,
         favorites: stat.favorites,
-        conversionRate: stat.conversionRate.toFixed(2)
+        conversionRate: stat.conversionRate.toFixed(2),
+        sales: stat.sales,
+        revenue: stat.revenue
       }
-    }));
+    })).filter(item => item.product !== null); // Filtrer les produits qui n'existent plus
 
     res.json(result);
   } catch (error) {

@@ -286,7 +286,7 @@ export const analyticsApi = {
   }) => api.post('/analytics/track', data),
   getProductStats: (productId: string, params?: { startDate?: string; endDate?: string }) =>
     api.get(`/analytics/product/${productId}`, { params }),
-  getAllProductsStats: (params?: { startDate?: string; endDate?: string; limit?: number }) =>
+  getAllProductsStats: (params?: { startDate?: string; endDate?: string; limit?: number; period?: string; sortBy?: string }) =>
     api.get('/analytics/products', { params }),
   getProductsSummary: () =>
     api.get('/analytics/products/summary'),

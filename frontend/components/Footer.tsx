@@ -61,12 +61,6 @@ export default function Footer() {
                   contact@rcmplay-reparation.lu
                 </a>
               </li>
-              <li className="flex items-center">
-                <svg className="w-5 h-5 mr-3 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                </svg>
-                <span>www.rcmplay-reparation.lu</span>
-              </li>
             </ul>
           </div>
 
@@ -90,6 +84,18 @@ export default function Footer() {
                 <Link href="/notre-societe" className="text-gray-400 hover:text-white transition-colors flex items-center group">
                   <span className="w-1.5 h-1.5 bg-green-400 rounded-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity"></span>
                   Notre société
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="text-gray-400 hover:text-white transition-colors flex items-center group">
+                  <span className="w-1.5 h-1.5 bg-green-400 rounded-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                  Contact
+                </Link>
+              </li>
+              <li>
+                <Link href="/dashboard" className="text-gray-400 hover:text-white transition-colors flex items-center group">
+                  <span className="w-1.5 h-1.5 bg-green-400 rounded-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                  Tableau de bord
                 </Link>
               </li>
             </ul>
