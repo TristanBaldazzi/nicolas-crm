@@ -56,6 +56,8 @@ export const authApi = {
     api.post(`/auth/favorites/${productId}`),
   removeFavorite: (productId: string) =>
     api.delete(`/auth/favorites/${productId}`),
+  generateAI: (description: string, existingData?: any) =>
+    api.post('/auth/users/generate-ai', { description, existingData }),
 };
 
 // Products

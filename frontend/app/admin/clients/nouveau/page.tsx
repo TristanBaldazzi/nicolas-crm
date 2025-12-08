@@ -22,6 +22,9 @@ export default function NewClientPage() {
   const [companies, setCompanies] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingCompanies, setLoadingCompanies] = useState(true);
+  const [showAIModal, setShowAIModal] = useState(false);
+  const [aiDescription, setAiDescription] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     loadCompanies();
@@ -35,6 +38,40 @@ export default function NewClientPage() {
       console.error('Error loading companies:', error);
     } finally {
       setLoadingCompanies(false);
+    }
+  };
+
+  const handleAIGeneration = async () => {
+    if (!aiDescription.trim()) {
+      toast.error('Veuillez entrer une description du client');
+      return;
+    }
+
+    setAiLoading(true);
+    try {
+      const response = await authApi.generateAI(aiDescription.trim());
+      const generatedData = response.data;
+
+      // Remplir le formulaire avec les données générées
+      setFormData({
+        ...formData,
+        firstName: generatedData.firstName || formData.firstName,
+        lastName: generatedData.lastName || formData.lastName,
+        email: generatedData.email || formData.email,
+        role: generatedData.role || formData.role,
+        isActive: generatedData.isActive !== undefined ? generatedData.isActive : formData.isActive,
+      });
+
+      // Fermer le modal
+      setShowAIModal(false);
+      setAiDescription('');
+      
+      toast.success('Client généré avec succès ! Complétez les informations manquantes (mot de passe, entreprise) si nécessaire.');
+    } catch (error: any) {
+      console.error('Erreur génération IA:', error);
+      toast.error(error.response?.data?.error || 'Erreur lors de la génération IA. Vérifiez que OPENAI_API_KEY est configurée dans le backend.');
+    } finally {
+      setAiLoading(false);
     }
   };
 
@@ -102,6 +139,16 @@ export default function NewClientPage() {
               <h1 className="text-3xl font-bold">Nouveau client</h1>
               <p className="text-gray-600 mt-1">Créez un nouveau client dans le système</p>
             </div>
+            <button
+              type="button"
+              onClick={() => setShowAIModal(true)}
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Générer avec IA
+            </button>
           </div>
         </div>
 
@@ -264,6 +311,88 @@ export default function NewClientPage() {
           </form>
         </div>
       </div>
+
+      {/* Modal IA */}
+      {showAIModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-8 py-6 border-b border-purple-500 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-3xl font-black text-white flex items-center gap-3">
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Génération IA
+                  </h2>
+                  <p className="text-purple-100 mt-1">Décrivez votre client et l'IA remplira automatiquement les informations</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowAIModal(false);
+                    setAiDescription('');
+                  }}
+                  className="text-white hover:bg-white/20 rounded-lg p-2 transition-all"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 flex-1 flex flex-col">
+              <div className="mb-4">
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Description du client
+                </label>
+                <textarea
+                  value={aiDescription}
+                  onChange={(e) => setAiDescription(e.target.value)}
+                  placeholder="Exemple: Jean Dupont, directeur technique chez TechCorp, email jean.dupont@techcorp.lu, actif, rôle utilisateur..."
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all text-sm min-h-[200px] resize-y"
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  Plus vous donnez de détails, plus l'IA pourra remplir précisément les champs
+                </p>
+              </div>
+
+              <div className="mt-auto pt-4 border-t border-gray-200 flex items-center justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowAIModal(false);
+                    setAiDescription('');
+                  }}
+                  className="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition-all"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleAIGeneration}
+                  disabled={!aiDescription.trim() || aiLoading}
+                  className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-bold hover:from-purple-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {aiLoading ? (
+                    <>
+                      <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Génération en cours...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      Générer
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

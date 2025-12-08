@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import Settings from '../models/Settings.js';
 import { authenticate, optionalAuthenticate, requireAdmin } from '../middleware/auth.js';
+import OpenAI from 'openai';
 
 const router = express.Router();
 
@@ -467,6 +468,106 @@ router.delete('/favorites/:productId', authenticate, async (req, res) => {
     res.json({ message: 'Produit retiré des favoris', favorites: user.favorites });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Générer un client avec IA
+router.post('/users/generate-ai', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const { description, existingData } = req.body;
+
+    if (!description || !description.trim()) {
+      return res.status(400).json({ error: 'La description du client est requise' });
+    }
+
+    // Vérifier si OpenAI est configuré
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(500).json({ error: 'OpenAI API key non configurée' });
+    }
+
+    // Initialiser OpenAI
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    // Créer le prompt pour OpenAI
+    const prompt = `Tu es un assistant expert en création de fiches clients. 
+
+À partir de la description suivante, génère une fiche client complète au format JSON strict (pas de markdown, juste du JSON valide).
+
+Description du client:
+${description}
+
+IMPORTANT:
+- Si une information n'est pas disponible dans la description, laisse le champ vide (null ou chaîne vide).
+- Pour le rôle, utilise "user" par défaut si non spécifié.
+- Pour isActive, retourne true par défaut.
+- Ne génère PAS de mot de passe, laisse ce champ vide.
+
+Retourne UNIQUEMENT un objet JSON valide avec cette structure exacte (sans markdown, sans code blocks):
+{
+  "firstName": "Prénom" ou null,
+  "lastName": "Nom" ou null,
+  "email": "email@exemple.com" ou null,
+  "role": "user" ou "admin",
+  "isActive": true
+}`;
+
+    // Appeler OpenAI
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'Tu es un assistant expert en création de fiches clients. Tu retournes UNIQUEMENT du JSON valide, sans markdown, sans code blocks, sans explications. Réponds toujours avec un objet JSON valide.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.3,
+      response_format: { type: 'json_object' }
+    });
+
+    // Parser la réponse
+    let generatedData;
+    try {
+      const content = completion.choices[0].message.content;
+      const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      generatedData = JSON.parse(cleanedContent);
+    } catch (parseError) {
+      console.error('Erreur parsing OpenAI response:', parseError);
+      return res.status(500).json({ error: 'Erreur lors de la génération des données' });
+    }
+
+    // Fusionner avec les données existantes (ne pas remplacer les champs déjà remplis)
+    const result = {};
+    const fields = ['firstName', 'lastName', 'email', 'role', 'isActive'];
+    
+    fields.forEach(field => {
+      // Si le champ existe déjà et n'est pas vide, le garder
+      if (existingData && existingData[field] !== undefined && existingData[field] !== null && existingData[field] !== '') {
+        result[field] = existingData[field];
+      } else if (generatedData[field] !== undefined && generatedData[field] !== null && generatedData[field] !== '') {
+        // Sinon, utiliser la valeur générée si elle existe
+        result[field] = generatedData[field];
+      } else {
+        // Sinon, valeur par défaut
+        if (field === 'role') {
+          result[field] = 'user';
+        } else if (field === 'isActive') {
+          result[field] = true;
+        } else {
+          result[field] = '';
+        }
+      }
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error('Erreur génération IA:', error);
+    res.status(500).json({ error: error.message || 'Erreur lors de la génération IA' });
   }
 });
 
