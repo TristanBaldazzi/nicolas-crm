@@ -273,6 +273,8 @@ export const contactApi = {
     api.get('/contact'),
   getById: (id: string) =>
     api.get(`/contact/${id}`),
+  getByUser: (userId: string) =>
+    api.get(`/contact/user/${userId}`),
   markAsRead: (id: string) =>
     api.put(`/contact/${id}/traite`),
 };

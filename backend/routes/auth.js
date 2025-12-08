@@ -221,20 +221,20 @@ router.put('/tracking-consent', authenticate, async (req, res) => {
   }
 });
 
-// Récupérer tous les utilisateurs (non-admin) - pour les admins
+// Récupérer tous les utilisateurs (y compris les admins) - pour les admins
 router.get('/users', authenticate, requireAdmin, async (req, res) => {
   try {
     const { page = 1, limit = 50 } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
     
-    // Récupérer uniquement les utilisateurs non-admin
-    const users = await User.find({ role: { $ne: 'admin' } })
+    // Récupérer tous les utilisateurs (y compris les admins)
+    const users = await User.find()
       .select('-password')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
 
-    const total = await User.countDocuments({ role: { $ne: 'admin' } });
+    const total = await User.countDocuments();
 
     res.json({
       users,

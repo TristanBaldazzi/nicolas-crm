@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
-import { authApi, cartsApi, companiesApi, clientFilesApi } from '@/lib/api';
+import { authApi, cartsApi, companiesApi, clientFilesApi, contactApi } from '@/lib/api';
 import { BACKEND_URL } from '@/lib/config';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
@@ -22,6 +22,8 @@ export default function ClientDetailPage() {
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isPublic, setIsPublic] = useState(false);
+  const [clientContacts, setClientContacts] = useState<any[]>([]);
+  const [loadingContacts, setLoadingContacts] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -36,6 +38,7 @@ export default function ClientDetailPage() {
     loadClientCarts();
     loadCompanies();
     loadClientFiles();
+    loadClientContacts();
   }, [id]);
 
   const loadCompanies = async () => {
@@ -84,6 +87,28 @@ export default function ClientDetailPage() {
     } catch (error) {
       console.error('Error loading client files:', error);
     }
+  };
+
+  const loadClientContacts = async () => {
+    try {
+      setLoadingContacts(true);
+      const res = await contactApi.getByUser(id);
+      setClientContacts(res.data || []);
+    } catch (error) {
+      console.error('Error loading client contacts:', error);
+    } finally {
+      setLoadingContacts(false);
+    }
+  };
+
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
   const handleFileUpload = async () => {
@@ -897,75 +922,169 @@ export default function ClientDetailPage() {
           )}
         </div>
 
-        {/* Consentement au tracking */}
-        <div className="w-full bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+        {/* Demandes de contact */}
+        <div className="w-full bg-white rounded-2xl shadow-lg border border-gray-100 p-8 mt-8">
           <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center">
               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </div>
+            Demandes de contact
+            {clientContacts.length > 0 && (
+              <span className="ml-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+                {clientContacts.length}
+              </span>
+            )}
+          </h3>
+
+          {loadingContacts ? (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-200 border-t-blue-600 mb-4"></div>
+              <p className="text-gray-500 font-semibold">Chargement des demandes...</p>
+            </div>
+          ) : clientContacts.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </div>
+              <p className="text-gray-500 font-semibold">Aucune demande de contact</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {clientContacts.map((contact: any) => (
+                <div
+                  key={contact._id}
+                  className={`p-5 border-2 rounded-xl transition-all ${
+                    contact.isRead
+                      ? 'border-gray-200 bg-gray-50'
+                      : 'border-blue-300 bg-blue-50'
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h4 className="font-bold text-gray-900">
+                          {contact.firstName} {contact.lastName}
+                        </h4>
+                        {!contact.isRead && (
+                          <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-semibold">
+                            Non traité
+                          </span>
+                        )}
+                        {contact.isRead && (
+                          <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
+                            Traité
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 mb-2">
+                        <span className="font-semibold">Email:</span> {contact.email}
+                        {contact.phone && (
+                          <span className="ml-4">
+                            <span className="font-semibold">Téléphone:</span> {contact.phone}
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {formatDate(contact.createdAt)}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/admin/contact?messageId=${contact._id}`}
+                      className="ml-4 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors whitespace-nowrap"
+                    >
+                      Voir le message
+                    </Link>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 border border-gray-200">
+                    <p className="text-sm text-gray-700 line-clamp-3">{contact.message}</p>
+                  </div>
+                  {contact.files && contact.files.length > 0 && (
+                    <div className="mt-3 flex items-center gap-2 text-sm text-gray-600">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.414a2 2 0 00-2.828-2.828L9 10.172 13.172 6l2 2z" />
+                      </svg>
+                      <span>{contact.files.length} fichier{contact.files.length > 1 ? 's' : ''} joint{contact.files.length > 1 ? 's' : ''}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Consentement au tracking */}
+        <div className="w-full bg-white rounded-xl shadow-md border border-gray-100 p-4 mt-8">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             </div>
             Consentement au tracking
           </h3>
           
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-gray-700 font-semibold">Statut du consentement</span>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-700 font-semibold">Statut</span>
                 {client.trackingConsent === true ? (
-                  <span className="px-4 py-2 rounded-full text-sm font-bold bg-green-100 text-green-700 flex items-center gap-2 shadow-md">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                     Activé
                   </span>
                 ) : client.trackingConsent === false ? (
-                  <span className="px-4 py-2 rounded-full text-sm font-bold bg-red-100 text-red-700 flex items-center gap-2 shadow-md">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                     Désactivé
                   </span>
                 ) : (
-                  <span className="px-4 py-2 rounded-full text-sm font-bold bg-gray-100 text-gray-700 flex items-center gap-2 shadow-md">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     Non défini
                   </span>
                 )}
               </div>
-              <p className="text-sm text-gray-600">
+              <p className="text-xs text-gray-600">
                 {client.trackingConsent === true 
-                  ? 'L\'utilisateur a accepté le suivi de ses interactions avec les produits.'
+                  ? 'L\'utilisateur a accepté le suivi de ses interactions avec les produits'
                   : client.trackingConsent === false
-                  ? 'L\'utilisateur a refusé le suivi de ses interactions avec les produits.'
-                  : 'L\'utilisateur n\'a pas encore défini ses préférences de suivi.'}
+                  ? 'L\'utilisateur a refusé le suivi de ses interactions avec les produits'
+                  : 'L\'utilisateur n\'a pas encore défini ses préférences de suivi'}
               </p>
             </div>
 
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200">
-              <div className="mb-4">
-                <span className="text-gray-700 font-semibold block mb-2">Date de consentement</span>
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <div className="mb-2">
+                <span className="text-sm text-gray-700 font-semibold block mb-1">Date</span>
                 {client.trackingConsentDate ? (
-                  <p className="font-bold text-gray-900 text-lg">
+                  <p className="font-semibold text-gray-900 text-sm">
                     {new Date(client.trackingConsentDate).toLocaleDateString('fr-FR', {
                       day: 'numeric',
-                      month: 'long',
+                      month: 'short',
                       year: 'numeric',
                       hour: '2-digit',
                       minute: '2-digit'
                     })}
                   </p>
                 ) : (
-                  <p className="font-semibold text-gray-500 italic">
+                  <p className="text-xs text-gray-500 italic">
                     Non disponible
                   </p>
                 )}
               </div>
               {client.trackingConsentDate && (
-                <p className="text-sm text-gray-600">
-                  Date à laquelle l'utilisateur a modifié ses préférences de suivi pour la dernière fois.
+                <p className="text-xs text-gray-500">
+                  Dernière modification
                 </p>
               )}
             </div>

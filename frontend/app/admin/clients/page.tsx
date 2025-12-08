@@ -14,7 +14,7 @@ export default function AdminClientsPage() {
   const [allClients, setAllClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('user');
   const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
@@ -201,7 +201,7 @@ export default function AdminClientsPage() {
                       </div>
                       <h3 className="text-xl font-bold text-gray-900 mb-3">Aucun client pour le moment</h3>
                       <p className="text-gray-600">
-                        Les utilisateurs qui s'inscrivent apparaîtront ici. Les administrateurs ne sont pas inclus dans cette liste.
+                        Les utilisateurs et administrateurs qui s'inscrivent apparaîtront ici.
                       </p>
                     </div>
                   </div>

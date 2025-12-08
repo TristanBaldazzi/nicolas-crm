@@ -147,7 +147,21 @@ router.get('/count-pending', authenticate, requireAdmin, async (req, res) => {
 router.get('/', authenticate, requireAdmin, async (req, res) => {
   try {
     const contacts = await Contact.find()
-      .populate('user', 'firstName lastName email')
+      .populate('user', 'firstName lastName email _id')
+      .sort({ createdAt: -1 });
+
+    res.json(contacts);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Récupérer les demandes de contact d'un utilisateur spécifique (admin)
+router.get('/user/:userId', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const contacts = await Contact.find({ user: userId })
+      .populate('user', 'firstName lastName email _id')
       .sort({ createdAt: -1 });
 
     res.json(contacts);

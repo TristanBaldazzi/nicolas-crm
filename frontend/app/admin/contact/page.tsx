@@ -1,12 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
 import { contactApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { BACKEND_URL } from '@/lib/config';
+import Link from 'next/link';
 
 export default function AdminContactPage() {
+  const searchParams = useSearchParams();
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
@@ -15,6 +18,24 @@ export default function AdminContactPage() {
   useEffect(() => {
     loadMessages();
   }, []);
+
+  // Sélectionner automatiquement le message depuis l'URL
+  useEffect(() => {
+    const messageId = searchParams.get('messageId');
+    if (messageId && messages.length > 0) {
+      const message = messages.find((msg) => msg._id === messageId);
+      if (message) {
+        setSelectedMessage(message);
+        // Ajuster le filtre si nécessaire pour que le message soit visible
+        if (filter === 'unread' && message.isRead) {
+          setFilter('all');
+        } else if (filter === 'read' && !message.isRead) {
+          setFilter('all');
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, searchParams]);
 
   const loadMessages = async () => {
     try {
@@ -232,7 +253,7 @@ export default function AdminContactPage() {
                     {selectedMessage.user && (
                       <p>
                         <span className="font-semibold">Compte:</span> Utilisateur connecté
-                        {selectedMessage.user.company && (
+                        {typeof selectedMessage.user === 'object' && selectedMessage.user.company && (
                           <span className="ml-2 text-xs text-gray-500">
                             ({selectedMessage.user.company.name})
                           </span>
@@ -244,14 +265,27 @@ export default function AdminContactPage() {
                     </p>
                   </div>
                 </div>
-                {!selectedMessage.isRead && (
-                  <button
-                    onClick={() => handleMarkAsRead(selectedMessage._id)}
-                    className="ml-4 px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors"
-                  >
-                    Marquer comme traité
-                  </button>
-                )}
+                <div className="flex flex-col gap-2 ml-4">
+                  {!selectedMessage.isRead && (
+                    <button
+                      onClick={() => handleMarkAsRead(selectedMessage._id)}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors"
+                    >
+                      Marquer comme traité
+                    </button>
+                  )}
+                  {selectedMessage.user && (
+                    <Link
+                      href={`/admin/clients/${typeof selectedMessage.user === 'object' && selectedMessage.user._id ? selectedMessage.user._id : selectedMessage.user}`}
+                      className="inline-flex items-center justify-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      Voir le profil
+                    </Link>
+                  )}
+                </div>
               </div>
 
               {/* Message */}
