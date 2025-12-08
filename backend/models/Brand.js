@@ -22,3 +22,4 @@ brandSchema.index({ order: 1 });
 export default mongoose.model('Brand', brandSchema);
 
 
+

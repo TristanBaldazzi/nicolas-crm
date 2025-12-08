@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
 import CustomSelect from '@/components/CustomSelect';
-import { productsApi, uploadApi, productSpecsApi, brandsApi, categoriesApi } from '@/lib/api';
+import { productsApi, uploadApi, productSpecsApi, brandsApi, categoriesApi, productFilesApi } from '@/lib/api';
 import { getImageUrl } from '@/lib/config';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
@@ -20,6 +20,10 @@ export default function EditProductPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [productFiles, setProductFiles] = useState<any[]>([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [showAIModal, setShowAIModal] = useState(false);
   const [aiDescription, setAiDescription] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
@@ -45,6 +49,7 @@ export default function EditProductPage() {
     if (productId) {
       loadProduct();
       loadData();
+      loadProductFiles();
     }
   }, [productId]);
 
@@ -102,6 +107,127 @@ export default function EditProductPage() {
       router.push('/admin/produits');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadProductFiles = async () => {
+    if (!productId) return;
+    setLoadingFiles(true);
+    try {
+      const res = await productFilesApi.getByProduct(productId);
+      setProductFiles(res.data.files || []);
+    } catch (error: any) {
+      console.error('Error loading product files:', error);
+    } finally {
+      setLoadingFiles(false);
+    }
+  };
+
+  const handleFileUpload = async (filesToUpload: File[]) => {
+    if (filesToUpload.length === 0) {
+      return;
+    }
+
+    if (productFiles.length + filesToUpload.length > 30) {
+      toast.error(`Limite de 30 fichiers atteinte. Vous avez ${productFiles.length} fichier(s) existant(s).`);
+      return;
+    }
+
+    setUploadingFiles(true);
+    try {
+      const formData = new FormData();
+      filesToUpload.forEach((file) => {
+        formData.append('files', file);
+      });
+
+      await productFilesApi.upload(productId, formData);
+      toast.success(`${filesToUpload.length} fichier${filesToUpload.length > 1 ? 's' : ''} uploadé${filesToUpload.length > 1 ? 's' : ''} avec succès`);
+      loadProductFiles();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erreur lors de l\'upload');
+    } finally {
+      setUploadingFiles(false);
+    }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    
+    const files = Array.from(e.target.files).slice(0, 30 - productFiles.length);
+    if (files.length === 0) {
+      toast.error('Limite de 30 fichiers atteinte');
+      return;
+    }
+
+    // Upload automatique
+    await handleFileUpload(files);
+    
+    // Réinitialiser l'input
+    e.target.value = '';
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (uploadingFiles || productFiles.length >= 30) return;
+
+    const files = Array.from(e.dataTransfer.files).slice(0, 30 - productFiles.length);
+    if (files.length === 0) {
+      toast.error('Limite de 30 fichiers atteinte');
+      return;
+    }
+
+    // Upload automatique
+    await handleFileUpload(files);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDeleteFile = async (fileId: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce fichier ?')) {
+      return;
+    }
+
+    try {
+      await productFilesApi.delete(fileId);
+      toast.success('Fichier supprimé avec succès');
+      loadProductFiles();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erreur lors de la suppression');
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  const getFileIcon = (mimetype: string) => {
+    if (mimetype.startsWith('image/')) {
+      return (
+        <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      );
+    } else if (mimetype === 'application/pdf') {
+      return (
+        <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+        </svg>
+      );
+    } else {
+      return (
+        <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      );
     }
   };
 
@@ -570,6 +696,115 @@ export default function EditProductPage() {
             </div>
           )}
 
+          {/* Fichiers du produit */}
+          <div>
+            <label className="block mb-1 text-xs font-semibold text-gray-700">Fichiers téléchargeables (max 30)</label>
+            <div className="relative">
+              <input
+                type="file"
+                id="product-files-upload"
+                multiple
+                onChange={handleFileSelect}
+                className="hidden"
+                disabled={uploadingFiles || productFiles.length >= 30}
+              />
+              <div
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragEnter={() => setIsDragging(true)}
+                onDragLeave={() => setIsDragging(false)}
+                className={`relative border-2 border-dashed rounded-lg transition-all ${
+                  uploadingFiles || productFiles.length >= 30
+                    ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
+                    : isDragging
+                    ? 'border-purple-500 bg-purple-50 scale-[1.02]'
+                    : 'border-purple-300 bg-purple-50/50 hover:border-purple-400 hover:bg-purple-100/50 cursor-pointer'
+                }`}
+              >
+                <label
+                  htmlFor="product-files-upload"
+                  className={`flex flex-col items-center justify-center gap-2 w-full px-6 py-6 cursor-pointer transition-all ${
+                    uploadingFiles || productFiles.length >= 30
+                      ? 'cursor-not-allowed'
+                      : ''
+                  }`}
+                >
+                  {uploadingFiles ? (
+                    <>
+                      <svg className="w-8 h-8 text-purple-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      <span className="text-sm font-medium text-gray-500">Upload en cours...</span>
+                    </>
+                  ) : productFiles.length >= 30 ? (
+                    <>
+                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-sm font-medium text-gray-500">Limite de 30 fichiers atteinte</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                      <div className="text-center">
+                        <span className="text-sm font-semibold text-gray-900 block mb-0.5">
+                          Cliquez ou glissez-déposez des fichiers ici
+                        </span>
+                        <span className="text-xs text-gray-600">
+                          PDF, images, documents... ({productFiles.length}/30 fichiers)
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </label>
+              </div>
+            </div>
+
+            {/* Liste des fichiers */}
+            {loadingFiles ? (
+              <div className="text-center py-8 text-gray-500 text-sm">Chargement...</div>
+            ) : productFiles.length > 0 ? (
+              <div className="mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {productFiles.map((file: any) => (
+                    <div key={file._id} className="group relative bg-white rounded-lg border border-gray-200 hover:border-purple-300 transition-all overflow-hidden">
+                      <div className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 mt-0.5">
+                            {getFileIcon(file.mimetype)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm text-gray-900 truncate mb-1" title={file.originalName}>
+                              {file.originalName}
+                            </div>
+                            <div className="text-xs text-gray-500 space-y-0.5">
+                              <div>{formatFileSize(file.size)}</div>
+                              <div>{new Date(file.createdAt).toLocaleDateString('fr-FR')}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteFile(file._id)}
+                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-md"
+                        title="Supprimer"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500 text-sm">Aucun fichier ajouté</div>
+            )}
+          </div>
+
           <div className="flex gap-3 pt-4 border-t border-gray-200">
             <button
               type="submit"
@@ -590,5 +825,6 @@ export default function EditProductPage() {
     </AdminLayout>
   );
 }
+
 
 

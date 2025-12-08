@@ -312,6 +312,18 @@ export const clientFilesApi = {
     api.delete(`/client-files/${fileId}`),
 };
 
+// Product Files
+export const productFilesApi = {
+  upload: (productId: string, formData: FormData) =>
+    api.post(`/product-files/${productId}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  getByProduct: (productId: string) =>
+    api.get(`/product-files/${productId}`),
+  delete: (fileId: string) =>
+    api.delete(`/product-files/${fileId}`),
+};
+
 export default api;
 
 

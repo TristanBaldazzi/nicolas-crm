@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { productsApi, settingsApi, authApi, analyticsApi } from '@/lib/api';
+import { productsApi, settingsApi, authApi, analyticsApi, productFilesApi } from '@/lib/api';
 import { useCartStore } from '@/lib/cartStore';
 import { useAuthStore } from '@/lib/store';
-import { getImageUrl } from '@/lib/config';
+import { getImageUrl, BACKEND_URL } from '@/lib/config';
 import { useProductTracking } from '@/lib/useProductTracking';
 import toast from 'react-hot-toast';
 
@@ -28,11 +28,19 @@ export default function ProductPage() {
   const { user, isAdmin } = useAuthStore();
   const [cartItem, setCartItem] = useState<{ quantity: number } | null>(null);
   const [hasCheckedCart, setHasCheckedCart] = useState(false);
+  const [productFiles, setProductFiles] = useState<any[]>([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
 
   useEffect(() => {
     loadSettings();
     loadProduct();
   }, [slug]);
+
+  useEffect(() => {
+    if (product?._id) {
+      loadProductFiles();
+    }
+  }, [product?._id]);
 
   useEffect(() => {
     if (product && user) {
@@ -183,6 +191,49 @@ export default function ProductPage() {
     if (settings.priceVisibility === 'loggedIn') return !!user;
     if (settings.priceVisibility === 'hidden') return false;
     return true;
+  };
+
+  const loadProductFiles = async () => {
+    if (!product?._id) return;
+    setLoadingFiles(true);
+    try {
+      const res = await productFilesApi.getByProduct(product._id);
+      setProductFiles(res.data.files || []);
+    } catch (error: any) {
+      console.error('Error loading product files:', error);
+    } finally {
+      setLoadingFiles(false);
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  const getFileIcon = (mimetype: string) => {
+    if (mimetype.startsWith('image/')) {
+      return (
+        <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      );
+    } else if (mimetype === 'application/pdf') {
+      return (
+        <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+        </svg>
+      );
+    } else {
+      return (
+        <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      );
+    }
   };
 
   const loadProduct = async () => {
@@ -632,6 +683,43 @@ export default function ProductPage() {
             </div>
           );
         })()}
+
+        {/* Fichiers téléchargeables */}
+        {productFiles.length > 0 && (
+          <div className="mt-12 bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="bg-gradient-to-r from-purple-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">Fichiers téléchargeables</h2>
+              <p className="text-xs text-gray-600 mt-0.5">Téléchargez les documents et fichiers associés à ce produit</p>
+            </div>
+            <div className="p-6">
+              <div className="space-y-3">
+                {productFiles.map((file: any) => (
+                  <a
+                    key={file._id}
+                    href={`${BACKEND_URL}${file.path}`}
+                    download={file.originalName}
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-all group"
+                  >
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      {getFileIcon(file.mimetype)}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm text-gray-900 truncate group-hover:text-purple-700">
+                          {file.originalName}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          {formatFileSize(file.size)} • {new Date(file.createdAt).toLocaleDateString('fr-FR')}
+                        </div>
+                      </div>
+                    </div>
+                    <svg className="w-5 h-5 text-gray-400 group-hover:text-purple-600 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Produits recommandés */}
         {recommendedProducts.length > 0 && (

@@ -27,3 +27,4 @@ productSpecSchema.index({ order: 1 });
 export default mongoose.model('ProductSpec', productSpecSchema);
 
 
+

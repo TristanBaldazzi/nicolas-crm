@@ -141,17 +141,107 @@ export default function NewPromotionPage() {
           </div>
 
           <div>
-            <label className="block mb-2 font-semibold text-gray-700">Pourcentage de réduction *</label>
-            <input
-              type="number"
-              required
-              min="0"
-              max="100"
-              value={formData.discountPercentage}
-              onChange={(e) => setFormData({ ...formData, discountPercentage: parseFloat(e.target.value) })}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all"
-            />
+            <label className="block mb-3 font-semibold text-gray-700">Pourcentage de réduction *</label>
+            <div className="relative">
+              <div className="flex items-center gap-4">
+                {/* Input avec design spécial */}
+                <div className="flex-1 relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-red-50 via-orange-50 to-green-50 rounded-xl opacity-50"></div>
+                  <div className="relative flex items-center">
+                    <input
+                      type="number"
+                      required
+                      min="0"
+                      max="100"
+                      value={formData.discountPercentage}
+                      onChange={(e) => {
+                        const value = Math.max(0, Math.min(100, parseFloat(e.target.value) || 0));
+                        setFormData({ ...formData, discountPercentage: value });
+                      }}
+                      className="w-full px-6 py-4 pr-20 text-2xl font-black text-gray-900 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:ring-4 focus:ring-red-100 transition-all bg-white"
+                      placeholder="0"
+                    />
+                    <div className="absolute right-4 flex items-center gap-1">
+                      <span className="text-2xl font-black text-red-600">%</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Badge visuel du pourcentage */}
+                <div className={`flex-shrink-0 px-6 py-4 rounded-xl border-2 transition-all ${
+                  formData.discountPercentage === 0
+                    ? 'bg-gray-100 border-gray-300 text-gray-600'
+                    : formData.discountPercentage < 20
+                    ? 'bg-red-100 border-red-300 text-red-700'
+                    : formData.discountPercentage < 50
+                    ? 'bg-orange-100 border-orange-300 text-orange-700'
+                    : 'bg-green-100 border-green-300 text-green-700'
+                }`}>
+                  <div className="text-center">
+                    <div className="text-3xl font-black">
+                      {formData.discountPercentage}%
+                    </div>
+                    <div className="text-xs font-semibold mt-0.5 opacity-75">
+                      RÉDUCTION
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Slider pour ajuster facilement */}
+              <div className="mt-4">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={formData.discountPercentage}
+                  onChange={(e) => setFormData({ ...formData, discountPercentage: parseFloat(e.target.value) })}
+                  className="w-full h-3 bg-gradient-to-r from-gray-200 via-orange-200 to-red-200 rounded-lg appearance-none cursor-pointer slider"
+                  style={{
+                    background: `linear-gradient(to right, #e5e7eb 0%, #e5e7eb ${formData.discountPercentage}%, #f3f4f6 ${formData.discountPercentage}%, #f3f4f6 100%)`
+                  }}
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>0%</span>
+                  <span className="font-semibold text-gray-700">{formData.discountPercentage}%</span>
+                  <span>100%</span>
+                </div>
+              </div>
+            </div>
           </div>
+          
+          <style jsx>{`
+            .slider::-webkit-slider-thumb {
+              appearance: none;
+              width: 24px;
+              height: 24px;
+              border-radius: 50%;
+              background: linear-gradient(135deg, #ef4444 0%, #f97316 50%, #10b981 100%);
+              cursor: pointer;
+              border: 3px solid white;
+              box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+              transition: all 0.2s;
+            }
+            .slider::-webkit-slider-thumb:hover {
+              transform: scale(1.1);
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            }
+            .slider::-moz-range-thumb {
+              width: 24px;
+              height: 24px;
+              border-radius: 50%;
+              background: linear-gradient(135deg, #ef4444 0%, #f97316 50%, #10b981 100%);
+              cursor: pointer;
+              border: 3px solid white;
+              box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+              transition: all 0.2s;
+            }
+            .slider::-moz-range-thumb:hover {
+              transform: scale(1.1);
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            }
+          `}</style>
 
           <div className="grid md:grid-cols-2 gap-6">
             <div>
