@@ -6,12 +6,14 @@ import AdminLayout from '@/components/AdminLayout';
 import CustomSelect from '@/components/CustomSelect';
 import { productsApi, uploadApi, productSpecsApi, brandsApi, analyticsApi } from '@/lib/api';
 import { categoriesApi } from '@/lib/api';
-import { getImageUrl } from '@/lib/config';
+import { getImageUrl, getLinkWithRef } from '@/lib/config';
+import { useAuthStore } from '@/lib/store';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 
 export default function AdminProductsPage() {
   const router = useRouter();
+  const { user } = useAuthStore();
   const [products, setProducts] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -1308,7 +1310,7 @@ export default function AdminProductsPage() {
                     <div className="flex items-center gap-4">
                       <div className="flex-1 min-w-0">
                         <Link 
-                          href={`/produit/${product.slug}`}
+                          href={getLinkWithRef(`/produit/${product.slug}`, user?.id)}
                           className="font-semibold text-sm text-gray-900 hover:text-green-600 transition-colors block truncate"
                         >
                           {product.name}

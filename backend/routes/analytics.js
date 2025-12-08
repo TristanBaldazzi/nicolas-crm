@@ -2,6 +2,7 @@ import express from 'express';
 import ProductAnalytics from '../models/ProductAnalytics.js';
 import Product from '../models/Product.js';
 import Cart from '../models/Cart.js';
+import User from '../models/User.js';
 import { optionalAuthenticate } from '../middleware/auth.js';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -52,26 +53,58 @@ const getDeviceType = (userAgent) => {
   return 'Ordinateur';
 };
 
-// Déterminer la source du trafic
+// Déterminer la source du trafic et le référent utilisateur
 const getTrafficSource = (req) => {
   const referrer = req.headers.referer || req.body.referrer || '';
-  const url = new URL(req.body.currentUrl || referrer || 'http://localhost');
+  const currentUrl = req.body.currentUrl || req.query.currentUrl || '';
+  
+  // Vérifier d'abord l'URL actuelle pour le paramètre ref
+  if (currentUrl) {
+    try {
+      const currentUrlObj = new URL(currentUrl);
+      const refParam = currentUrlObj.searchParams.get('ref');
+      if (refParam) {
+        return { source: 'user_referral', referrerUserId: refParam };
+      }
+    } catch (e) {
+      // Si l'URL n'est pas valide, continuer
+    }
+  }
+  
+  // Vérifier le referrer pour le paramètre ref
+  if (referrer) {
+    try {
+      const referrerUrl = new URL(referrer);
+      const refParam = referrerUrl.searchParams.get('ref');
+      if (refParam) {
+        return { source: 'user_referral', referrerUserId: refParam };
+      }
+    } catch (e) {
+      // Si l'URL n'est pas valide, continuer
+    }
+  }
   
   // Si pas de referrer, c'est direct
-  if (!referrer) return 'direct';
+  if (!referrer) return { source: 'direct', referrerUserId: null };
   
   // Si le referrer vient du même domaine
-  if (referrer.includes(process.env.FRONTEND_URL?.replace('http://', '').replace('https://', '') || 'localhost:3000')) {
-    const pathname = url.pathname;
-    if (pathname.includes('/catalogue') || pathname.includes('/recherche')) return 'catalog';
-    if (pathname.includes('/categorie')) return 'category';
-    if (pathname.includes('/marque') || pathname.includes('?brand=')) return 'brand';
-    if (pathname.includes('/recherche-avancee')) return 'search';
-    return 'other';
+  const frontendDomain = process.env.FRONTEND_URL?.replace('http://', '').replace('https://', '') || 'localhost:3000';
+  if (referrer.includes(frontendDomain)) {
+    try {
+      const referrerUrl = new URL(referrer);
+      const pathname = referrerUrl.pathname;
+      if (pathname.includes('/catalogue') || pathname.includes('/recherche')) return { source: 'catalog', referrerUserId: null };
+      if (pathname.includes('/categorie')) return { source: 'category', referrerUserId: null };
+      if (pathname.includes('/marque') || pathname.includes('?brand=')) return { source: 'brand', referrerUserId: null };
+      if (pathname.includes('/recherche-avancee')) return { source: 'search', referrerUserId: null };
+    } catch (e) {
+      // Si l'URL n'est pas valide, continuer
+    }
+    return { source: 'other', referrerUserId: null };
   }
   
   // Referrer externe
-  return 'external';
+  return { source: 'external', referrerUserId: null };
 };
 
 // Enregistrer un événement de tracking
@@ -105,12 +138,21 @@ router.post('/track', optionalAuthenticate, async (req, res) => {
     }
 
     const sessionId = getSessionId(req);
-    const source = getTrafficSource(req);
+    const trafficInfo = getTrafficSource(req);
+    const source = trafficInfo.source;
+    const referrerUserId = trafficInfo.referrerUserId;
+
+    // Ne pas tracker si c'est la propre personne qui visite (même userId que referrerUserId)
+    if (req.user && referrerUserId && req.user.id === referrerUserId) {
+      console.log('[Analytics] Visite de sa propre page, tracking ignoré');
+      return res.status(200).json({ message: 'Tracking ignoré - visite de sa propre page' });
+    }
 
     const analytics = new ProductAnalytics({
       product: productId,
       eventType,
       userId: req.user?.id || null,
+      referrerUserId: referrerUserId || null,
       sessionId,
       referrer: referrer || req.headers.referer || null,
       source,
@@ -170,9 +212,10 @@ router.get('/product/:productId', optionalAuthenticate, async (req, res) => {
 
     console.log('[Analytics] Filtre de recherche:', JSON.stringify(dateFilter, null, 2));
 
-    // Récupérer tous les événements pour ce produit avec populate userId
+    // Récupérer tous les événements pour ce produit avec populate userId et referrerUserId
     const events = await ProductAnalytics.find(dateFilter)
       .populate('userId', 'firstName lastName email')
+      .populate('referrerUserId', 'firstName lastName email')
       .sort({ createdAt: -1 });
     
     console.log('[Analytics] Événements trouvés:', events.length);
@@ -301,6 +344,57 @@ router.get('/product/:productId', optionalAuthenticate, async (req, res) => {
     const deviceStatsArray = Object.values(deviceStats)
       .sort((a, b) => b.views - a.views);
 
+    // Statistiques par référent utilisateur (user_referral)
+    const userReferrers = {};
+    events.forEach(event => {
+      if (event.referrerUserId && event.source === 'user_referral') {
+        // Extraire l'ID correctement (peut être un ObjectId ou un objet peuplé)
+        const referrerIdValue = event.referrerUserId;
+        const isPopulated = referrerIdValue && typeof referrerIdValue === 'object' && referrerIdValue._id;
+        const referrerId = isPopulated ? referrerIdValue._id.toString() : referrerIdValue.toString();
+        
+        if (!userReferrers[referrerId]) {
+          userReferrers[referrerId] = {
+            referrerUserId: isPopulated ? referrerIdValue._id : referrerIdValue,
+            views: 0,
+            cartAdds: 0,
+            purchases: 0,
+            favorites: 0
+          };
+        }
+        if (event.eventType === 'view') userReferrers[referrerId].views++;
+        if (event.eventType === 'cart_add') userReferrers[referrerId].cartAdds++;
+        if (event.eventType === 'purchase') userReferrers[referrerId].purchases++;
+        if (event.eventType === 'favorite_add') userReferrers[referrerId].favorites++;
+      }
+    });
+
+    // Populate les informations des utilisateurs référents
+    const referrerUserIds = Object.keys(userReferrers).filter(id => id && id.length === 24); // Filtrer les IDs valides (24 caractères)
+    const referrerUsers = referrerUserIds.length > 0 
+      ? await User.find({ _id: { $in: referrerUserIds } })
+          .select('firstName lastName email')
+      : [];
+
+    const referrerUsersMap = {};
+    referrerUsers.forEach(user => {
+      referrerUsersMap[user._id.toString()] = user;
+    });
+
+    const userReferrersArray = Object.entries(userReferrers)
+      .map(([referrerId, ref]) => {
+        const user = referrerUsersMap[referrerId];
+        return {
+          ...ref,
+          referrerUser: user ? {
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email
+          } : null
+        };
+      })
+      .sort((a, b) => b.views - a.views);
+
     // Statistiques par utilisateur avec tous les événements détaillés
     const userStats = {};
     events.forEach(event => {
@@ -368,6 +462,7 @@ router.get('/product/:productId', optionalAuthenticate, async (req, res) => {
       dailyStats: dailyStatsArray,
       topReferrers,
       deviceStats: deviceStatsArray,
+      userReferrers: userReferrersArray,
       userStats: userStatsArray,
       totalEvents: events.length
     };

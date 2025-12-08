@@ -190,7 +190,8 @@ export default function ProductStatsPage() {
           source === 'catalog' ? 'Catalogue' :
           source === 'category' ? 'Catégorie' :
           source === 'brand' ? 'Marque' :
-          source === 'external' ? 'Externe' : 'Autre',
+          source === 'external' ? 'Externe' :
+          source === 'user_referral' ? 'Partages utilisateurs' : 'Autre',
     value: data.views,
     ...data
   }));
@@ -547,6 +548,77 @@ export default function ProductStatsPage() {
                           {ref.referrer !== ref.displayName && (
                             <span className="text-xs text-gray-500 font-mono truncate max-w-xs">{ref.referrer}</span>
                           )}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-right text-gray-700 font-semibold">{formatNumber(ref.views)}</td>
+                      <td className="py-3 px-4 text-right text-gray-700">{formatNumber(ref.cartAdds)}</td>
+                      <td className="py-3 px-4 text-right text-gray-700">{formatNumber(ref.purchases)}</td>
+                      <td className="py-3 px-4 text-right text-gray-700">{formatNumber(ref.favorites)}</td>
+                      <td className="py-3 px-4 text-right font-bold text-green-600">{conversionRate}%</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Référents utilisateurs */}
+      {stats.userReferrers && stats.userReferrers.length > 0 && (
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden mt-6">
+          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
+            <h3 className="text-xl font-bold text-gray-900">Trafic depuis les partages utilisateurs</h3>
+            <p className="text-xs text-gray-600 mt-0.5">Utilisateurs qui ont partagé des liens vers ce produit</p>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200 bg-gray-50">
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">Utilisateur référent</th>
+                  <th className="text-right py-3 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">Vues</th>
+                  <th className="text-right py-3 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">Ajouts panier</th>
+                  <th className="text-right py-3 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">Achats</th>
+                  <th className="text-right py-3 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">Favoris</th>
+                  <th className="text-right py-3 px-4 font-semibold text-gray-700 text-sm uppercase tracking-wider">Taux conversion</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.userReferrers.map((ref: any, index: number) => {
+                  const conversionRate = ref.views > 0 ? ((ref.purchases / ref.views) * 100).toFixed(2) : '0.00';
+                  const referrerUser = ref.referrerUser;
+                  const referrerUserId = ref.referrerUserId?.toString() || ref.referrerUserId;
+                  
+                  const handleRowClick = () => {
+                    if (referrerUserId) {
+                      router.push(`/admin/clients/${referrerUserId}`);
+                    }
+                  };
+                  
+                  return (
+                    <tr 
+                      key={index} 
+                      className={`border-b border-gray-100 transition-colors ${referrerUserId ? 'cursor-pointer hover:bg-purple-50' : ''}`}
+                      onClick={referrerUserId ? handleRowClick : undefined}
+                    >
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                            {referrerUser ? (referrerUser.firstName?.[0] || referrerUser.email?.[0] || '?').toUpperCase() : '?'}
+                          </div>
+                          <div>
+                            {referrerUser ? (
+                              <>
+                                <div className="font-medium text-gray-900">
+                                  {referrerUser.firstName} {referrerUser.lastName}
+                                </div>
+                                <div className="text-xs text-gray-500">{referrerUser.email}</div>
+                              </>
+                            ) : (
+                              <div className="font-medium text-gray-500">Utilisateur supprimé</div>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="py-3 px-4 text-right text-gray-700 font-semibold">{formatNumber(ref.views)}</td>

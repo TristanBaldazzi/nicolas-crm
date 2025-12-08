@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { authApi, productsApi, settingsApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 import { useCartStore } from '@/lib/cartStore';
-import { getImageUrl } from '@/lib/config';
+import { getImageUrl, getLinkWithRef } from '@/lib/config';
 import toast from 'react-hot-toast';
 
 export default function FavorisPage() {
@@ -185,7 +185,7 @@ export default function FavorisPage() {
                               {/* Produit */}
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center gap-4">
-                                  <Link href={`/produit/${product.slug}`} className="flex-shrink-0">
+                                  <Link href={getLinkWithRef(`/produit/${product.slug}`, user?.id)} className="flex-shrink-0">
                                     {primaryImage ? (
                                       <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl overflow-hidden">
                                         <img
@@ -203,7 +203,7 @@ export default function FavorisPage() {
                                     )}
                                   </Link>
                                   <div className="min-w-0 flex-1">
-                                    <Link href={`/produit/${product.slug}`}>
+                                    <Link href={getLinkWithRef(`/produit/${product.slug}`, user?.id)}>
                                       <h3 className="font-bold text-gray-900 hover:text-green-600 transition-colors line-clamp-2">
                                         {product.name}
                                       </h3>

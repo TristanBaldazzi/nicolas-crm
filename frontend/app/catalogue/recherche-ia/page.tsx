@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { productsApi, settingsApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
-import { getImageUrl } from '@/lib/config';
+import { getImageUrl, getLinkWithRef } from '@/lib/config';
 import toast from 'react-hot-toast';
 
 export default function AISearchPage() {
@@ -340,7 +340,7 @@ export default function AISearchPage() {
                 {products.map((product) => (
                   <Link
                     key={product._id}
-                    href={`/produit/${product.slug}`}
+                    href={getLinkWithRef(`/produit/${product.slug}`, user?.id)}
                     className="group bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-200 hover:border-purple-300 overflow-hidden"
                   >
                     {product.images?.[0] ? (

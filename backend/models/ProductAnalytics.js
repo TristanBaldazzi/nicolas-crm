@@ -19,6 +19,12 @@ const productAnalyticsSchema = new mongoose.Schema({
     default: null,
     index: true
   },
+  referrerUserId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
+    index: true
+  },
   sessionId: {
     type: String,
     index: true
@@ -29,7 +35,7 @@ const productAnalyticsSchema = new mongoose.Schema({
   },
   source: {
     type: String,
-    enum: ['direct', 'search', 'catalog', 'category', 'brand', 'external', 'other'],
+    enum: ['direct', 'search', 'catalog', 'category', 'brand', 'external', 'user_referral', 'other'],
     default: 'other'
   },
   userAgent: {

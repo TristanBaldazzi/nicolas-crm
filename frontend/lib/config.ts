@@ -9,4 +9,13 @@ export const getImageUrl = (imagePath: string | null | undefined) => {
   return `${BACKEND_URL}${imagePath}`;
 };
 
+// Helper pour générer un lien avec référent utilisateur
+export const getLinkWithRef = (path: string, userId: string | null | undefined): string => {
+  if (!userId) return path;
+  
+  // Si le path contient déjà des paramètres de requête
+  const separator = path.includes('?') ? '&' : '?';
+  return `${path}${separator}ref=${userId}`;
+};
+
 

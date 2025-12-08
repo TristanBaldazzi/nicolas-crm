@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { cartsApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
-import { getImageUrl } from '@/lib/config';
+import { getImageUrl, getLinkWithRef } from '@/lib/config';
 import CustomSelect from '@/components/CustomSelect';
 import toast from 'react-hot-toast';
 
@@ -401,7 +401,7 @@ export default function CommandesPage() {
                                 )}
                                 <div className="flex-1 min-w-0">
                                   <Link
-                                    href={`/produit/${product?.slug || '#'}`}
+                                    href={getLinkWithRef(`/produit/${product?.slug || '#'}`, user?.id)}
                                     className="font-semibold text-gray-900 hover:text-green-600 transition-colors block mb-1"
                                   >
                                     {product?.name || 'Produit supprimé'}

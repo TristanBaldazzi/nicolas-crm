@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { productsApi, categoriesApi, settingsApi, brandsApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
-import { getImageUrl } from '@/lib/config';
+import { getImageUrl, getLinkWithRef } from '@/lib/config';
 import CustomSelect from '@/components/CustomSelect';
 
 export default function CataloguePage() {
@@ -390,7 +390,7 @@ export default function CataloguePage() {
               {products.map((product) => (
                 <Link
                   key={product._id}
-                  href={`/produit/${product.slug}`}
+                  href={getLinkWithRef(`/produit/${product.slug}`, user?.id)}
                   className="group relative bg-white rounded-3xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 border border-gray-100"
                 >
                   <div className="absolute -inset-0.5 bg-gradient-to-r from-green-500 to-emerald-500 rounded-3xl opacity-0 group-hover:opacity-100 blur transition-opacity duration-500"></div>
