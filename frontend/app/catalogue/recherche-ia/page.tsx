@@ -62,6 +62,11 @@ export default function AISearchPage() {
       return;
     }
 
+    if (aiQuery.length > 80) {
+      toast.error('La requête ne peut pas dépasser 80 caractères');
+      return;
+    }
+
     setAiLoading(true);
     setLoading(true);
     try {
@@ -168,8 +173,11 @@ export default function AISearchPage() {
               <div className="w-0.5 h-6 bg-gradient-to-b from-purple-500 to-indigo-500 rounded-full"></div>
               <span className="text-xs font-bold text-purple-700 uppercase tracking-wider">Recherche Intelligente</span>
             </div>
-            <h1 className="text-3xl md:text-4xl font-black text-gray-900 mb-3 text-center leading-tight">
+            <h1 className="text-3xl md:text-4xl font-black text-gray-900 mb-3 text-center leading-tight flex items-center justify-center gap-3">
               Recherche <span className="bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">IA</span>
+              <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-black px-3 py-1 rounded-full shadow-lg">
+                NOUVEAU
+              </span>
             </h1>
             <p className="text-sm md:text-base text-gray-600 text-center max-w-2xl mx-auto leading-relaxed">
               Décrivez ce que vous cherchez en langage naturel et notre IA trouvera les produits correspondants
@@ -198,6 +206,7 @@ export default function AISearchPage() {
                     placeholder="Ex: monobrosse pour sols durs..."
                     className="flex-1 pl-12 pr-4 py-4 text-base border-2 border-purple-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 transition-all placeholder:text-xs"
                     disabled={aiLoading}
+                    maxLength={80}
                   />
                   <button
                     onClick={handlePaste}
@@ -210,9 +219,14 @@ export default function AISearchPage() {
                     <span className="hidden sm:inline">Coller</span>
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 mt-2 ml-4">
-                  💡 Exemples : "monobrosse professionnelle", "aspirateur sans sac Electrolux", "machine nettoyage haute pression"
-                </p>
+                <div className="flex items-center justify-between mt-2 ml-4">
+                  <p className="text-xs text-gray-500">
+                    💡 Exemples : "monobrosse professionnelle", "aspirateur sans sac Electrolux", "machine nettoyage haute pression"
+                  </p>
+                  <span className={`text-xs font-medium ${aiQuery.length > 80 ? 'text-red-500' : aiQuery.length > 60 ? 'text-orange-500' : 'text-gray-400'}`}>
+                    {aiQuery.length}/80
+                  </span>
+                </div>
               </div>
               <div className="flex gap-2">
                 <button

@@ -1101,6 +1101,10 @@ router.post('/ai-search', async (req, res) => {
       return res.status(400).json({ error: 'La requête de recherche est requise' });
     }
 
+    if (query.length > 80) {
+      return res.status(400).json({ error: 'La requête ne peut pas dépasser 80 caractères' });
+    }
+
     // Vérifier si OpenAI est configuré
     if (!process.env.OPENAI_API_KEY) {
       return res.status(500).json({ error: 'OpenAI API key non configurée' });
