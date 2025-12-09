@@ -327,6 +327,7 @@ router.get('/users/:id', authenticate, requireAdmin, async (req, res) => {
       company: user.company,
       trackingConsent: user.trackingConsent,
       trackingConsentDate: user.trackingConsentDate,
+      internalNotes: user.internalNotes,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     });
@@ -338,7 +339,7 @@ router.get('/users/:id', authenticate, requireAdmin, async (req, res) => {
 // Mettre à jour un utilisateur (admin)
 router.put('/users/:id', authenticate, requireAdmin, async (req, res) => {
   try {
-    const { firstName, lastName, email, role, isActive, company } = req.body;
+    const { firstName, lastName, email, role, isActive, company, internalNotes } = req.body;
     
     const user = await User.findById(req.params.id);
     if (!user) {
@@ -373,6 +374,7 @@ router.put('/users/:id', authenticate, requireAdmin, async (req, res) => {
         user.company = company;
       }
     }
+    if (internalNotes !== undefined) user.internalNotes = internalNotes || null;
 
     await user.save();
     await user.populate('company', 'name code');
@@ -384,7 +386,8 @@ router.put('/users/:id', authenticate, requireAdmin, async (req, res) => {
       lastName: user.lastName,
       role: user.role,
       isActive: user.isActive,
-      company: user.company
+      company: user.company,
+      internalNotes: user.internalNotes
     });
   } catch (error) {
     res.status(400).json({ error: error.message });

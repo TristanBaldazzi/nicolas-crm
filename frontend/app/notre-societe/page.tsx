@@ -6,31 +6,107 @@ import Image from 'next/image';
 export default function NotreSocietePage() {
   return (
     <div className="min-h-screen bg-white">
-      {/* Hero Section - Premium */}
-      <section className="relative min-h-[70vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-gray-900 via-green-950 to-gray-900">
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(34,197,94,0.1),transparent_50%)]"></div>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(251,191,36,0.08),transparent_50%)]"></div>
-          <div className="absolute inset-0" style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0)`,
-            backgroundSize: '50px 50px'
-          }}></div>
+      {/* Hero Section - Compact & Professional */}
+      <section className="relative py-16 md:py-20 bg-gradient-to-br from-white via-emerald-50/30 to-green-50/30 border-b border-gray-100">
+        {/* Subtle background elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-10 right-10 w-64 h-64 bg-emerald-100/20 rounded-full mix-blend-multiply filter blur-2xl opacity-30"></div>
+          <div className="absolute bottom-10 left-10 w-64 h-64 bg-green-100/20 rounded-full mix-blend-multiply filter blur-2xl opacity-30"></div>
         </div>
-        <div className="container mx-auto px-4 py-20 relative z-10">
-          <div className="max-w-5xl mx-auto text-center">
-            <div className="inline-block mb-8">
-              <span className="px-6 py-2 bg-green-500/20 backdrop-blur-xl border border-green-400/30 rounded-full text-green-300 text-sm font-semibold">
-                À propos de nous
-              </span>
-            </div>
-            <h1 className="text-6xl md:text-7xl lg:text-8xl font-black mb-8 leading-tight">
-              Notre <span className="bg-gradient-to-r from-emerald-400 via-emerald-300 to-emerald-500 bg-clip-text text-transparent">société</span>
-            </h1>
-            <p className="text-2xl md:text-3xl text-gray-300 max-w-4xl mx-auto leading-relaxed font-light">
-              Votre partenaire de confiance au Luxembourg pour l'excellence en produits professionnels et pièces détachées
-            </p>
+        
+        {/* Floating icons */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {/* Computer screen - Left */}
+          <div className="absolute left-4 md:left-8 top-1/2 transform -translate-y-1/2 animate-float">
+            <svg className="w-16 h-16 md:w-20 md:h-20 text-emerald-500 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          </div>
+          
+          {/* Washing machine - Right */}
+          <div className="absolute right-4 md:right-8 top-1/2 transform -translate-y-1/2 animate-float-delayed">
+            <svg className="w-16 h-16 md:w-20 md:h-20 text-emerald-500 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="4" y="4" width="16" height="16" rx="1" strokeWidth="1.5" />
+              <circle cx="12" cy="10" r="3" strokeWidth="1.5" />
+              <path d="M8 18h8" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
           </div>
         </div>
+        
+        <style jsx>{`
+          @keyframes float {
+            0%, 100% {
+              transform: translateY(-50%) translateY(0px);
+            }
+            50% {
+              transform: translateY(-50%) translateY(-20px);
+            }
+          }
+          .animate-float {
+            animation: float 3s ease-in-out infinite;
+          }
+          .animate-float-delayed {
+            animation: float 3s ease-in-out infinite;
+            animation-delay: 1.5s;
+          }
+        `}</style>
+        
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full mb-6">
+                <span className="text-emerald-700 text-xs font-semibold uppercase tracking-wide">À propos de nous</span>
+              </div>
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black mb-4 leading-tight">
+                <span className="text-gray-900">Notre </span>
+                <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                  société
+                </span>
+              </h1>
+              <p className="text-lg md:text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed font-medium mb-8">
+                Votre partenaire de confiance au Luxembourg pour l'excellence en produits professionnels et pièces détachées
+              </p>
+            </div>
+            
+            {/* Compact stats */}
+            <div className="flex flex-wrap items-center justify-center gap-4 max-w-3xl mx-auto">
+              <div className="flex items-center gap-2.5 px-5 py-2.5 bg-white rounded-lg shadow-sm border border-gray-200 hover:border-emerald-200 hover:shadow-md transition-all">
+                <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div className="text-left">
+                  <div className="text-lg font-black text-gray-900 leading-none">15+</div>
+                  <div className="text-xs font-semibold text-gray-600 uppercase">Ans</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5 px-5 py-2.5 bg-white rounded-lg shadow-sm border border-gray-200 hover:border-blue-200 hover:shadow-md transition-all">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+                <div className="text-left">
+                  <div className="text-lg font-black text-gray-900 leading-none">1000+</div>
+                  <div className="text-xs font-semibold text-gray-600 uppercase">Clients</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5 px-5 py-2.5 bg-white rounded-lg shadow-sm border border-gray-200 hover:border-purple-200 hover:shadow-md transition-all">
+                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                </div>
+                <div className="text-left">
+                  <div className="text-lg font-black text-gray-900 leading-none">100%</div>
+                  <div className="text-xs font-semibold text-gray-600 uppercase">Qualité</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
       </section>
 
       {/* Introduction Section */}
@@ -150,168 +226,188 @@ export default function NotreSocietePage() {
         </div>
       </section>
 
-      {/* Valeurs Section */}
-      <section className="py-20 bg-white relative">
+      {/* Valeurs Section - Compact & Efficient */}
+      <section className="py-16 bg-white relative">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-3">
-                Nos <span className="bg-gradient-to-r from-green-600 to-green-400 bg-clip-text text-transparent">valeurs</span>
+            {/* Header */}
+            <div className="text-center mb-10">
+              <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 mb-3 inline-block">NOS VALEURS</span>
+              <h2 className="text-3xl md:text-4xl font-light mb-2">
+                <span className="text-gray-900">Les principes qui nous </span>
+                <span className="text-emerald-600">guident</span>
               </h2>
-              <p className="text-base text-gray-600 max-w-2xl mx-auto">
-                Les principes qui guident notre quotidien et façonnent notre excellence
+              <p className="text-sm text-gray-600 max-w-xl mx-auto">
+                Des valeurs fortes qui façonnent notre excellence au quotidien
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Compact Grid */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
                 {
-                  icon: (
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  ),
                   title: 'Qualité garantie',
                   desc: 'Uniquement des produits de marques reconnues et certifiées, avec garantie complète',
-                  gradient: 'from-emerald-500 to-teal-500'
+                  icon: (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                  ),
+                  accent: 'emerald'
                 },
                 {
+                  title: 'Service de proximité',
+                  desc: 'Un accompagnement personnalisé et un suivi dédié pour chaque client',
                   icon: (
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                   ),
-                  title: 'Service de proximité',
-                  desc: 'Un accompagnement personnalisé et un suivi dédié pour chaque client',
-                  gradient: 'from-blue-500 to-cyan-500'
+                  accent: 'blue'
                 },
                 {
-                  icon: (
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  ),
                   title: 'Transparence totale',
                   desc: 'Prix clairs et détaillés, sans surprise ni frais cachés',
-                  gradient: 'from-amber-500 to-orange-500'
+                  icon: (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  ),
+                  accent: 'amber'
                 },
                 {
+                  title: 'Réactivité exemplaire',
+                  desc: 'Réponses rapides et solutions adaptées à vos besoins urgents',
                   icon: (
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                   ),
-                  title: 'Réactivité exemplaire',
-                  desc: 'Réponses rapides et solutions adaptées à vos besoins urgents',
-                  gradient: 'from-violet-500 to-purple-500'
+                  accent: 'violet'
                 }
-              ].map((value, idx) => (
-                <div
-                  key={idx}
-                  className="group relative"
-                >
-                  <div className={`absolute -inset-0.5 bg-gradient-to-r ${value.gradient} rounded-2xl opacity-0 group-hover:opacity-100 blur-lg transition-opacity duration-500`}></div>
-                  <div className="relative bg-white p-6 rounded-2xl shadow-md hover:shadow-xl transition-all duration-500 border border-gray-100 h-full">
-                    <div className={`w-12 h-12 bg-gradient-to-br ${value.gradient} rounded-xl flex items-center justify-center mb-4 text-white transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-lg`}>
+              ].map((value, idx) => {
+                const accentColors = {
+                  emerald: {
+                    text: 'text-emerald-600',
+                    bg: 'bg-emerald-50',
+                    border: 'border-emerald-200',
+                    hover: 'hover:border-emerald-400',
+                    iconColor: 'text-emerald-600'
+                  },
+                  blue: {
+                    text: 'text-blue-600',
+                    bg: 'bg-blue-50',
+                    border: 'border-blue-200',
+                    hover: 'hover:border-blue-400',
+                    iconColor: 'text-blue-600'
+                  },
+                  amber: {
+                    text: 'text-amber-600',
+                    bg: 'bg-amber-50',
+                    border: 'border-amber-200',
+                    hover: 'hover:border-amber-400',
+                    iconColor: 'text-amber-600'
+                  },
+                  violet: {
+                    text: 'text-violet-600',
+                    bg: 'bg-violet-50',
+                    border: 'border-violet-200',
+                    hover: 'hover:border-violet-400',
+                    iconColor: 'text-violet-600'
+                  }
+                };
+                const colors = accentColors[value.accent as keyof typeof accentColors];
+                
+                return (
+                  <div
+                    key={idx}
+                    className={`group p-5 rounded-lg border ${colors.border} ${colors.hover} bg-white transition-all duration-300 hover:shadow-md`}
+                  >
+                    <div className={`w-10 h-10 ${colors.bg} rounded-lg flex items-center justify-center ${colors.iconColor} mb-3 transition-transform duration-300 group-hover:scale-110`}>
                       {value.icon}
                     </div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-3">{value.title}</h3>
-                    <p className="text-sm text-gray-600 leading-relaxed">{value.desc}</p>
+                    <h3 className={`text-lg font-semibold ${colors.text} mb-2`}>
+                      {value.title}
+                    </h3>
+                    <p className="text-sm text-gray-600 leading-relaxed">
+                      {value.desc}
+                    </p>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Expertise Section */}
-      <section className="py-20 bg-gradient-to-br from-gray-900 via-green-950 to-gray-900 text-white relative overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(34,197,94,0.08),transparent_50%)]"></div>
-          <div className="absolute inset-0" style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255,255,255,0.02) 1px, transparent 0)`,
-            backgroundSize: '40px 40px'
-          }}></div>
-        </div>
-        <div className="container mx-auto px-4 relative z-10">
+      {/* Expertise Section - Beautiful Design */}
+      <section className="py-20 bg-white relative">
+        <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-black mb-3">
-                Notre <span className="bg-gradient-to-r from-emerald-400 to-emerald-300 bg-clip-text text-transparent">expertise</span>
-              </h2>
-              <p className="text-base text-gray-300 max-w-2xl mx-auto">
-                Des compétences reconnues au service de votre réussite
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6 mb-16">
-              {[
-                {
-                  number: '15+',
-                  title: 'Années d\'expérience',
-                  desc: 'Une expertise solide acquise au fil des années'
-                },
-                {
-                  number: '1000+',
-                  title: 'Clients satisfaits',
-                  desc: 'Une base de clients fidèles et confiants'
-                },
-                {
-                  number: '4',
-                  title: 'Marques partenaires',
-                  desc: 'Relations privilégiées avec les leaders du marché'
-                }
-              ].map((stat, idx) => (
-                <div
-                  key={idx}
-                  className="text-center p-6 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl hover:bg-white/10 hover:border-white/20 transition-all duration-300"
-                >
-                  <div className="text-4xl font-black bg-gradient-to-r from-emerald-400 to-emerald-300 bg-clip-text text-transparent mb-3">
-                    {stat.number}
-                  </div>
-                  <h3 className="text-lg font-bold mb-2">{stat.title}</h3>
-                  <p className="text-sm text-gray-300">{stat.desc}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-10 items-center">
+            <div className="grid lg:grid-cols-2 gap-12 items-start">
+              {/* Left Column - Content */}
               <div>
-                <h3 className="text-2xl font-black mb-5">Pourquoi nous choisir ?</h3>
-                <div className="space-y-4">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold mb-5">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                  </svg>
+                  Notre expertise
+                </div>
+                <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-6 leading-tight">
+                  Des compétences reconnues
+                </h2>
+                <p className="text-base text-gray-600 mb-4 leading-relaxed">
+                  Au service de votre réussite, nous mettons notre <strong className="text-gray-900">expertise</strong> et notre savoir-faire à votre disposition pour répondre à tous vos besoins en produits professionnels.
+                </p>
+                <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+                  Notre expérience solide et notre réseau de partenaires privilégiés nous permettent de vous offrir un accès exclusif aux meilleures marques du marché, avec un service personnalisé et une réactivité exceptionnelle.
+                </p>
+                
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-4 mt-8">
                   {[
-                    'Accès privilégié aux meilleures marques du marché',
-                    'Réseau de fournisseurs certifiés et fiables',
-                    'Conseil technique personnalisé par des experts',
-                    'Suivi de commande en temps réel',
-                    'Garantie complète sur tous nos produits',
-                    'Service après-vente réactif et efficace'
-                  ].map((point, idx) => (
-                    <div key={idx} className="flex items-start gap-3">
-                      <div className="w-6 h-6 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <p className="text-sm text-gray-300 leading-relaxed">{point}</p>
+                    { number: '15+', label: 'Années' },
+                    { number: '1000+', label: 'Clients' },
+                    { number: '4', label: 'Marques' }
+                  ].map((stat, idx) => (
+                    <div key={idx} className="text-center p-4 bg-gray-50 rounded-xl border border-gray-100">
+                      <div className="text-2xl font-black text-emerald-600 mb-1">{stat.number}</div>
+                      <div className="text-xs text-gray-600 font-semibold">{stat.label}</div>
                     </div>
                   ))}
                 </div>
               </div>
+
+              {/* Right Column - Features Card */}
               <div className="relative">
-                <div className="relative p-8 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl">
-                  <div className="absolute -inset-3 bg-gradient-to-br from-emerald-500/20 to-green-500/20 rounded-2xl blur-xl"></div>
-                  <div className="relative">
-                    <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-xl">
-                      <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                      </svg>
-                    </div>
-                    <h4 className="text-xl font-bold mb-3 text-center">Expertise certifiée</h4>
-                    <p className="text-gray-300 text-center text-sm">
-                      Des professionnels qualifiés à votre service
-                    </p>
+                <div className="absolute -inset-3 bg-gradient-to-br from-emerald-200 to-emerald-100 rounded-2xl blur-xl opacity-50"></div>
+                <div className="relative bg-gradient-to-br from-emerald-50 to-white p-8 rounded-2xl border-2 border-emerald-100 shadow-xl">
+                  <h3 className="text-xl font-black text-gray-900 mb-6">
+                    Pourquoi nous choisir ?
+                  </h3>
+                  <div className="space-y-4">
+                    {[
+                      'Accès privilégié aux meilleures marques du marché',
+                      'Réseau de fournisseurs certifiés et fiables',
+                      'Conseil technique personnalisé par des experts',
+                      'Suivi de commande en temps réel',
+                      'Garantie complète sur tous nos produits',
+                      'Service après-vente réactif et efficace'
+                    ].map((point, idx) => (
+                      <div key={idx} className="flex items-start gap-3">
+                        <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                        <p className="text-sm text-gray-700 leading-relaxed">{point}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-6 pt-6 border-t border-emerald-200 text-center">
+                    <p className="text-xs text-gray-600 font-semibold mb-1">Expertise certifiée</p>
+                    <p className="text-emerald-600 font-bold text-sm">Des professionnels qualifiés à votre service</p>
                   </div>
                 </div>
               </div>
@@ -374,18 +470,6 @@ export default function NotreSocietePage() {
               </div>
             </div>
 
-            <div className="mt-16 text-center">
-              <div className="inline-block p-8 bg-gradient-to-br from-green-50 to-white rounded-3xl border-2 border-green-100 shadow-xl">
-                <div className="flex items-center justify-center gap-4 mb-4">
-                  <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <h4 className="text-xl font-bold text-gray-900">Notre localisation</h4>
-                </div>
-                <p className="text-lg text-gray-600 font-semibold">BERTRANGE, Luxembourg</p>
-              </div>
-            </div>
           </div>
         </div>
       </section>

@@ -88,6 +88,8 @@ export const productsApi = {
 export const categoriesApi = {
   getAll: (params?: any) =>
     api.get('/categories', { params }),
+  getById: (id: string) =>
+    api.get(`/categories/id/${id}`),
   getBySlug: (slug: string) =>
     api.get(`/categories/${slug}`),
   getSubcategories: (slug: string) =>

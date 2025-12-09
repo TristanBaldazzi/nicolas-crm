@@ -37,7 +37,12 @@ const categorySchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
-  }
+  },
+  productSpecs: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ProductSpec',
+    default: []
+  }]
 }, {
   timestamps: true
 });

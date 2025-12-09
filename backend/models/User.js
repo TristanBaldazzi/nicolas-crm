@@ -53,6 +53,11 @@ const userSchema = new mongoose.Schema({
   trackingConsentDate: {
     type: Date,
     default: null
+  },
+  internalNotes: {
+    type: String,
+    default: null,
+    trim: true
   }
 }, {
   timestamps: true

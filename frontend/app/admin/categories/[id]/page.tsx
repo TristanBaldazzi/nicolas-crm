@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
-import { categoriesApi, productsApi } from '@/lib/api';
+import { categoriesApi, productsApi, productSpecsApi } from '@/lib/api';
 import { getImageUrl } from '@/lib/config';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
@@ -17,6 +17,7 @@ export default function CategoryDetailPage() {
   const [subCategories, setSubCategories] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [mainCategories, setMainCategories] = useState<any[]>([]);
+  const [allProductSpecs, setAllProductSpecs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -24,7 +25,8 @@ export default function CategoryDetailPage() {
     description: '',
     parentCategory: '',
     order: 0,
-    isActive: true
+    isActive: true,
+    productSpecs: [] as string[]
   });
 
   useEffect(() => {
@@ -34,13 +36,17 @@ export default function CategoryDetailPage() {
   const loadData = async () => {
     try {
       // Charger toutes les catégories pour avoir les infos complètes
-      const [categoriesRes, productsRes] = await Promise.all([
+      const [categoriesRes, productsRes, specsRes, categoryDetailRes] = await Promise.all([
         categoriesApi.getAll(),
-        productsApi.getAll({ category: id, limit: 100 })
+        productsApi.getAll({ category: id, limit: 100 }),
+        productSpecsApi.getAll(),
+        // Charger la catégorie spécifique avec populate productSpecs
+        categoriesApi.getById(id).catch(() => ({ data: null }))
       ]);
       
       const allCategories = categoriesRes.data || [];
-      const foundCategory = allCategories.find((c: any) => c._id === id);
+      // Utiliser la catégorie détaillée si disponible, sinon chercher dans la liste
+      const foundCategory = categoryDetailRes.data || allCategories.find((c: any) => c._id === id);
       
       if (!foundCategory) {
         toast.error('Catégorie non trouvée');
@@ -63,12 +69,22 @@ export default function CategoryDetailPage() {
       const mainCats = allCategories.filter((c: any) => !c.parentCategory && c._id !== id);
       setMainCategories(mainCats);
 
+      // Charger les caractéristiques
+      setAllProductSpecs(specsRes.data || []);
+
+      // Extraire les IDs des productSpecs (peuvent être des objets ou des IDs)
+      const productSpecIds = foundCategory.productSpecs?.map((spec: any) => {
+        if (typeof spec === 'string') return spec;
+        return spec._id || spec;
+      }).filter(Boolean) || [];
+
       setFormData({
         name: foundCategory.name || '',
         description: foundCategory.description || '',
         parentCategory: foundCategory.parentCategory?._id || foundCategory.parentCategory || '',
         order: foundCategory.order || 0,
-        isActive: foundCategory.isActive !== undefined ? foundCategory.isActive : true
+        isActive: foundCategory.isActive !== undefined ? foundCategory.isActive : true,
+        productSpecs: productSpecIds
       });
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Erreur lors du chargement');
@@ -86,6 +102,7 @@ export default function CategoryDetailPage() {
         ...formData,
         parentCategory: formData.parentCategory || null,
         order: parseInt(formData.order.toString()) || 0,
+        productSpecs: formData.productSpecs || []
       };
 
       await categoriesApi.update(id, data);
@@ -225,6 +242,61 @@ export default function CategoryDetailPage() {
                   />
                 </div>
               </div>
+
+              {/* Caractéristiques associées (uniquement pour catégories principales) */}
+              {!formData.parentCategory && (
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border-2 border-blue-200">
+                  <div className="mb-3">
+                    <h3 className="text-sm font-bold text-gray-900 mb-1">Caractéristiques de la catégorie</h3>
+                    <p className="text-xs text-gray-600">
+                      Sélectionnez les caractéristiques qui s'afficheront par défaut pour les produits de cette catégorie
+                    </p>
+                  </div>
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-2">
+                    {allProductSpecs.map((spec) => (
+                      <label
+                        key={spec._id}
+                        className="flex items-center gap-2 p-2 bg-white rounded-lg border border-gray-200 hover:border-blue-300 cursor-pointer transition-all"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.productSpecs.includes(spec._id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormData({
+                                ...formData,
+                                productSpecs: [...formData.productSpecs, spec._id]
+                              });
+                            } else {
+                              setFormData({
+                                ...formData,
+                                productSpecs: formData.productSpecs.filter(id => id !== spec._id)
+                              });
+                            }
+                          }}
+                          className="w-4 h-4 rounded border-2 border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-1 cursor-pointer flex-shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-xs font-semibold text-gray-900">{spec.name}</span>
+                          {spec.type && (
+                            <span className="ml-1.5 text-xs text-gray-500">({spec.type})</span>
+                          )}
+                        </div>
+                        {formData.productSpecs.includes(spec._id) && (
+                          <div className="w-1.5 h-1.5 bg-blue-600 rounded-full flex-shrink-0"></div>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                  {formData.productSpecs.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-blue-200">
+                      <span className="text-xs font-semibold text-blue-700">
+                        {formData.productSpecs.length} caractéristique{formData.productSpecs.length > 1 ? 's' : ''} sélectionnée{formData.productSpecs.length > 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
                 <label className="flex items-center gap-3 cursor-pointer">

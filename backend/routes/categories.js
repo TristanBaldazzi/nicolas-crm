@@ -28,13 +28,28 @@ router.get('/', async (req, res) => {
 router.get('/id/:id', authenticate, requireAdmin, async (req, res) => {
   try {
     const category = await Category.findById(req.params.id)
-      .populate('parentCategory', 'name slug');
+      .populate('parentCategory', 'name slug')
+      .populate('productSpecs', 'name type');
 
     if (!category) {
       return res.status(404).json({ error: 'Catégorie non trouvée' });
     }
 
     res.json(category);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Récupérer toutes les catégories (admin - avec productSpecs)
+router.get('/admin/all', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const categories = await Category.find()
+      .populate('parentCategory', 'name slug')
+      .populate('productSpecs', 'name type')
+      .sort({ order: 1, name: 1 });
+
+    res.json(categories);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -126,7 +141,7 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
 // Modifier une catégorie (admin)
 router.put('/:id', authenticate, requireAdmin, async (req, res) => {
   try {
-    const { name, description, image, parentCategory, order, isActive } = req.body;
+    const { name, description, image, parentCategory, order, isActive, productSpecs } = req.body;
     
     const category = await Category.findById(req.params.id);
     if (!category) {
@@ -151,8 +166,13 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
     }
     if (order !== undefined) category.order = order;
     if (isActive !== undefined) category.isActive = isActive;
+    if (productSpecs !== undefined) category.productSpecs = productSpecs || [];
 
     await category.save();
+    
+    // Populate productSpecs pour la réponse
+    await category.populate('productSpecs', 'name type');
+    
     res.json(category);
   } catch (error) {
     res.status(400).json({ error: error.message });

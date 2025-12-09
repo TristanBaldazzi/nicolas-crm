@@ -24,6 +24,8 @@ export default function ClientDetailPage() {
   const [isPublic, setIsPublic] = useState(false);
   const [clientContacts, setClientContacts] = useState<any[]>([]);
   const [loadingContacts, setLoadingContacts] = useState(false);
+  const [internalNotes, setInternalNotes] = useState('');
+  const [savingNotes, setSavingNotes] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -63,6 +65,7 @@ export default function ClientDetailPage() {
         isActive: userData.isActive !== undefined ? userData.isActive : true,
         company: userData.company?._id || userData.company || '',
       });
+      setInternalNotes(userData.internalNotes || '');
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Erreur lors du chargement');
       router.push('/admin/clients');
@@ -167,6 +170,19 @@ export default function ClientDetailPage() {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  const handleSaveNotes = async () => {
+    setSavingNotes(true);
+    try {
+      await authApi.updateUser(id, { internalNotes });
+      toast.success('Notes internes enregistrées');
+      loadClient(); // Recharger pour avoir la date de mise à jour
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erreur lors de l\'enregistrement');
+    } finally {
+      setSavingNotes(false);
+    }
   };
 
   const handleStatusChange = async (cartId: string, newStatus: string) => {
@@ -1087,6 +1103,61 @@ export default function ClientDetailPage() {
                   Dernière modification
                 </p>
               )}
+            </div>
+          </div>
+        </div>
+
+        {/* Notes internes */}
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden mt-6">
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-gray-900">Notes internes</h3>
+                <p className="text-xs text-gray-600 mt-0.5">Notes privées visibles uniquement par les administrateurs</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="p-6">
+            <textarea
+              value={internalNotes}
+              onChange={(e) => setInternalNotes(e.target.value)}
+              placeholder="Ajoutez des notes internes sur ce client..."
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition-all resize-none"
+              rows={6}
+            />
+            <div className="mt-4 flex items-center justify-between">
+              <p className="text-xs text-gray-500">
+                {client?.updatedAt && internalNotes && (
+                  <>Dernière modification : {formatDate(client.updatedAt)}</>
+                )}
+              </p>
+              <button
+                onClick={handleSaveNotes}
+                disabled={savingNotes}
+                className="px-6 py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-lg font-semibold text-sm hover:from-amber-700 hover:to-orange-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {savingNotes ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Enregistrement...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Enregistrer les notes
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

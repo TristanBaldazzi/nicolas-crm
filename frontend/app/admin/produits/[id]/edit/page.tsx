@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
 import CustomSelect from '@/components/CustomSelect';
 import { productsApi, uploadApi, productSpecsApi, brandsApi, categoriesApi, productFilesApi } from '@/lib/api';
+import { API_URL } from '@/lib/config';
 import { getImageUrl } from '@/lib/config';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
@@ -17,6 +18,8 @@ export default function EditProductPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [productSpecs, setProductSpecs] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<any>(null);
+  const [showAllSpecs, setShowAllSpecs] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
@@ -52,6 +55,26 @@ export default function EditProductPage() {
       loadProductFiles();
     }
   }, [productId]);
+
+  // Charger la catégorie sélectionnée pour obtenir ses caractéristiques
+  useEffect(() => {
+    if (formData.category) {
+      loadCategoryData();
+    } else {
+      setSelectedCategory(null);
+      setShowAllSpecs(false);
+    }
+  }, [formData.category]);
+
+  const loadCategoryData = async () => {
+    try {
+      const res = await categoriesApi.getById(formData.category);
+      setSelectedCategory(res.data);
+    } catch (error) {
+      console.error('Error loading category:', error);
+      setSelectedCategory(null);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -481,6 +504,7 @@ export default function EditProductPage() {
                 value={formData.category}
                 onChange={(value) => {
                   setFormData({ ...formData, category: value, subCategory: '' });
+                  setShowAllSpecs(false);
                 }}
                 placeholder="Sélectionner une catégorie..."
                 searchable={true}
@@ -668,33 +692,86 @@ export default function EditProductPage() {
           </div>
 
           {/* Caractéristiques du produit */}
-          {productSpecs.length > 0 && (
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
-              <div className="mb-3">
-                <h3 className="text-sm font-bold text-gray-900">Caractéristiques du produit</h3>
-                <p className="text-xs text-gray-600 mt-0.5">Renseignez les caractéristiques (optionnel)</p>
-              </div>
+          {productSpecs.length > 0 && (() => {
+            // Filtrer les caractéristiques selon la catégorie
+            const categorySpecIds = selectedCategory?.productSpecs?.map((spec: any) => spec._id || spec) || [];
+            const displaySpecs = showAllSpecs || !selectedCategory || categorySpecIds.length === 0
+              ? productSpecs
+              : productSpecs.filter(spec => categorySpecIds.includes(spec._id));
+            
+            const hasMoreSpecs = !showAllSpecs && selectedCategory && categorySpecIds.length > 0 && productSpecs.length > categorySpecIds.length;
 
-              {/* Formulaire des caractéristiques en grille */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {productSpecs.map((spec) => (
-                  <div key={spec._id} className="flex flex-col">
-                    <label className="block mb-1 text-xs font-semibold text-gray-700">
-                      {spec.name}
-                    </label>
-                    <input
-                      type={spec.type === 'number' ? 'text' : 'text'}
-                      inputMode={spec.type === 'number' ? 'decimal' : 'text'}
-                      value={formData.specifications[spec.name] || ''}
-                      onChange={(e) => updateSpecification(spec.name, e.target.value, spec.type)}
-                      placeholder={spec.type === 'number' ? 'Nombre uniquement' : `Entrez ${spec.name.toLowerCase()}`}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-100 transition-all"
-                    />
+            return (
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
+                <div className="mb-3 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900">Caractéristiques du produit</h3>
+                    <p className="text-xs text-gray-600 mt-0.5">
+                      {selectedCategory && categorySpecIds.length > 0 && !showAllSpecs
+                        ? `${categorySpecIds.length} caractéristique${categorySpecIds.length > 1 ? 's' : ''} de la catégorie "${selectedCategory.name}"`
+                        : 'Renseignez les caractéristiques (optionnel)'}
+                    </p>
                   </div>
-                ))}
+                  {selectedCategory && categorySpecIds.length > 0 && (
+                    <div className="px-2 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold">
+                      {categorySpecIds.length} / {productSpecs.length}
+                    </div>
+                  )}
+                </div>
+
+                {/* Formulaire des caractéristiques en grille */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {displaySpecs.map((spec) => (
+                    <div key={spec._id} className="flex flex-col">
+                      <label className="block mb-1 text-xs font-semibold text-gray-700">
+                        {spec.name}
+                      </label>
+                      <input
+                        type={spec.type === 'number' ? 'text' : 'text'}
+                        inputMode={spec.type === 'number' ? 'decimal' : 'text'}
+                        value={formData.specifications[spec.name] || ''}
+                        onChange={(e) => updateSpecification(spec.name, e.target.value, spec.type)}
+                        placeholder={spec.type === 'number' ? 'Nombre uniquement' : `Entrez ${spec.name.toLowerCase()}`}
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-100 transition-all"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Bouton pour voir toutes les caractéristiques */}
+                {hasMoreSpecs && (
+                  <div className="mt-4 pt-4 border-t border-blue-200 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => setShowAllSpecs(true)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                      Voir tous les caractéristiques ({productSpecs.length})
+                    </button>
+                  </div>
+                )}
+
+                {/* Bouton pour revenir aux caractéristiques de la catégorie */}
+                {showAllSpecs && selectedCategory && categorySpecIds.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-blue-200 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => setShowAllSpecs(false)}
+                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                      </svg>
+                      Voir uniquement les caractéristiques de la catégorie ({categorySpecIds.length})
+                    </button>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Fichiers du produit */}
           <div>
