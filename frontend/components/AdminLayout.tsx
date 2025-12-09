@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/store';
-import { cartsApi, contactApi } from '@/lib/api';
+import { cartsApi, contactApi, customQuotesApi } from '@/lib/api';
 import AdminFooter from './AdminFooter';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -15,6 +15,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
   const [pendingContactsCount, setPendingContactsCount] = useState(0);
+  const [pendingQuotesCount, setPendingQuotesCount] = useState(0);
   const hasCheckedAuth = useRef<string | undefined | 'null'>(undefined);
 
   useEffect(() => {
@@ -57,6 +58,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       loadPendingContactsCount();
       // Rafraîchir toutes les 30 secondes
       const interval = setInterval(loadPendingContactsCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user, isAdmin]);
+
+  // Charger le nombre de demandes personnalisées non traitées
+  useEffect(() => {
+    if (user && isAdmin()) {
+      const loadPendingQuotesCount = async () => {
+        try {
+          const res = await customQuotesApi.countPending();
+          setPendingQuotesCount(res.data.count || 0);
+        } catch (error) {
+          console.error('Error loading pending quotes count:', error);
+        }
+      };
+      
+      loadPendingQuotesCount();
+      // Rafraîchir toutes les 30 secondes
+      const interval = setInterval(loadPendingQuotesCount, 30000);
       return () => clearInterval(interval);
     }
   }, [user, isAdmin]);
@@ -152,6 +172,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/email', label: 'Email Marketing', icon: (
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+    )},
+    { href: '/admin/demandes-personnalisees', label: 'Demandes personnalisées', icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
       </svg>
     )},
     { href: '/admin/settings', label: 'Paramètres', icon: (
@@ -257,6 +282,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                   </svg>
                   <span>Plus</span>
+                  {pendingQuotesCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
+                      {pendingQuotesCount > 9 ? '+9' : pendingQuotesCount}
+                    </span>
+                  )}
                 </button>
                 
                 {moreMenuOpen && (
@@ -268,13 +298,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-20">
                       {moreNavItems.map((item) => {
                         const active = isActive(item.href);
+                        const isQuotes = item.href === '/admin/demandes-personnalisees';
+                        const showBadge = isQuotes && pendingQuotesCount > 0;
                         return (
                           <Link
                             key={item.href}
                             href={item.href}
                             onClick={() => setMoreMenuOpen(false)}
                             className={`
-                              flex items-center gap-3 px-4 py-2.5 text-sm transition-colors
+                              relative flex items-center gap-3 px-4 py-2.5 text-sm transition-colors
                               ${active
                                 ? 'bg-green-50 text-green-700 font-semibold'
                                 : 'text-gray-700 hover:bg-gray-50'
@@ -285,6 +317,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                               {item.icon}
                             </span>
                             <span>{item.label}</span>
+                            {showBadge && (
+                              <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
+                                {pendingQuotesCount > 9 ? '+9' : pendingQuotesCount}
+                              </span>
+                            )}
                           </Link>
                         );
                       })}
@@ -351,13 +388,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   </div>
                   {moreNavItems.map((item) => {
                     const active = isActive(item.href);
+                    const isQuotes = item.href === '/admin/demandes-personnalisees';
+                    const showBadge = isQuotes && pendingQuotesCount > 0;
                     return (
                       <Link
                         key={item.href}
                         href={item.href}
                         onClick={() => setMobileMenuOpen(false)}
                         className={`
-                          flex items-center gap-3 px-4 py-2.5 text-sm transition-colors
+                          relative flex items-center gap-3 px-4 py-2.5 text-sm transition-colors
                           ${active
                             ? 'bg-green-50 text-green-700 font-semibold'
                             : 'text-gray-600 hover:bg-gray-50'
@@ -368,6 +407,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                           {item.icon}
                         </span>
                         <span>{item.label}</span>
+                        {showBadge && (
+                          <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
+                            {pendingQuotesCount > 9 ? '+9' : pendingQuotesCount}
+                          </span>
+                        )}
                       </Link>
                     );
                   })}

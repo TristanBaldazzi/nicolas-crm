@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
-import { authApi, cartsApi, companiesApi, clientFilesApi, contactApi } from '@/lib/api';
+import { authApi, cartsApi, companiesApi, clientFilesApi, contactApi, customQuotesApi } from '@/lib/api';
 import { BACKEND_URL } from '@/lib/config';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
@@ -24,6 +24,8 @@ export default function ClientDetailPage() {
   const [isPublic, setIsPublic] = useState(false);
   const [clientContacts, setClientContacts] = useState<any[]>([]);
   const [loadingContacts, setLoadingContacts] = useState(false);
+  const [clientQuoteRequests, setClientQuoteRequests] = useState<any[]>([]);
+  const [loadingQuoteRequests, setLoadingQuoteRequests] = useState(false);
   const [internalNotes, setInternalNotes] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
   const [formData, setFormData] = useState({
@@ -41,6 +43,7 @@ export default function ClientDetailPage() {
     loadCompanies();
     loadClientFiles();
     loadClientContacts();
+    loadClientQuoteRequests();
   }, [id]);
 
   const loadCompanies = async () => {
@@ -101,6 +104,18 @@ export default function ClientDetailPage() {
       console.error('Error loading client contacts:', error);
     } finally {
       setLoadingContacts(false);
+    }
+  };
+
+  const loadClientQuoteRequests = async () => {
+    try {
+      setLoadingQuoteRequests(true);
+      const res = await customQuotesApi.getByUser(id);
+      setClientQuoteRequests(res.data || []);
+    } catch (error) {
+      console.error('Error loading client quote requests:', error);
+    } finally {
+      setLoadingQuoteRequests(false);
     }
   };
 
@@ -1026,6 +1041,100 @@ export default function ClientDetailPage() {
                       <span>{contact.files.length} fichier{contact.files.length > 1 ? 's' : ''} joint{contact.files.length > 1 ? 's' : ''}</span>
                     </div>
                   )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Demandes d'offres personnalisées */}
+        <div className="w-full bg-white rounded-2xl shadow-lg border border-gray-100 p-8 mt-8">
+          <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            Demandes d'offres personnalisées
+            {clientQuoteRequests.length > 0 && (
+              <span className="ml-2 px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-semibold">
+                {clientQuoteRequests.length}
+              </span>
+            )}
+          </h3>
+
+          {loadingQuoteRequests ? (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-amber-200 border-t-amber-600 mb-4"></div>
+              <p className="text-gray-500 font-semibold">Chargement des demandes...</p>
+            </div>
+          ) : clientQuoteRequests.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <p className="text-gray-500 font-semibold">Aucune demande d'offre personnalisée</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {clientQuoteRequests.map((quoteRequest: any) => (
+                <div
+                  key={quoteRequest._id}
+                  className={`p-5 border-2 rounded-xl transition-all ${
+                    quoteRequest.isRead
+                      ? 'border-gray-200 bg-gray-50'
+                      : 'border-amber-300 bg-amber-50'
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h4 className="font-bold text-gray-900">
+                          {quoteRequest.firstName} {quoteRequest.lastName}
+                        </h4>
+                        {!quoteRequest.isRead && (
+                          <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-semibold">
+                            Non traité
+                          </span>
+                        )}
+                        {quoteRequest.isRead && (
+                          <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
+                            Traité
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 mb-2">
+                        <span className="font-semibold">Email:</span> {quoteRequest.email}
+                        {quoteRequest.phone && (
+                          <span className="ml-4">
+                            <span className="font-semibold">Téléphone:</span> {quoteRequest.phone}
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {formatDate(quoteRequest.createdAt)}
+                      </p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await customQuotesApi.markAsRead(quoteRequest._id);
+                          toast.success('Demande marquée comme traitée');
+                          loadClientQuoteRequests();
+                        } catch (error: any) {
+                          toast.error(error.response?.data?.error || 'Erreur');
+                        }
+                      }}
+                      className="ml-4 px-3 py-1.5 bg-amber-600 text-white rounded-lg text-sm font-semibold hover:bg-amber-700 transition-colors whitespace-nowrap"
+                    >
+                      {quoteRequest.isRead ? 'Marquer non traité' : 'Marquer comme traité'}
+                    </button>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 border border-gray-200">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{quoteRequest.message}</p>
+                  </div>
                 </div>
               ))}
             </div>

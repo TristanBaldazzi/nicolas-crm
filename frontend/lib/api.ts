@@ -281,6 +281,22 @@ export const contactApi = {
     api.put(`/contact/${id}/traite`),
 };
 
+// Custom Quotes
+export const customQuotesApi = {
+  submit: (data: { firstName?: string; lastName?: string; email?: string; phone?: string; message: string }) =>
+    api.post('/custom-quotes', data),
+  countPending: () =>
+    api.get('/custom-quotes/count-pending'),
+  getAll: () =>
+    api.get('/custom-quotes'),
+  getById: (id: string) =>
+    api.get(`/custom-quotes/${id}`),
+  getByUser: (userId: string) =>
+    api.get(`/custom-quotes/user/${userId}`),
+  markAsRead: (id: string) =>
+    api.put(`/custom-quotes/${id}/traite`),
+};
+
 // Analytics
 export const analyticsApi = {
   track: (data: {
