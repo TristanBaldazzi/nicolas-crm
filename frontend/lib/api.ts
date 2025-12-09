@@ -82,6 +82,21 @@ export const productsApi = {
     api.post('/products/generate-ai', { description }),
   aiSearch: (query: string) =>
     api.post('/products/ai-search', { query }),
+  importPreview: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/products/import/preview', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  import: (file: File, columnMapping: Record<string, string>) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('columnMapping', JSON.stringify(columnMapping));
+    return api.post('/products/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 };
 
 // Categories

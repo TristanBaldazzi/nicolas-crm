@@ -1,5 +1,14 @@
 import express from 'express';
 import mongoose from 'mongoose';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import https from 'https';
+import http from 'http';
+import { fileURLToPath } from 'url';
+import XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import sharp from 'sharp';
 import Product from '../models/Product.js';
 import Category from '../models/Category.js';
 import Promotion from '../models/Promotion.js';
@@ -8,7 +17,46 @@ import ProductSpec from '../models/ProductSpec.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
 import OpenAI from 'openai';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const router = express.Router();
+
+// Configuration Multer pour les fichiers Excel
+const excelStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadsDir = path.join(__dirname, '../uploads/excel-imports');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const excelUpload = multer({
+  storage: excelStorage,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB max
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /xlsx|xls|csv/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+                     file.mimetype === 'application/vnd.ms-excel' ||
+                     file.mimetype === 'text/csv' ||
+                     file.mimetype === 'application/csv';
+
+    if (extname && mimetype) {
+      cb(null, true);
+    } else {
+      cb(new Error('Seuls les fichiers Excel (.xlsx, .xls) ou CSV sont autorisés'));
+    }
+  }
+});
 
 // Fonction helper pour calculer le prix avec promotion
 async function applyPromotions(product, userId = null) {
@@ -517,12 +565,15 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
       }
     }
 
-    // Générer le slug
-    const slug = name.toLowerCase()
+    // Générer le slug de base
+    const baseSlug = name.toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
+    
+    // Générer un slug unique (vérifie les doublons)
+    const slug = await generateUniqueSlug(baseSlug);
 
     // Limiter les images à 50
     const productImages = (images || []).slice(0, 50).map((img, index) => ({
@@ -617,11 +668,28 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
 
     // Mettre à jour le slug si le nom change
     if (name && name !== product.name) {
-      product.slug = name.toLowerCase()
+      const baseSlug = name.toLowerCase()
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '');
+      
+      // Générer un slug unique (mais exclure le produit actuel de la vérification)
+      let slug = baseSlug;
+      let counter = 1;
+      let existingProduct = await Product.findOne({ slug, _id: { $ne: product._id } });
+      
+      while (existingProduct) {
+        slug = `${baseSlug}-${counter}`;
+        existingProduct = await Product.findOne({ slug, _id: { $ne: product._id } });
+        counter++;
+        if (counter > 1000) {
+          slug = `${baseSlug}-${Date.now()}`;
+          break;
+        }
+      }
+      
+      product.slug = slug;
     }
 
     if (name) product.name = name;
@@ -644,8 +712,10 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
         if (!subCategoryDoc) {
           return res.status(400).json({ error: 'Sous-catégorie non trouvée' });
         }
+        product.subCategory = subCategory;
+      } else {
+        product.subCategory = null;
       }
-      product.subCategory = subCategory;
     }
     if (images !== undefined) {
       product.images = images.slice(0, 50);
@@ -1061,6 +1131,607 @@ Exemples:
   } catch (error) {
     console.error('Erreur recherche IA:', error);
     res.status(500).json({ error: error.message || 'Erreur lors de la recherche IA' });
+  }
+});
+
+// Helper pour télécharger une image depuis une URL
+async function downloadImageFromUrl(imageUrl, uploadsDir) {
+  return new Promise((resolve, reject) => {
+    try {
+      const url = new URL(imageUrl);
+      const protocol = url.protocol === 'https:' ? https : http;
+      
+      const filename = Date.now() + '-' + Math.round(Math.random() * 1E9) + '.jpg';
+      const filepath = path.join(uploadsDir, filename);
+      const file = fs.createWriteStream(filepath);
+
+      protocol.get(imageUrl, (response) => {
+        // Vérifier que c'est bien une image
+        const contentType = response.headers['content-type'];
+        if (!contentType || !contentType.startsWith('image/')) {
+          file.close();
+          fs.unlinkSync(filepath);
+          reject(new Error('URL ne pointe pas vers une image valide'));
+          return;
+        }
+
+        response.pipe(file);
+
+        file.on('finish', async () => {
+          file.close();
+          try {
+            // Compresser l'image avec Sharp
+            const compressedFilename = path.parse(filename).name + '-compressed.jpg';
+            const compressedPath = path.join(uploadsDir, compressedFilename);
+
+            await sharp(filepath)
+              .resize(1920, 1920, {
+                fit: 'inside',
+                withoutEnlargement: true
+              })
+              .jpeg({
+                quality: 85,
+                progressive: true
+              })
+              .toFile(compressedPath);
+
+            // Supprimer l'original
+            fs.unlinkSync(filepath);
+
+            resolve({
+              url: `/uploads/${compressedFilename}`,
+              filename: compressedFilename
+            });
+          } catch (error) {
+            if (fs.existsSync(filepath)) {
+              fs.unlinkSync(filepath);
+            }
+            reject(error);
+          }
+        });
+      }).on('error', (err) => {
+        if (fs.existsSync(filepath)) {
+          fs.unlinkSync(filepath);
+        }
+        reject(err);
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+// Helper pour extraire les images intégrées d'un fichier Excel
+async function extractEmbeddedImages(excelFilePath, uploadsDir) {
+  try {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(excelFilePath);
+    
+    const imagesByRow = {}; // { rowIndex: [images] }
+    
+    // Parcourir toutes les feuilles
+    workbook.eachSheet((worksheet) => {
+      const images = worksheet.getImages();
+      
+      images.forEach((image) => {
+        try {
+          const imageId = image.imageId;
+          const imageData = workbook.model.media.find((m) => m.index === imageId);
+          
+          if (imageData && imageData.buffer) {
+            // Calculer la ligne approximative (les images sont positionnées par coordonnées)
+            // On utilise la position top de l'image pour déterminer la ligne
+            const imageTop = image.range.tl ? image.range.tl.row : 0;
+            const rowIndex = imageTop; // Ligne 0-based
+            
+            if (!imagesByRow[rowIndex]) {
+              imagesByRow[rowIndex] = [];
+            }
+            
+            imagesByRow[rowIndex].push({
+              buffer: imageData.buffer,
+              extension: imageData.extension || 'png',
+              name: imageData.name || `image_${imageId}`
+            });
+          }
+        } catch (error) {
+          console.error('Erreur extraction image:', error);
+        }
+      });
+    });
+    
+    return imagesByRow;
+  } catch (error) {
+    console.error('Erreur extraction images Excel:', error);
+    return {};
+  }
+}
+
+// Helper pour sauvegarder une image depuis un buffer
+async function saveImageFromBuffer(imageBuffer, extension, uploadsDir) {
+  const filename = Date.now() + '-' + Math.round(Math.random() * 1E9) + '.' + extension;
+  const filepath = path.join(uploadsDir, filename);
+  
+  // Sauvegarder temporairement
+  fs.writeFileSync(filepath, imageBuffer);
+  
+  try {
+    // Compresser avec Sharp
+    const compressedFilename = path.parse(filename).name + '-compressed.jpg';
+    const compressedPath = path.join(uploadsDir, compressedFilename);
+
+    await sharp(filepath)
+      .resize(1920, 1920, {
+        fit: 'inside',
+        withoutEnlargement: true
+      })
+      .jpeg({
+        quality: 85,
+        progressive: true
+      })
+      .toFile(compressedPath);
+
+    // Supprimer l'original
+    fs.unlinkSync(filepath);
+
+    return {
+      url: `/uploads/${compressedFilename}`,
+      filename: compressedFilename
+    };
+  } catch (error) {
+    // Si erreur, supprimer le fichier temporaire
+    if (fs.existsSync(filepath)) {
+      fs.unlinkSync(filepath);
+    }
+    throw error;
+  }
+}
+
+// Helper pour traiter les URLs d'images (séparées par virgules ou points-virgules)
+async function processImageUrls(imageUrlsString, uploadsDir) {
+  if (!imageUrlsString || !imageUrlsString.trim()) {
+    return [];
+  }
+
+  // Séparer les URLs (virgule, point-virgule, ou espace)
+  const urls = imageUrlsString
+    .split(/[,;\s]+/)
+    .map(url => url.trim())
+    .filter(url => url && (url.startsWith('http://') || url.startsWith('https://')));
+
+  if (urls.length === 0) {
+    return [];
+  }
+
+  const images = [];
+  const errors = [];
+
+  // Télécharger chaque image (limite de 50 images par produit)
+  for (let i = 0; i < Math.min(urls.length, 50); i++) {
+    try {
+      const image = await downloadImageFromUrl(urls[i], uploadsDir);
+      images.push({
+        url: image.url,
+        alt: '',
+        order: i,
+        isPrimary: i === 0
+      });
+    } catch (error) {
+      errors.push({ url: urls[i], error: error.message });
+    }
+  }
+
+  return { images, errors };
+}
+
+// Helper pour générer un slug unique
+async function generateUniqueSlug(baseSlug) {
+  let slug = baseSlug;
+  let counter = 1;
+  
+  // Vérifier si le slug existe déjà
+  let existingProduct = await Product.findOne({ slug });
+  
+  // Si le slug existe, ajouter un numéro incrémental
+  while (existingProduct) {
+    slug = `${baseSlug}-${counter}`;
+    existingProduct = await Product.findOne({ slug });
+    counter++;
+    
+    // Sécurité : éviter une boucle infinie (max 1000 tentatives)
+    if (counter > 1000) {
+      slug = `${baseSlug}-${Date.now()}`;
+      break;
+    }
+  }
+  
+  return slug;
+}
+
+// Helper pour détecter automatiquement le mapping des colonnes
+function detectColumnMapping(headers, categories, brands) {
+  const mapping = {};
+  const lowerHeaders = headers.map(h => String(h || '').toLowerCase().trim());
+  
+  // Mapping intelligent par défaut
+  const fieldPatterns = {
+    name: ['nom', 'name', 'produit', 'product', 'titre', 'title', 'libellé', 'libelle'],
+    description: ['description', 'desc', 'détail', 'detail', 'texte', 'text'],
+    shortDescription: ['description courte', 'short description', 'résumé', 'resume', 'synopsis'],
+    sku: ['sku', 'code', 'référence', 'reference', 'ref', 'code barre', 'codebarre', 'ean'],
+    price: ['prix', 'price', 'tarif', 'tariff', 'coût', 'cost'],
+    compareAtPrice: ['prix comparé', 'compare price', 'ancien prix', 'old price', 'prix avant', 'prix barré'],
+    brand: ['marque', 'brand', 'fabricant', 'manufacturer', 'maker'],
+    category: ['catégorie', 'category', 'cat', 'type', 'famille'],
+    subCategory: ['sous-catégorie', 'subcategory', 'sous categorie', 'sous-categorie', 'sous cat'],
+    stock: ['stock', 'quantité', 'quantity', 'qty', 'disponible', 'available'],
+    isInStock: ['en stock', 'in stock', 'disponible', 'available', 'stock'],
+    isFeatured: ['vedette', 'featured', 'mise en avant', 'highlighted', 'promo'],
+    isBestSeller: ['best seller', 'bestseller', 'meilleure vente', 'top'],
+  };
+
+  // Trouver le meilleur match pour chaque champ
+  Object.keys(fieldPatterns).forEach(field => {
+    const patterns = fieldPatterns[field];
+    for (let i = 0; i < lowerHeaders.length; i++) {
+      const header = lowerHeaders[i];
+      if (patterns.some(pattern => header.includes(pattern) || pattern.includes(header))) {
+        mapping[headers[i]] = field;
+        break;
+      }
+    }
+  });
+
+  // Détecter les spécifications (colonnes non mappées)
+  const mappedHeaders = Object.keys(mapping);
+  headers.forEach(header => {
+    if (!mappedHeaders.includes(header) && header && String(header).trim()) {
+      // C'est probablement une spécification
+      mapping[header] = `spec:${header}`;
+    }
+  });
+
+  return mapping;
+}
+
+// Route pour prévisualiser le fichier Excel et obtenir les colonnes
+router.post('/import/preview', authenticate, requireAdmin, excelUpload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Aucun fichier fourni' });
+    }
+
+    // Créer le dossier uploads s'il n'existe pas
+    const uploadsDir = path.join(__dirname, '../uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    // Lire le fichier Excel
+    const workbook = XLSX.readFile(req.file.path);
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    
+    // Convertir en JSON (première ligne = headers)
+    const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+    
+    if (data.length === 0) {
+      // Supprimer le fichier
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: 'Le fichier Excel est vide' });
+    }
+
+    // La première ligne contient les en-têtes (on l'ignore pour les données)
+    const headers = data[0].map(h => String(h || '').trim()).filter(h => h);
+    const previewRows = data.slice(1, 6); // Aperçu des 5 premières lignes de données
+
+    // Vérifier s'il y a des images intégrées dans le fichier
+    let hasEmbeddedImages = false;
+    let embeddedImagesCount = 0;
+    try {
+      const embeddedImages = await extractEmbeddedImages(req.file.path, uploadsDir);
+      embeddedImagesCount = Object.keys(embeddedImages).reduce((sum, key) => sum + embeddedImages[key].length, 0);
+      hasEmbeddedImages = embeddedImagesCount > 0;
+    } catch (error) {
+      console.error('Erreur lors de la détection des images intégrées:', error);
+    }
+
+    // Récupérer les catégories et marques pour le mapping intelligent
+    const [categories, brands] = await Promise.all([
+      Category.find({ isActive: true }).select('name'),
+      Brand.find().select('name')
+    ]);
+
+    // Détecter automatiquement le mapping
+    const autoMapping = detectColumnMapping(headers, categories, brands);
+
+    // Supprimer le fichier temporaire
+    fs.unlinkSync(req.file.path);
+
+    res.json({
+      headers,
+      preview: previewRows,
+      autoMapping,
+      totalRows: data.length - 1, // Exclure la ligne d'en-tête
+      hasEmbeddedImages,
+      embeddedImagesCount
+    });
+  } catch (error) {
+    // Supprimer le fichier en cas d'erreur
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    res.status(500).json({ error: error.message || 'Erreur lors de la lecture du fichier Excel' });
+  }
+});
+
+// Route pour importer les produits avec le mapping
+router.post('/import', authenticate, requireAdmin, excelUpload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Aucun fichier fourni' });
+    }
+
+    const { columnMapping } = req.body;
+    if (!columnMapping) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: 'Le mapping des colonnes est requis' });
+    }
+
+    const mapping = JSON.parse(columnMapping);
+
+    // Lire le fichier Excel avec XLSX pour les données
+    const workbook = XLSX.readFile(req.file.path);
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    
+    // Convertir en JSON (ignorer la première ligne)
+    const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+    
+    if (data.length <= 1) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: 'Le fichier Excel ne contient pas de données' });
+    }
+
+    const headers = data[0].map(h => String(h || '').trim());
+    const rows = data.slice(1); // Ignorer la première ligne
+
+    // Créer le dossier uploads s'il n'existe pas
+    const uploadsDir = path.join(__dirname, '../uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    // Extraire les images intégrées du fichier Excel
+    const embeddedImages = await extractEmbeddedImages(req.file.path, uploadsDir);
+
+    // Récupérer les catégories et marques pour les résolutions
+    const [categories, brands] = await Promise.all([
+      Category.find({ isActive: true }).select('name _id'),
+      Brand.find().select('name _id')
+    ]);
+
+    const categoryMap = new Map(categories.map(c => [c.name.toLowerCase(), c._id.toString()]));
+    const brandMap = new Map(brands.map(b => [b.name.toLowerCase(), b._id.toString()]));
+
+    const results = {
+      success: [],
+      errors: []
+    };
+
+    // Traiter chaque ligne
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      if (row.every(cell => !cell || String(cell).trim() === '')) {
+        continue; // Ignorer les lignes vides
+      }
+
+      try {
+        const productData = {};
+
+        // Mapper chaque colonne selon le mapping fourni
+        for (let colIndex = 0; colIndex < headers.length; colIndex++) {
+          const header = headers[colIndex];
+          const field = mapping[header];
+          if (!field || !row[colIndex]) continue;
+
+          const value = String(row[colIndex]).trim();
+          if (!value) continue;
+
+          if (field === 'name') {
+            productData.name = value;
+          } else if (field === 'description') {
+            productData.description = value;
+          } else if (field === 'shortDescription') {
+            productData.shortDescription = value;
+          } else if (field === 'sku') {
+            productData.sku = value;
+          } else if (field === 'price') {
+            const price = parseFloat(value.replace(',', '.').replace(/\s/g, ''));
+            if (!isNaN(price)) productData.price = price;
+          } else if (field === 'compareAtPrice') {
+            const price = parseFloat(value.replace(',', '.').replace(/\s/g, ''));
+            if (!isNaN(price)) productData.compareAtPrice = price;
+          } else if (field === 'brand') {
+            const brandLower = value.toLowerCase();
+            const brandId = brandMap.get(brandLower);
+            if (brandId) {
+              productData.brand = brandId;
+            } else {
+              // Créer la marque si elle n'existe pas
+              const newBrand = new Brand({ name: value });
+              await newBrand.save();
+              brandMap.set(brandLower, newBrand._id.toString());
+              productData.brand = newBrand._id.toString();
+            }
+          } else if (field === 'category') {
+            const catLower = value.toLowerCase();
+            const catId = categoryMap.get(catLower);
+            if (catId) {
+              productData.category = catId;
+            }
+          } else if (field === 'subCategory') {
+            const subCatLower = value.toLowerCase();
+            const subCatId = categoryMap.get(subCatLower);
+            if (subCatId) {
+              productData.subCategory = subCatId;
+            }
+          } else if (field === 'stock') {
+            const stock = parseInt(value);
+            if (!isNaN(stock)) {
+              productData.stock = stock;
+              productData.isInStock = stock > 0;
+            }
+          } else if (field === 'isInStock') {
+            const lowerValue = value.toLowerCase();
+            productData.isInStock = lowerValue === 'oui' || lowerValue === 'yes' || lowerValue === 'true' || lowerValue === '1' || lowerValue === 'en stock';
+          } else if (field === 'isFeatured') {
+            const lowerValue = value.toLowerCase();
+            productData.isFeatured = lowerValue === 'oui' || lowerValue === 'yes' || lowerValue === 'true' || lowerValue === '1';
+          } else if (field === 'isBestSeller') {
+            const lowerValue = value.toLowerCase();
+            productData.isBestSeller = lowerValue === 'oui' || lowerValue === 'yes' || lowerValue === 'true' || lowerValue === '1';
+          } else if (field === 'images') {
+            // Traiter les URLs d'images
+            try {
+              const imageResult = await processImageUrls(value, uploadsDir);
+              if (imageResult.images.length > 0) {
+                if (!productData.images) {
+                  productData.images = [];
+                }
+                productData.images = [...productData.images, ...imageResult.images];
+                // Limiter à 50 images au total
+                productData.images = productData.images.slice(0, 50);
+              }
+              if (imageResult.errors.length > 0) {
+                // Ajouter les erreurs d'images aux erreurs du produit
+                if (!productData._imageErrors) {
+                  productData._imageErrors = [];
+                }
+                productData._imageErrors.push(...imageResult.errors);
+              }
+            } catch (error) {
+              // Erreur lors du traitement des images, mais continuer quand même
+              if (!productData._imageErrors) {
+                productData._imageErrors = [];
+              }
+              productData._imageErrors.push({ url: value, error: error.message });
+            }
+          } else if (field.startsWith('spec:')) {
+            // Spécification
+            const specName = field.replace('spec:', '');
+            if (!productData.specifications) {
+              productData.specifications = {};
+            }
+            // Essayer de convertir en nombre si possible
+            const numValue = parseFloat(value.replace(',', '.'));
+            if (!isNaN(numValue) && isFinite(numValue)) {
+              productData.specifications[specName] = numValue;
+            } else {
+              productData.specifications[specName] = value;
+            }
+          }
+        }
+
+        // Vérifier les champs requis
+        if (!productData.name) {
+          results.errors.push({ row: i + 2, error: 'Le nom du produit est requis' });
+          continue;
+        }
+        if (!productData.price) {
+          results.errors.push({ row: i + 2, error: 'Le prix est requis' });
+          continue;
+        }
+        if (!productData.category) {
+          results.errors.push({ row: i + 2, error: 'La catégorie est requise' });
+          continue;
+        }
+
+        // Générer le slug de base
+        const baseSlug = productData.name.toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, '');
+        
+        // Générer un slug unique (vérifie les doublons)
+        productData.slug = await generateUniqueSlug(baseSlug);
+
+        // Valeurs par défaut
+        if (!productData.stock) productData.stock = 0;
+        if (productData.isInStock === undefined) productData.isInStock = true; // Par défaut, les produits importés sont en stock
+        if (!productData.images) productData.images = [];
+        if (!productData.specifications) productData.specifications = {};
+        productData.isImported = true; // Marquer comme importé
+
+        // Traiter les images intégrées dans le fichier Excel (ligne i correspond à la ligne i+1 dans Excel, car on ignore la première ligne)
+        const excelRowIndex = i + 1; // +1 car on a ignoré la ligne d'en-tête
+        if (embeddedImages[excelRowIndex] && embeddedImages[excelRowIndex].length > 0) {
+          const rowImages = embeddedImages[excelRowIndex];
+          const currentImageCount = productData.images.length;
+          
+          for (let imgIdx = 0; imgIdx < Math.min(rowImages.length, 50 - currentImageCount); imgIdx++) {
+            try {
+              const imageInfo = await saveImageFromBuffer(
+                rowImages[imgIdx].buffer,
+                rowImages[imgIdx].extension || 'png',
+                uploadsDir
+              );
+              
+              productData.images.push({
+                url: imageInfo.url,
+                alt: '',
+                order: currentImageCount + imgIdx,
+                isPrimary: currentImageCount === 0 && imgIdx === 0
+              });
+            } catch (error) {
+              if (!productData._imageErrors) {
+                productData._imageErrors = [];
+              }
+              productData._imageErrors.push({ 
+                source: 'image intégrée', 
+                error: error.message 
+              });
+            }
+          }
+        }
+
+        // Gérer les erreurs d'images (avertissements, pas bloquants)
+        const imageErrors = productData._imageErrors || [];
+        delete productData._imageErrors;
+
+        // Créer le produit
+        const product = new Product(productData);
+        await product.save();
+        
+        const successInfo = { row: i + 2, name: productData.name };
+        if (imageErrors.length > 0) {
+          successInfo.imageWarnings = imageErrors;
+        }
+        results.success.push(successInfo);
+      } catch (error) {
+        results.errors.push({ row: i + 2, error: error.message });
+      }
+    }
+
+    // Supprimer le fichier
+    fs.unlinkSync(req.file.path);
+
+    res.json({
+      success: true,
+      imported: results.success.length,
+      errors: results.errors.length,
+      details: {
+        success: results.success,
+        errors: results.errors
+      }
+    });
+  } catch (error) {
+    // Supprimer le fichier en cas d'erreur
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    res.status(500).json({ error: error.message || 'Erreur lors de l\'import' });
   }
 });
 

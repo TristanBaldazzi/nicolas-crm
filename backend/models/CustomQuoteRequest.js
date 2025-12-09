@@ -75,3 +75,4 @@ customQuoteRequestSchema.index({ createdAt: -1 });
 customQuoteRequestSchema.index({ isRead: 1 });
 
 export default mongoose.model('CustomQuoteRequest', customQuoteRequestSchema);
+

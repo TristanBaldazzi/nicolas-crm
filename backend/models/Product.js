@@ -79,6 +79,10 @@ const productSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isImported: {
+    type: Boolean,
+    default: false
+  },
   metaTitle: {
     type: String,
     trim: true

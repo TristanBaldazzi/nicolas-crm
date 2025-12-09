@@ -17,6 +17,7 @@
     "react-hook-form": "^7.49.2",
     "react-hot-toast": "^2.4.1",
     "recharts": "^3.5.1",
+    "xlsx": "^0.18.5",
     "zustand": "^4.4.7"
   },
   "devDependencies": {
@@ -31,4 +32,3 @@
     "typescript": "^5.3.3"
   }
 }
-

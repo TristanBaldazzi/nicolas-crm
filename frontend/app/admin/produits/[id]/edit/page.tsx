@@ -290,6 +290,8 @@ export default function EditProductPage() {
         price: parseFloat(formData.price),
         compareAtPrice: formData.compareAtPrice ? parseFloat(formData.compareAtPrice) : null,
         stock: parseInt(formData.stock) || 0,
+        brand: formData.brand || null,
+        subCategory: formData.subCategory || null,
         specifications: formData.specifications,
       };
       
@@ -400,7 +402,17 @@ export default function EditProductPage() {
       {/* Formulaire */}
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-2xl font-black text-gray-900">Modifier un produit</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-black text-gray-900">Modifier un produit</h2>
+            {product?.isImported && (
+              <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-lg border border-blue-200 flex items-center gap-1.5" title="Ce produit a été importé depuis Excel">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                Importé
+              </span>
+            )}
+          </div>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Ligne 1: Nom et Code barre */}
