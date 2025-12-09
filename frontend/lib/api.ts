@@ -320,7 +320,7 @@ export const customQuotesApi = {
 export const analyticsApi = {
   track: (data: {
     productId: string;
-    eventType: 'view' | 'cart_add' | 'cart_remove' | 'purchase' | 'favorite_add' | 'favorite_remove';
+    eventType: 'view' | 'cart_add' | 'cart_remove' | 'purchase' | 'favorite_add' | 'favorite_remove' | 'share';
     referrer?: string;
     currentUrl?: string;
     metadata?: any;

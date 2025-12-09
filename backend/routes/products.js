@@ -551,17 +551,54 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
       specifications
     } = req.body;
 
+    // Validation des champs requis avec messages d'erreur clairs
+    if (!name || (typeof name === 'string' && name.trim() === '')) {
+      return res.status(400).json({ error: 'Le nom du produit est obligatoire' });
+    }
+
+    if (price === undefined || price === null || price === '') {
+      return res.status(400).json({ error: 'Le prix du produit est obligatoire' });
+    }
+
+    const priceNum = parseFloat(price);
+    if (isNaN(priceNum) || priceNum < 0) {
+      return res.status(400).json({ error: 'Le prix doit être un nombre positif' });
+    }
+
+    if (!category || (typeof category === 'string' && category.trim() === '')) {
+      return res.status(400).json({ error: 'La catégorie est obligatoire. Veuillez sélectionner une catégorie.' });
+    }
+
+    // Vérifier que la catégorie est un ObjectId valide
+    if (!mongoose.Types.ObjectId.isValid(category)) {
+      return res.status(400).json({ error: 'La catégorie sélectionnée n\'est pas valide. Veuillez sélectionner une catégorie dans la liste.' });
+    }
+
     // Vérifier que la catégorie existe
     const categoryDoc = await Category.findById(category);
     if (!categoryDoc) {
-      return res.status(400).json({ error: 'Catégorie non trouvée' });
+      return res.status(400).json({ error: 'La catégorie sélectionnée n\'existe pas. Veuillez sélectionner une catégorie valide.' });
     }
 
     // Vérifier la sous-catégorie si fournie
-    if (subCategory) {
+    if (subCategory && subCategory !== null && subCategory !== '') {
+      if (!mongoose.Types.ObjectId.isValid(subCategory)) {
+        return res.status(400).json({ error: 'La sous-catégorie sélectionnée n\'est pas valide. Veuillez sélectionner une sous-catégorie dans la liste.' });
+      }
       const subCategoryDoc = await Category.findById(subCategory);
       if (!subCategoryDoc) {
-        return res.status(400).json({ error: 'Sous-catégorie non trouvée' });
+        return res.status(400).json({ error: 'La sous-catégorie sélectionnée n\'existe pas. Veuillez sélectionner une sous-catégorie valide.' });
+      }
+    }
+
+    // Vérifier la marque si fournie
+    if (brand && brand !== null && brand !== '') {
+      if (!mongoose.Types.ObjectId.isValid(brand)) {
+        return res.status(400).json({ error: 'La marque sélectionnée n\'est pas valide. Veuillez sélectionner une marque dans la liste.' });
+      }
+      const brandDoc = await Brand.findById(brand);
+      if (!brandDoc) {
+        return res.status(400).json({ error: 'La marque sélectionnée n\'existe pas. Veuillez sélectionner une marque valide.' });
       }
     }
 
@@ -630,10 +667,33 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
 
     res.status(201).json(productObj);
   } catch (error) {
-    if (error.code === 11000) {
-      return res.status(400).json({ error: 'Ce produit existe déjà (slug ou SKU dupliqué)' });
+    console.error('Erreur lors de la création du produit:', error);
+    
+    // Gérer les erreurs de validation Mongoose
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ 
+        error: 'Erreur de validation',
+        details: errors.length === 1 ? errors[0] : errors.join(', ')
+      });
     }
-    res.status(400).json({ error: error.message });
+    
+    // Gérer les erreurs de duplication
+    if (error.code === 11000) {
+      return res.status(400).json({ error: 'Ce produit existe déjà (nom ou code barre dupliqué)' });
+    }
+    
+    // Gérer les erreurs de cast ObjectId
+    if (error.name === 'CastError') {
+      const field = error.path || 'champ';
+      return res.status(400).json({ 
+        error: `La valeur fournie pour "${field}" n'est pas valide. Veuillez sélectionner une option dans la liste.`
+      });
+    }
+    
+    // Erreur générique avec message plus clair
+    const errorMessage = error.message || 'Une erreur est survenue lors de la création du produit';
+    res.status(400).json({ error: errorMessage });
   }
 });
 
@@ -692,25 +752,67 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
       product.slug = slug;
     }
 
-    if (name) product.name = name;
+    // Validation des champs requis
+    if (name !== undefined) {
+      if (!name || (typeof name === 'string' && name.trim() === '')) {
+        return res.status(400).json({ error: 'Le nom du produit est obligatoire' });
+      }
+      product.name = name;
+    }
+
+    if (price !== undefined) {
+      if (price === null || price === '') {
+        return res.status(400).json({ error: 'Le prix du produit est obligatoire' });
+      }
+      const priceNum = parseFloat(price);
+      if (isNaN(priceNum) || priceNum < 0) {
+        return res.status(400).json({ error: 'Le prix doit être un nombre positif' });
+      }
+      product.price = priceNum;
+    }
+
     if (description !== undefined) product.description = description;
     if (shortDescription !== undefined) product.shortDescription = shortDescription;
     if (sku !== undefined) product.sku = sku;
-    if (price !== undefined) product.price = price;
     if (compareAtPrice !== undefined) product.compareAtPrice = compareAtPrice;
-    if (brand !== undefined) product.brand = brand || null;
-    if (category) {
+    
+    if (brand !== undefined) {
+      if (brand && brand !== null && brand !== '') {
+        if (!mongoose.Types.ObjectId.isValid(brand)) {
+          return res.status(400).json({ error: 'La marque sélectionnée n\'est pas valide. Veuillez sélectionner une marque dans la liste.' });
+        }
+        const brandDoc = await Brand.findById(brand);
+        if (!brandDoc) {
+          return res.status(400).json({ error: 'La marque sélectionnée n\'existe pas. Veuillez sélectionner une marque valide.' });
+        }
+        product.brand = brand;
+      } else {
+        product.brand = null;
+      }
+    }
+
+    if (category !== undefined) {
+      if (!category || (typeof category === 'string' && category.trim() === '')) {
+        return res.status(400).json({ error: 'La catégorie est obligatoire. Veuillez sélectionner une catégorie.' });
+      }
+      if (!mongoose.Types.ObjectId.isValid(category)) {
+        return res.status(400).json({ error: 'La catégorie sélectionnée n\'est pas valide. Veuillez sélectionner une catégorie dans la liste.' });
+      }
       const categoryDoc = await Category.findById(category);
       if (!categoryDoc) {
-        return res.status(400).json({ error: 'Catégorie non trouvée' });
+        return res.status(400).json({ error: 'La catégorie sélectionnée n\'existe pas. Veuillez sélectionner une catégorie valide.' });
       }
       product.category = category;
     }
+
     if (subCategory !== undefined) {
-      if (subCategory) {
+      if (subCategory && subCategory !== null && subCategory !== '') {
+        if (!mongoose.Types.ObjectId.isValid(subCategory)) {
+          return res.status(400).json({ error: 'La sous-catégorie sélectionnée n\'est pas valide. Veuillez sélectionner une sous-catégorie dans la liste.' });
+        }
         const subCategoryDoc = await Category.findById(subCategory);
         if (!subCategoryDoc) {
-          return res.status(400).json({ error: 'Sous-catégorie non trouvée' });
+          return res.status(400).json({ error: 'La sous-catégorie sélectionnée n\'existe pas. Veuillez sélectionner une sous-catégorie valide.' });
         }
         product.subCategory = subCategory;
       } else {
@@ -764,7 +866,33 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
 
     res.json(productObj);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error('Erreur lors de la modification du produit:', error);
+    
+    // Gérer les erreurs de validation Mongoose
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ 
+        error: 'Erreur de validation',
+        details: errors.length === 1 ? errors[0] : errors.join(', ')
+      });
+    }
+    
+    // Gérer les erreurs de duplication
+    if (error.code === 11000) {
+      return res.status(400).json({ error: 'Ce produit existe déjà (nom ou code barre dupliqué)' });
+    }
+    
+    // Gérer les erreurs de cast ObjectId
+    if (error.name === 'CastError') {
+      const field = error.path || 'champ';
+      return res.status(400).json({ 
+        error: `La valeur fournie pour "${field}" n'est pas valide. Veuillez sélectionner une option dans la liste.`
+      });
+    }
+    
+    // Erreur générique avec message plus clair
+    const errorMessage = error.message || 'Une erreur est survenue lors de la modification du produit';
+    res.status(400).json({ error: errorMessage });
   }
 });
 
