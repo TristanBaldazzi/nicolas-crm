@@ -234,9 +234,45 @@ export default function AdminProductsPage() {
       toast.error('Le nom de la caractéristique est requis');
       return;
     }
+    
+    // Séparer par virgules et nettoyer chaque nom
+    const specNames = newSpecName
+      .split(',')
+      .map(name => name.trim())
+      .filter(name => name.length > 0);
+    
+    if (specNames.length === 0) {
+      toast.error('Veuillez entrer au moins une caractéristique');
+      return;
+    }
+    
+    // Vérifier les doublons (insensible à la casse)
+    const normalizedNames = specNames.map(name => name.toLowerCase());
+    const uniqueNames = new Set(normalizedNames);
+    
+    if (normalizedNames.length !== uniqueNames.size) {
+      // Trouver les doublons
+      const duplicates: string[] = [];
+      const seen = new Set<string>();
+      
+      normalizedNames.forEach((normalized, index) => {
+        if (seen.has(normalized)) {
+          duplicates.push(specNames[index]);
+        } else {
+          seen.add(normalized);
+        }
+      });
+      
+      toast.error(`Impossible d'ajouter deux fois la même caractéristique : ${duplicates.join(', ')}`);
+      return;
+    }
+    
     try {
-      await productSpecsApi.create({ name: newSpecName.trim() });
-      toast.success('Caractéristique ajoutée');
+      // Créer toutes les caractéristiques en parallèle
+      const promises = specNames.map(name => productSpecsApi.create({ name }));
+      await Promise.all(promises);
+      
+      toast.success(`${specNames.length} caractéristique${specNames.length > 1 ? 's' : ''} ajoutée${specNames.length > 1 ? 's' : ''}`);
       setNewSpecName('');
       loadData();
     } catch (error: any) {
@@ -260,9 +296,45 @@ export default function AdminProductsPage() {
       toast.error('Le nom de la marque est requis');
       return;
     }
+    
+    // Séparer par virgules et nettoyer chaque nom
+    const brandNames = newBrandName
+      .split(',')
+      .map(name => name.trim())
+      .filter(name => name.length > 0);
+    
+    if (brandNames.length === 0) {
+      toast.error('Veuillez entrer au moins une marque');
+      return;
+    }
+    
+    // Vérifier les doublons (insensible à la casse)
+    const normalizedNames = brandNames.map(name => name.toLowerCase());
+    const uniqueNames = new Set(normalizedNames);
+    
+    if (normalizedNames.length !== uniqueNames.size) {
+      // Trouver les doublons
+      const duplicates: string[] = [];
+      const seen = new Set<string>();
+      
+      normalizedNames.forEach((normalized, index) => {
+        if (seen.has(normalized)) {
+          duplicates.push(brandNames[index]);
+        } else {
+          seen.add(normalized);
+        }
+      });
+      
+      toast.error(`Impossible d'ajouter deux fois la même marque : ${duplicates.join(', ')}`);
+      return;
+    }
+    
     try {
-      await brandsApi.create({ name: newBrandName.trim() });
-      toast.success('Marque ajoutée');
+      // Créer toutes les marques en parallèle
+      const promises = brandNames.map(name => brandsApi.create({ name }));
+      await Promise.all(promises);
+      
+      toast.success(`${brandNames.length} marque${brandNames.length > 1 ? 's' : ''} ajoutée${brandNames.length > 1 ? 's' : ''}`);
       setNewBrandName('');
       loadData();
     } catch (error: any) {
@@ -598,7 +670,7 @@ export default function AdminProductsPage() {
                     value={newSpecName}
                     onChange={(e) => setNewSpecName(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleAddSpec()}
-                    placeholder="Nom de la caractéristique (ex: Dimensions, Poids, etc.)"
+                    placeholder="Nom(s) de caractéristique(s), séparés par des virgules (ex: Dimensions, Poids, Couleur)"
                     className="flex-1 px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all font-medium text-sm"
                   />
                   <button
@@ -769,7 +841,7 @@ export default function AdminProductsPage() {
                     value={newBrandName}
                     onChange={(e) => setNewBrandName(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleAddBrand()}
-                    placeholder="Nom de la marque (ex: Samsung, LG, etc.)"
+                    placeholder="Nom(s) de marque(s), séparés par des virgules (ex: Samsung, LG, Bosch)"
                     className="flex-1 px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-100 transition-all font-medium text-sm"
                   />
                   <button
@@ -1697,6 +1769,46 @@ export default function AdminProductsPage() {
                           </div>
                         )}
                       </label>
+                    </div>
+                    
+                    {/* Champs obligatoires */}
+                    <div className="mt-6 bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300 rounded-xl p-5 shadow-sm">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                          <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-base font-bold text-amber-900 mb-1 flex items-center gap-2">
+                            Champs obligatoires
+                          </h4>
+                          <p className="text-sm text-amber-800 mb-4">Vous devez mapper au minimum ces colonnes dans votre fichier Excel :</p>
+                          <div className="flex flex-wrap gap-3">
+                            <div className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-amber-400 rounded-lg shadow-sm">
+                              <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                              </svg>
+                              <span className="text-sm font-bold text-amber-900">Nom du produit</span>
+                              <span className="text-xs font-bold text-red-600">*</span>
+                            </div>
+                            <div className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-amber-400 rounded-lg shadow-sm">
+                              <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <span className="text-sm font-bold text-amber-900">Prix</span>
+                              <span className="text-xs font-bold text-red-600">*</span>
+                            </div>
+                            <div className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-amber-400 rounded-lg shadow-sm">
+                              <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                              </svg>
+                              <span className="text-sm font-bold text-amber-900">Catégorie</span>
+                              <span className="text-xs font-bold text-red-600">*</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
