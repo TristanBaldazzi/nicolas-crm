@@ -10,6 +10,7 @@ export default function AdminSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [priceVisibility, setPriceVisibility] = useState<'all' | 'loggedIn' | 'hidden'>('all');
   const [allowRegistration, setAllowRegistration] = useState(true);
+  const [customQuotesAIMode, setCustomQuotesAIMode] = useState<'none' | 'manual' | 'auto'>('auto');
 
   useEffect(() => {
     loadSettings();
@@ -20,6 +21,7 @@ export default function AdminSettingsPage() {
       const res = await settingsApi.get();
       setPriceVisibility(res.data.priceVisibility || 'all');
       setAllowRegistration(res.data.allowRegistration !== undefined ? res.data.allowRegistration : true);
+      setCustomQuotesAIMode(res.data.customQuotesAIMode || 'auto');
     } catch (error) {
       toast.error('Erreur lors du chargement des paramètres');
     } finally {
@@ -31,7 +33,7 @@ export default function AdminSettingsPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await settingsApi.update({ priceVisibility, allowRegistration });
+      await settingsApi.update({ priceVisibility, allowRegistration, customQuotesAIMode });
       toast.success('Paramètres mis à jour avec succès');
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Erreur lors de la sauvegarde');
@@ -152,6 +154,103 @@ export default function AdminSettingsPage() {
                 </div>
                 {priceVisibility === 'hidden' && (
                   <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                )}
+              </label>
+            </div>
+          </div>
+
+          {/* Section IA Demandes Personnalisées */}
+          <div className="p-8 border-b border-gray-200">
+            <div className="flex items-start justify-between mb-6">
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-gray-900 mb-2">IA pour demandes personnalisées</h2>
+                <p className="text-gray-600 text-sm">
+                  Contrôlez le comportement de l'intelligence artificielle lors de l'analyse des demandes d'offres personnalisées
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <label className="flex items-start p-4 border-2 rounded-xl cursor-pointer transition-all hover:border-purple-300 hover:bg-purple-50"
+                style={{
+                  borderColor: customQuotesAIMode === 'none' ? '#a855f7' : '#e5e7eb',
+                  backgroundColor: customQuotesAIMode === 'none' ? '#faf5ff' : 'transparent'
+                }}>
+                <input
+                  type="radio"
+                  name="customQuotesAIMode"
+                  value="none"
+                  checked={customQuotesAIMode === 'none'}
+                  onChange={(e) => setCustomQuotesAIMode(e.target.value as 'none')}
+                  className="mt-1 mr-4"
+                />
+                <div className="flex-1">
+                  <div className="font-bold text-gray-900 mb-1">IA désactivée</div>
+                  <div className="text-sm text-gray-600">
+                    Aucune analyse IA ne sera effectuée. Les demandes seront simplement enregistrées sans suggestion de produits.
+                  </div>
+                </div>
+                {customQuotesAIMode === 'none' && (
+                  <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                )}
+              </label>
+
+              <label className="flex items-start p-4 border-2 rounded-xl cursor-pointer transition-all hover:border-purple-300 hover:bg-purple-50"
+                style={{
+                  borderColor: customQuotesAIMode === 'manual' ? '#a855f7' : '#e5e7eb',
+                  backgroundColor: customQuotesAIMode === 'manual' ? '#faf5ff' : 'transparent'
+                }}>
+                <input
+                  type="radio"
+                  name="customQuotesAIMode"
+                  value="manual"
+                  checked={customQuotesAIMode === 'manual'}
+                  onChange={(e) => setCustomQuotesAIMode(e.target.value as 'manual')}
+                  className="mt-1 mr-4"
+                />
+                <div className="flex-1">
+                  <div className="font-bold text-gray-900 mb-1">IA avec validation manuelle</div>
+                  <div className="text-sm text-gray-600">
+                    L'IA analysera la demande et suggérera des produits, mais vous devrez valider manuellement la création du panier depuis la page de détail de la demande.
+                  </div>
+                </div>
+                {customQuotesAIMode === 'manual' && (
+                  <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                )}
+              </label>
+
+              <label className="flex items-start p-4 border-2 rounded-xl cursor-pointer transition-all hover:border-purple-300 hover:bg-purple-50"
+                style={{
+                  borderColor: customQuotesAIMode === 'auto' ? '#a855f7' : '#e5e7eb',
+                  backgroundColor: customQuotesAIMode === 'auto' ? '#faf5ff' : 'transparent'
+                }}>
+                <input
+                  type="radio"
+                  name="customQuotesAIMode"
+                  value="auto"
+                  checked={customQuotesAIMode === 'auto'}
+                  onChange={(e) => setCustomQuotesAIMode(e.target.value as 'auto')}
+                  className="mt-1 mr-4"
+                />
+                <div className="flex-1">
+                  <div className="font-bold text-gray-900 mb-1">Création automatique du panier</div>
+                  <div className="text-sm text-gray-600">
+                    L'IA analysera la demande et créera automatiquement un panier avec les produits suggérés pour les utilisateurs connectés. Le panier sera créé avec le statut "traité".
+                  </div>
+                </div>
+                {customQuotesAIMode === 'auto' && (
+                  <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
                 )}

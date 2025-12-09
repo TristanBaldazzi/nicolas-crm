@@ -291,9 +291,19 @@ export default function CartDetailPage() {
         </Link>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-black text-gray-900">
-              Panier #{cart._id.slice(-8)}
-            </h1>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-4xl font-black text-gray-900">
+                Panier #{cart._id.slice(-8)}
+              </h1>
+              {cart.createdByAI && (
+                <span className="px-4 py-1.5 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-full text-sm font-bold flex items-center gap-2 shadow-lg">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                  {cart.aiCreationMode === 'auto' ? 'Créé automatiquement par IA' : 'Créé via IA avec validation'}
+                </span>
+              )}
+            </div>
             <p className="text-gray-600 mt-2">Détails du panier de commande</p>
           </div>
           <div className="flex items-center gap-4">
@@ -606,6 +616,32 @@ export default function CartDetailPage() {
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Informations</h3>
             <div className="space-y-3 text-sm">
+              {cart.createdByAI && (
+                <div className="mb-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-200 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    <span className="font-bold text-purple-900">Créé via Intelligence Artificielle</span>
+                  </div>
+                  <p className="text-xs text-purple-700 mb-2">
+                    {cart.aiCreationMode === 'auto' 
+                      ? 'Ce panier a été créé automatiquement par l\'IA à partir d\'une demande d\'offre personnalisée.'
+                      : 'Ce panier a été créé manuellement par un administrateur à partir des suggestions de l\'IA.'}
+                  </p>
+                  {cart.sourceQuoteRequest && (
+                    <Link
+                      href={`/admin/demandes-personnalisees?requestId=${cart.sourceQuoteRequest.id}`}
+                      className="text-xs text-purple-600 hover:text-purple-800 font-semibold underline flex items-center gap-1"
+                    >
+                      Voir la demande source
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </Link>
+                  )}
+                </div>
+              )}
               <div>
                 <span className="text-gray-600">ID Panier</span>
                 <p className="font-mono text-xs text-gray-500 mt-1 break-all">{cart._id}</p>

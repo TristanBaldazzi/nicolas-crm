@@ -235,7 +235,7 @@ export default function CataloguePage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 relative z-10">
                   {/* Recherche */}
                   <div className="group">
-                    <label className="block text-sm font-black text-gray-900 mb-3 flex items-center gap-2">
+                    <label className="text-sm font-black text-gray-900 mb-3 flex items-center gap-2">
                       <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                       </svg>
@@ -268,7 +268,7 @@ export default function CataloguePage() {
 
                   {/* Catégorie */}
                   <div className="group">
-                    <label className="block text-sm font-black text-gray-900 mb-3 flex items-center gap-2">
+                    <label className="text-sm font-black text-gray-900 mb-3 flex items-center gap-2">
                       <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                       </svg>
@@ -297,7 +297,7 @@ export default function CataloguePage() {
                     if (subCategories.length > 0) {
                       return (
                         <div className="group">
-                          <label className="block text-sm font-black text-gray-900 mb-3 flex items-center gap-2">
+                          <label className="text-sm font-black text-gray-900 mb-3 flex items-center gap-2">
                             <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
@@ -325,7 +325,7 @@ export default function CataloguePage() {
 
                   {/* Marque */}
                   <div className="group">
-                    <label className="block text-sm font-black text-gray-900 mb-3 flex items-center gap-2">
+                    <label className="text-sm font-black text-gray-900 mb-3 flex items-center gap-2">
                       <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                       </svg>

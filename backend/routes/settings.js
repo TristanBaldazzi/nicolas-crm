@@ -17,17 +17,22 @@ router.get('/', async (req, res) => {
 // Mettre à jour les settings (admin uniquement)
 router.put('/', authenticate, requireAdmin, async (req, res) => {
   try {
-    const { priceVisibility, allowRegistration } = req.body;
+    const { priceVisibility, allowRegistration, customQuotesAIMode } = req.body;
     
     if (priceVisibility && !['all', 'loggedIn', 'hidden'].includes(priceVisibility)) {
       return res.status(400).json({ error: 'Valeur de priceVisibility invalide' });
+    }
+
+    if (customQuotesAIMode && !['none', 'manual', 'auto'].includes(customQuotesAIMode)) {
+      return res.status(400).json({ error: 'Valeur de customQuotesAIMode invalide' });
     }
 
     let settings = await Settings.findOne();
     if (!settings) {
       settings = new Settings({ 
         priceVisibility: priceVisibility || 'all',
-        allowRegistration: allowRegistration !== undefined ? allowRegistration : true
+        allowRegistration: allowRegistration !== undefined ? allowRegistration : true,
+        customQuotesAIMode: customQuotesAIMode || 'auto'
       });
     } else {
       if (priceVisibility !== undefined) {
@@ -35,6 +40,9 @@ router.put('/', authenticate, requireAdmin, async (req, res) => {
       }
       if (allowRegistration !== undefined) {
         settings.allowRegistration = allowRegistration;
+      }
+      if (customQuotesAIMode !== undefined) {
+        settings.customQuotesAIMode = customQuotesAIMode;
       }
     }
     

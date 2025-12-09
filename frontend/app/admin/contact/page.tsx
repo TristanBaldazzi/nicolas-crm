@@ -253,7 +253,7 @@ export default function AdminContactPage() {
                     {selectedMessage.user && (
                       <p>
                         <span className="font-semibold">Compte:</span> Utilisateur connecté
-                        {typeof selectedMessage.user === 'object' && selectedMessage.user.company && (
+                        {typeof selectedMessage.user === 'object' && selectedMessage.user.company && selectedMessage.user.company.name && (
                           <span className="ml-2 text-xs text-gray-500">
                             ({selectedMessage.user.company.name})
                           </span>

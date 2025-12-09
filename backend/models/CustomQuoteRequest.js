@@ -35,6 +35,34 @@ const customQuoteRequestSchema = new mongoose.Schema({
   isRead: {
     type: Boolean,
     default: false
+  },
+  // Suggestions IA (pour mode 'manual')
+  aiSuggestions: {
+    suggestedProducts: [{
+      product: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Product'
+      },
+      quantity: {
+        type: Number,
+        default: 1
+      },
+      reason: {
+        type: String
+      }
+    }],
+    summary: {
+      type: String
+    },
+    analyzedAt: {
+      type: Date
+    }
+  },
+  // Panier créé automatiquement (pour mode 'auto')
+  autoCreatedCart: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Cart',
+    default: null
   }
 }, {
   timestamps: true

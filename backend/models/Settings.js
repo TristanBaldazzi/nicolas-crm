@@ -14,6 +14,13 @@ const settingsSchema = new mongoose.Schema({
     default: true,
     required: true
   },
+  // Mode IA pour les demandes personnalisées
+  customQuotesAIMode: {
+    type: String,
+    enum: ['none', 'manual', 'auto'],
+    default: 'auto',
+    required: true
+  },
   // Autres settings peuvent être ajoutés ici
 }, {
   timestamps: true
@@ -23,7 +30,11 @@ const settingsSchema = new mongoose.Schema({
 settingsSchema.statics.getSettings = async function() {
   let settings = await this.findOne();
   if (!settings) {
-    settings = await this.create({ priceVisibility: 'all', allowRegistration: true });
+    settings = await this.create({ 
+      priceVisibility: 'all', 
+      allowRegistration: true,
+      customQuotesAIMode: 'auto'
+    });
   }
   return settings;
 };

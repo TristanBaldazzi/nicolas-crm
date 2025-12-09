@@ -62,6 +62,35 @@ export default function AdminDemandesPersonnaliseesPage() {
     }
   };
 
+  const handleMarkAsUnread = async (id: string) => {
+    try {
+      await customQuotesApi.markAsUnread(id);
+      toast.success('Demande marquée comme non traitée');
+      loadRequests();
+      if (selectedRequest && selectedRequest._id === id) {
+        setSelectedRequest({ ...selectedRequest, isRead: false });
+      }
+    } catch (error: any) {
+      toast.error('Erreur lors de la mise à jour');
+    }
+  };
+
+  const handleCreateCartFromSuggestions = async (id: string) => {
+    try {
+      const res = await customQuotesApi.createCartFromSuggestions(id);
+      toast.success('Panier créé avec succès');
+      // Recharger toutes les demandes
+      await loadRequests();
+      // Recharger la demande sélectionnée pour voir le panier créé
+      if (selectedRequest && selectedRequest._id === id) {
+        const updatedRequestRes = await customQuotesApi.getById(id);
+        setSelectedRequest(updatedRequestRes.data);
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erreur lors de la création du panier');
+    }
+  };
+
   const filteredRequests = requests.filter((req) => {
     if (filter === 'unread') return !req.isRead;
     if (filter === 'read') return req.isRead;
@@ -168,7 +197,16 @@ export default function AdminDemandesPersonnaliseesPage() {
             filteredRequests.map((request) => (
               <div
                 key={request._id}
-                onClick={() => setSelectedRequest(request)}
+                onClick={async () => {
+                  // Recharger la demande complète avec toutes les données
+                  try {
+                    const res = await customQuotesApi.getById(request._id);
+                    setSelectedRequest(res.data);
+                  } catch (error) {
+                    // Si erreur, utiliser les données de base
+                    setSelectedRequest(request);
+                  }
+                }}
                 className={`bg-white rounded-xl shadow-sm border-2 cursor-pointer transition-all hover:shadow-md ${
                   selectedRequest?._id === request._id
                     ? 'border-amber-500'
@@ -185,13 +223,28 @@ export default function AdminDemandesPersonnaliseesPage() {
                       </h3>
                       <p className="text-sm text-gray-600 truncate">{request.email}</p>
                     </div>
-                    {!request.isRead && (
-                      <span className="ml-2 flex-shrink-0 w-3 h-3 bg-red-500 rounded-full"></span>
-                    )}
+                    <div className="flex items-center gap-2 ml-2">
+                      {request.aiSuggestions && request.aiSuggestions.suggestedProducts && request.aiSuggestions.suggestedProducts.length > 0 && (
+                        <span className="flex-shrink-0 px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold flex items-center gap-1">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                          </svg>
+                          IA
+                        </span>
+                      )}
+                      {!request.isRead && (
+                        <span className="ml-2 flex-shrink-0 w-3 h-3 bg-red-500 rounded-full"></span>
+                      )}
+                    </div>
                   </div>
                   <p className="text-sm text-gray-700 line-clamp-2 mb-2">{request.message}</p>
                   <div className="flex items-center justify-between text-xs text-gray-500">
                     <span>{formatDate(request.createdAt)}</span>
+                    {request.autoCreatedCart && (
+                      <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
+                        Panier créé
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -233,7 +286,7 @@ export default function AdminDemandesPersonnaliseesPage() {
                     {selectedRequest.user && (
                       <p>
                         <span className="font-semibold">Compte:</span> Utilisateur connecté
-                        {typeof selectedRequest.user === 'object' && selectedRequest.user.company && (
+                        {typeof selectedRequest.user === 'object' && selectedRequest.user.company && selectedRequest.user.company.name && (
                           <span className="ml-2 text-xs text-gray-500">
                             ({selectedRequest.user.company.name})
                           </span>
@@ -255,15 +308,7 @@ export default function AdminDemandesPersonnaliseesPage() {
                     </button>
                   ) : (
                     <button
-                      onClick={async () => {
-                        try {
-                          // Pour marquer comme non traité, on pourrait créer une route spécifique
-                          // Pour l'instant, on peut juste recharger
-                          toast.info('Fonctionnalité à venir');
-                        } catch (error: any) {
-                          toast.error('Erreur');
-                        }
-                      }}
+                      onClick={() => handleMarkAsUnread(selectedRequest._id)}
                       className="px-4 py-2 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700 transition-colors"
                     >
                       Marquer non traité
@@ -284,12 +329,151 @@ export default function AdminDemandesPersonnaliseesPage() {
               </div>
 
               {/* Message */}
-              <div>
+              <div className="mb-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-3">Demande</h3>
                 <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                   <p className="text-gray-700 whitespace-pre-wrap">{selectedRequest.message}</p>
                 </div>
               </div>
+
+              {/* Suggestions IA */}
+              {selectedRequest.aiSuggestions && selectedRequest.aiSuggestions.suggestedProducts && selectedRequest.aiSuggestions.suggestedProducts.length > 0 && (
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                      <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      </svg>
+                      Suggestions IA
+                    </h3>
+                    {selectedRequest.user && !selectedRequest.autoCreatedCart && (
+                      <button
+                        onClick={() => handleCreateCartFromSuggestions(selectedRequest._id)}
+                        className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-purple-800 transition-all shadow-md hover:shadow-lg"
+                      >
+                        Créer le panier
+                      </button>
+                    )}
+                    {selectedRequest.autoCreatedCart && (
+                      <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-semibold">
+                        Panier créé
+                      </span>
+                    )}
+                  </div>
+                  
+                  {selectedRequest.aiSuggestions.summary && (
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
+                      <p className="text-sm text-purple-900">{selectedRequest.aiSuggestions.summary}</p>
+                    </div>
+                  )}
+
+                  <div className="space-y-3">
+                    {selectedRequest.aiSuggestions.suggestedProducts.map((suggestion: any, index: number) => (
+                      <div
+                        key={index}
+                        className="bg-white border-2 border-purple-200 rounded-lg p-4 hover:border-purple-300 transition-colors"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            {suggestion.product && typeof suggestion.product === 'object' ? (
+                              <>
+                                <div className="flex items-center gap-3 mb-2">
+                                  <h4 className="font-bold text-gray-900">{suggestion.product.name}</h4>
+                                  <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-semibold">
+                                    Quantité: {suggestion.quantity || 1}
+                                  </span>
+                                </div>
+                                {suggestion.product.brand && typeof suggestion.product.brand === 'object' && (
+                                  <p className="text-sm text-gray-600 mb-2">
+                                    Marque: {suggestion.product.brand.name}
+                                  </p>
+                                )}
+                                {suggestion.product.price && (
+                                  <p className="text-sm font-semibold text-gray-900 mb-2">
+                                    Prix: {(suggestion.product.price * (suggestion.quantity || 1)).toFixed(2)} €
+                                  </p>
+                                )}
+                                {suggestion.reason && (
+                                  <p className="text-sm text-gray-600 italic mt-2">
+                                    "{suggestion.reason}"
+                                  </p>
+                                )}
+                              </>
+                            ) : (
+                              <>
+                                <h4 className="font-bold text-gray-900 mb-2">Produit ID: {suggestion.product}</h4>
+                                <p className="text-sm text-gray-600">
+                                  Quantité: {suggestion.quantity || 1}
+                                </p>
+                                {suggestion.reason && (
+                                  <p className="text-sm text-gray-600 italic mt-2">
+                                    "{suggestion.reason}"
+                                  </p>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {selectedRequest.aiSuggestions.analyzedAt && (
+                    <p className="text-xs text-gray-500 mt-3">
+                      Analysé le {new Date(selectedRequest.aiSuggestions.analyzedAt).toLocaleDateString('fr-FR', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Panier créé automatiquement */}
+              {selectedRequest.autoCreatedCart && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    Panier créé automatiquement
+                  </h3>
+                  {typeof selectedRequest.autoCreatedCart === 'object' ? (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <p className="text-sm text-green-900 mb-2">
+                        <span className="font-semibold">Statut:</span> {selectedRequest.autoCreatedCart.status}
+                      </p>
+                      <p className="text-sm text-green-900 mb-2">
+                        <span className="font-semibold">Total:</span> {selectedRequest.autoCreatedCart.total?.toFixed(2) || '0.00'} €
+                      </p>
+                      <Link
+                        href={`/admin/paniers/${selectedRequest.autoCreatedCart._id}`}
+                        className="inline-flex items-center gap-1 text-sm text-green-700 hover:text-green-800 font-semibold"
+                      >
+                        Voir le panier
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <Link
+                        href={`/admin/paniers/${selectedRequest.autoCreatedCart}`}
+                        className="inline-flex items-center gap-1 text-sm text-green-700 hover:text-green-800 font-semibold"
+                      >
+                        Voir le panier
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">

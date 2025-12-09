@@ -295,6 +295,10 @@ export const customQuotesApi = {
     api.get(`/custom-quotes/user/${userId}`),
   markAsRead: (id: string) =>
     api.put(`/custom-quotes/${id}/traite`),
+  markAsUnread: (id: string) =>
+    api.put(`/custom-quotes/${id}/non-traite`),
+  createCartFromSuggestions: (id: string) =>
+    api.post(`/custom-quotes/${id}/create-cart`),
 };
 
 // Analytics

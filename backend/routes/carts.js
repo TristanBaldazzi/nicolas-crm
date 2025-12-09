@@ -3,6 +3,7 @@ import Cart from '../models/Cart.js';
 import Product from '../models/Product.js';
 import User from '../models/User.js';
 import Company from '../models/Company.js';
+import CustomQuoteRequest from '../models/CustomQuoteRequest.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -537,7 +538,63 @@ router.get('/:id', authenticate, async (req, res) => {
       return res.status(403).json({ error: 'Accès non autorisé' });
     }
 
-    res.json(cart);
+    // Vérifier si le panier a été créé via l'IA
+    const quoteRequest = await CustomQuoteRequest.findOne({ autoCreatedCart: cart._id });
+    let createdByAI = false;
+    let aiCreationMode = null; // 'auto' ou 'manual'
+    
+    if (quoteRequest) {
+      createdByAI = true;
+      // Vérifier dans les notes du panier pour distinguer auto vs manual
+      if (cart.notes && cart.notes.includes('Panier créé automatiquement')) {
+        aiCreationMode = 'auto';
+      } else if (cart.notes && cart.notes.includes('Panier créé manuellement')) {
+        aiCreationMode = 'manual';
+      } else {
+        // Par défaut, si le panier est référencé dans autoCreatedCart et qu'il y a des suggestions,
+        // on considère qu'il a été créé automatiquement (mode auto)
+        // Sinon, s'il y a des suggestions mais pas de panier auto initial, c'est manuel
+        if (quoteRequest.aiSuggestions && quoteRequest.aiSuggestions.suggestedProducts) {
+          // Si le panier a été créé immédiatement après la demande (dans la même seconde ou presque),
+          // c'est probablement automatique
+          const timeDiff = Math.abs(new Date(cart.createdAt).getTime() - new Date(quoteRequest.createdAt).getTime());
+          if (timeDiff < 60000) { // Moins d'une minute de différence
+            aiCreationMode = 'auto';
+          } else {
+            aiCreationMode = 'manual';
+          }
+        } else {
+          aiCreationMode = 'auto';
+        }
+      }
+    } else {
+      // Vérifier aussi dans les notes si le panier mentionne qu'il a été créé via l'IA
+      if (cart.notes && (
+        cart.notes.includes('Panier créé automatiquement') || 
+        cart.notes.includes('Panier créé manuellement') ||
+        cart.notes.includes('demande d\'offre personnalisée')
+      )) {
+        createdByAI = true;
+        if (cart.notes.includes('automatiquement')) {
+          aiCreationMode = 'auto';
+        } else if (cart.notes.includes('manuellement')) {
+          aiCreationMode = 'manual';
+        }
+      }
+    }
+
+    // Ajouter l'information sur l'IA au panier
+    const cartData = cart.toObject();
+    cartData.createdByAI = createdByAI;
+    cartData.aiCreationMode = aiCreationMode;
+    if (quoteRequest) {
+      cartData.sourceQuoteRequest = {
+        id: quoteRequest._id,
+        message: quoteRequest.message.substring(0, 100) + (quoteRequest.message.length > 100 ? '...' : '')
+      };
+    }
+
+    res.json(cartData);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
