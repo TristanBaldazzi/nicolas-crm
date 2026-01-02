@@ -41,6 +41,7 @@ export default function AdminProductsPage() {
   const [importStep, setImportStep] = useState<'upload' | 'mapping' | 'importing'>('upload');
   const [isDragging, setIsDragging] = useState(false);
   const [importResults, setImportResults] = useState<any>(null);
+  const [selectedImage, setSelectedImage] = useState<{ url: string; alt: string } | null>(null);
 
   useEffect(() => {
     loadData();
@@ -968,7 +969,17 @@ export default function AdminProductsPage() {
                   className="flex items-center gap-3 p-3 hover:bg-gray-50/50 transition-colors group"
                 >
                   {/* Miniature image */}
-                  <div className="w-12 h-12 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden">
+                  <div 
+                    className="w-12 h-12 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => {
+                      if (primaryImage) {
+                        setSelectedImage({
+                          url: getImageUrl(primaryImage.url),
+                          alt: primaryImage.alt || product.name
+                        });
+                      }
+                    }}
+                  >
                     {primaryImage ? (
                       <img
                         src={getImageUrl(primaryImage.url)}
@@ -1572,6 +1583,31 @@ export default function AdminProductsPage() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal d'image agrandie */}
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedImage(null)}
+        >
+          <div className="relative max-w-7xl max-h-[90vh] w-full h-full flex items-center justify-center">
+            <button
+              onClick={() => setSelectedImage(null)}
+              className="absolute top-4 right-4 z-10 bg-white/90 hover:bg-white text-gray-800 rounded-full p-3 transition-all shadow-lg"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <img
+              src={selectedImage.url}
+              alt={selectedImage.alt}
+              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
           </div>
         </div>
       )}
