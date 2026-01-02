@@ -306,7 +306,16 @@ export default function AdminCartsPage() {
                               <span className="text-orange-700 font-semibold">-{cart.discount}%</span>
                             </span>
                           )}
-                          <span className="text-sm font-bold text-green-600">{cart.total.toFixed(2)} €</span>
+                          {(() => {
+                            const totalHTVA = cart.total;
+                            const totalTVA = totalHTVA * 1.17;
+                            return (
+                              <div className="text-right">
+                                <div className="text-xs text-gray-500">HTVA: {totalHTVA.toFixed(2)} €</div>
+                                <span className="text-sm font-bold text-green-600">TVA: {totalTVA.toFixed(2)} €</span>
+                              </div>
+                            );
+                          })()}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">

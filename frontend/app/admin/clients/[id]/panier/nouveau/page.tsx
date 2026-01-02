@@ -240,7 +240,16 @@ export default function CreateClientCartPage() {
                             : product.brand || 'Sans marque'}
                         </p>
                         <p className="text-sm font-semibold text-green-600 mt-1">
-                          {product.price.toFixed(2)} €
+                          {(() => {
+                            const priceHTVA = product.price;
+                            const priceTVA = priceHTVA * 1.17;
+                            return (
+                              <>
+                                <div className="text-xs text-gray-500">HTVA: {priceHTVA.toFixed(2)} €</div>
+                                <div className="text-sm font-semibold text-green-600">TVA: {priceTVA.toFixed(2)} €</div>
+                              </>
+                            );
+                          })()}
                         </p>
                       </div>
                       <button
@@ -297,7 +306,16 @@ export default function CreateClientCartPage() {
                           <div className="flex-shrink-0">
                             <div className="bg-green-50 rounded-md px-2 py-1 border border-green-200">
                               <p className="text-xs font-bold text-green-700 whitespace-nowrap">
-                                {item.price.toFixed(2)} €
+                                {(() => {
+                                  const priceHTVA = item.price;
+                                  const priceTVA = priceHTVA * 1.17;
+                                  return (
+                                    <>
+                                      <div className="text-xs text-gray-500">HTVA: {priceHTVA.toFixed(2)} €</div>
+                                      <div className="text-sm font-semibold text-green-600">TVA: {priceTVA.toFixed(2)} €</div>
+                                    </>
+                                  );
+                                })()}
                               </p>
                             </div>
                           </div>
@@ -361,7 +379,16 @@ export default function CreateClientCartPage() {
                       <span className="text-base font-bold text-gray-900">Total</span>
                       <div className="text-right">
                         <span className="text-xl font-black text-green-600">
-                          {getTotal().toFixed(2)} €
+                          {(() => {
+                            const totalHTVA = getTotal();
+                            const totalTVA = totalHTVA * 1.17;
+                            return (
+                              <>
+                                <div className="text-xs text-gray-500">HTVA: {totalHTVA.toFixed(2)} €</div>
+                                <div className="text-lg font-bold text-green-600">TVA: {totalTVA.toFixed(2)} €</div>
+                              </>
+                            );
+                          })()}
                         </span>
                       </div>
                     </div>
@@ -399,7 +426,11 @@ export default function CreateClientCartPage() {
             <div className="p-6">
               <p className="text-gray-700 mb-4">
                 Ce client a déjà un panier en cours avec <strong>{activeCart?.items?.length || 0} article(s)</strong> 
-                d'une valeur de <strong>{activeCart?.total?.toFixed(2) || '0.00'} €</strong>.
+                d'une valeur de <strong>{(() => {
+                  const totalHTVA = activeCart?.total || 0;
+                  const totalTVA = totalHTVA * 1.17;
+                  return `${totalHTVA.toFixed(2)} € HTVA (${totalTVA.toFixed(2)} € TVA)`;
+                })()}</strong>.
               </p>
               <p className="text-gray-700 font-semibold mb-6">
                 Si vous continuez, ce panier sera <span className="text-red-600 font-bold">écrasé</span> et remplacé par le nouveau panier.

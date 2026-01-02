@@ -253,10 +253,21 @@ export default function CartPage() {
                           </button>
                         </div>
                         <div className="text-right">
-                          <p className="text-2xl font-bold text-green-600">
-                            {(product.price * item.quantity).toFixed(2)} €
-                          </p>
-                          <p className="text-sm text-gray-500">{product.price.toFixed(2)} € / unité</p>
+                          {(() => {
+                            const priceHTVA = product.price * item.quantity;
+                            const priceTVA = priceHTVA * 1.17;
+                            return (
+                              <>
+                                <div className="text-xs text-gray-500 mb-0.5">HTVA: {priceHTVA.toFixed(2)} €</div>
+                                <p className="text-2xl font-bold text-green-600">
+                                  TVA: {priceTVA.toFixed(2)} €
+                                </p>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                  {product.price.toFixed(2)} € HTVA / unité ({(product.price * 1.17).toFixed(2)} € TVA)
+                                </p>
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
@@ -270,16 +281,28 @@ export default function CartPage() {
                 <h2 className="text-2xl font-bold mb-6">Résumé de la commande</h2>
                 
                 <div className="space-y-4 mb-6">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Sous-total</span>
-                    <span className="font-semibold">{total.toFixed(2)} €</span>
-                  </div>
-                  <div className="border-t border-gray-200 pt-4">
-                    <div className="flex justify-between text-xl font-bold">
-                      <span>Total</span>
-                      <span className="text-green-600">{total.toFixed(2)} €</span>
-                    </div>
-                  </div>
+                  {(() => {
+                    const totalHTVA = total;
+                    const totalTVA = totalHTVA * 1.17;
+                    return (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Sous-total HTVA</span>
+                          <span className="font-semibold">{totalHTVA.toFixed(2)} €</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">TVA (17%)</span>
+                          <span className="font-semibold text-gray-700">{(totalTVA - totalHTVA).toFixed(2)} €</span>
+                        </div>
+                        <div className="border-t border-gray-200 pt-4">
+                          <div className="flex justify-between text-xl font-bold">
+                            <span>Total TVA</span>
+                            <span className="text-green-600">{totalTVA.toFixed(2)} €</span>
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
 
                 <div className="mb-6">

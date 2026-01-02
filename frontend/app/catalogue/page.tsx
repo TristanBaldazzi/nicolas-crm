@@ -469,21 +469,33 @@ function CataloguePageContent() {
                         <div>
                           {canSeePrice() ? (
                             <>
-                              <div className="flex items-baseline gap-2">
-                                <span className="text-lg font-bold text-green-600">
-                                  {product.discountedPrice ? product.discountedPrice.toFixed(2) : product.price.toFixed(2)} €
-                                </span>
-                                {(product.discountedPrice || product.originalPrice) && (product.discountedPrice || product.originalPrice) !== product.price && (
-                                  <span className="text-xs text-gray-400 line-through">
-                                    {product.price.toFixed(2)} €
-                                  </span>
-                                )}
-                              </div>
-                              {product.discountPercentage > 0 && (
-                                <span className="inline-block bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs font-bold mt-1">
-                                  -{product.discountPercentage}%
-                                </span>
-                              )}
+                              {(() => {
+                                const priceHTVA = product.discountedPrice || product.price;
+                                const priceTVA = priceHTVA * 1.17;
+                                return (
+                                  <>
+                                    <div className="flex flex-col gap-0.5">
+                                      <div className="flex items-baseline gap-1.5">
+                                        <span className="text-xs text-gray-500">HTVA:</span>
+                                        <span className="text-lg font-bold text-gray-900">
+                                          {priceHTVA.toFixed(2)} €
+                                        </span>
+                                      </div>
+                                      <div className="flex items-baseline gap-1.5">
+                                        <span className="text-xs text-gray-400">TVA:</span>
+                                        <span className="text-xs font-medium text-gray-500">
+                                          {priceTVA.toFixed(2)} €
+                                        </span>
+                                      </div>
+                                    </div>
+                                    {product.discountPercentage > 0 && (
+                                      <span className="inline-block bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs font-bold mt-1">
+                                        -{product.discountPercentage}%
+                                      </span>
+                                    )}
+                                  </>
+                                );
+                              })()}
                             </>
                           ) : (
                             <div className="flex items-center gap-2 text-gray-500">

@@ -422,9 +422,18 @@ export default function AdvancedSearchPage() {
                         <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                           <div>
                             {canSeePrice() ? (
-                              <span className="text-sm font-semibold text-green-600">
-                                {product.discountedPrice ? product.discountedPrice.toFixed(2) : product.price.toFixed(2)} €
-                              </span>
+                              <div className="flex flex-col gap-0.5">
+                                {(() => {
+                                  const priceHTVA = product.discountedPrice || product.price;
+                                  const priceTVA = priceHTVA * 1.17;
+                                  return (
+                                    <>
+                                      <div className="text-sm font-semibold text-green-600">HTVA: {priceHTVA.toFixed(2)} €</div>
+                                      <div className="text-xs text-gray-500">TVA: {priceTVA.toFixed(2)} €</div>
+                                    </>
+                                  );
+                                })()}
+                              </div>
                             ) : (
                               <span className="text-xs font-medium text-gray-500">
                                 {settings?.priceVisibility === 'loggedIn' ? 'Connectez-vous' : 'Sur demande'}

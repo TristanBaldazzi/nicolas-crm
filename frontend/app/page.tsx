@@ -451,9 +451,22 @@ export default function HomePage() {
                         {product.shortDescription}
                       </p>
                       <div className="flex items-center justify-between pt-6 border-t border-gray-100">
-                        <span className="text-3xl font-black bg-gradient-to-r from-green-600 to-green-400 bg-clip-text text-transparent">
-                          {product.price.toFixed(2)} €
-                        </span>
+                        <div className="flex flex-col gap-0.5">
+                          {(() => {
+                            const priceHTVA = product.discountedPrice || product.price;
+                            const priceTVA = priceHTVA * 1.17;
+                            return (
+                              <>
+                                <div className="text-2xl font-black bg-gradient-to-r from-green-600 to-green-400 bg-clip-text text-transparent">
+                                  {priceHTVA.toFixed(2)} € HTVA
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  TVA: {priceTVA.toFixed(2)} €
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </div>
                         <span className="flex items-center gap-2 text-green-600 font-semibold group-hover:gap-3 transition-all">
                           Voir
                           <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">

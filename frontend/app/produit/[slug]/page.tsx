@@ -348,6 +348,26 @@ export default function ProductPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Images */}
           <div className="space-y-4">
+            {/* Catégorie, Sous-catégorie et Statut au-dessus de l'image */}
+            {(product.category || product.isInStock !== undefined) && (
+              <div className="flex items-center gap-3 flex-wrap text-sm">
+                {product.category && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-gray-500 font-normal">Catégorie:</span>
+                    <span className="font-bold text-gray-900">
+                      {product.category.name}
+                      {product.subCategory && ` / ${product.subCategory.name}`}
+                    </span>
+                  </div>
+                )}
+                {product.isInStock !== undefined && product.isInStock && (
+                  <div className="px-2.5 py-1 rounded bg-gray-100 text-gray-900 text-xs font-medium">
+                    En stock
+                  </div>
+                )}
+              </div>
+            )}
+            
             {product.images && product.images.length > 0 ? (
               <>
                 <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200 relative">
@@ -422,7 +442,16 @@ export default function ProductPage() {
             {/* Header */}
             <div>
               <div className="flex items-start gap-3 mb-3">
-                <h1 className="text-2xl font-semibold text-gray-900 flex-1">{product.name}</h1>
+                <div className="flex-1">
+                  <h1 className="text-2xl font-semibold text-gray-900">{product.name}</h1>
+                  {/* Référence */}
+                  {product.sku && (
+                    <div className="flex items-center gap-1.5 mt-1 text-sm">
+                      <span className="text-gray-500">Référence:</span>
+                      <span className="font-mono font-medium text-gray-900">{product.sku}</span>
+                    </div>
+                  )}
+                </div>
                 {product.isBestSeller && (
                   <span className="bg-gray-900 text-white px-2 py-1 rounded text-xs font-medium uppercase flex-shrink-0">
                     Best Seller
@@ -461,25 +490,6 @@ export default function ProductPage() {
                     <span className="font-medium text-gray-900">{product.brand.name || product.brand}</span>
                   </div>
                 )}
-                {product.category && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-gray-500">Catégorie:</span>
-                    <span className="font-medium text-gray-900">{product.category.name}</span>
-                    {product.subCategory && (
-                      <>
-                        <span className="text-gray-400">/</span>
-                        <span className="font-medium text-gray-900">{product.subCategory.name}</span>
-                      </>
-                    )}
-                  </div>
-                )}
-                <div className={`px-2 py-1 rounded text-xs font-medium ${
-                  product.isInStock 
-                    ? 'bg-gray-100 text-gray-700' 
-                    : 'bg-gray-200 text-gray-600'
-                }`}>
-                  {product.isInStock ? 'En stock' : 'Rupture de stock'}
-                </div>
               </div>
             </div>
 
@@ -487,21 +497,44 @@ export default function ProductPage() {
             <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
               {canSeePrice() ? (
                 <>
-                  <div className="flex items-baseline gap-3 mb-2">
-                    <span className="text-3xl font-semibold text-gray-900">
-                      {product.discountedPrice ? product.discountedPrice.toFixed(2) : product.price.toFixed(2)} €
-                    </span>
-                    {(product.discountedPrice || product.originalPrice) && (product.discountedPrice || product.originalPrice) !== product.price && (
-                      <span className="text-lg text-gray-400 line-through">
-                        {product.price.toFixed(2)} €
-                      </span>
-                    )}
-                  </div>
-                  {product.discountPercentage > 0 && (
-                    <div className="inline-block bg-gray-900 text-white px-2 py-1 rounded text-xs font-medium">
-                      -{product.discountPercentage}% {product.promotion?.name && `(${product.promotion.name})`}
-                    </div>
-                  )}
+                  {(() => {
+                    // Prix HTVA (hors TVA) - le prix stocké est en HTVA
+                    const priceHTVA = product.discountedPrice || product.price;
+                    // Prix TVA avec 17% de TVA
+                    const priceTVA = priceHTVA * 1.17;
+                    
+                    return (
+                      <>
+                        <div className="space-y-2">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-sm text-gray-500">Prix HTVA:</span>
+                            <span className="text-3xl font-semibold text-gray-900">
+                              {priceHTVA.toFixed(2)} €
+                            </span>
+                            {product.discountPercentage > 0 && (
+                              <div className="inline-block bg-gray-900 text-white px-2 py-1 rounded text-xs font-medium ml-2">
+                                -{product.discountPercentage}% {product.promotion?.name && `(${product.promotion.name})`}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-xs text-gray-500">Prix TVA (17%):</span>
+                            <span className="text-sm font-medium text-gray-600">
+                              {priceTVA.toFixed(2)} €
+                            </span>
+                          </div>
+                        </div>
+                        {product.discountedPrice && product.discountedPrice !== product.price && (
+                          <div className="mt-3 pt-3 border-t border-gray-300">
+                            <div className="text-xs text-gray-500">
+                              <span className="line-through">Prix HTVA: {product.price.toFixed(2)} €</span>
+                              <span className="ml-2">Prix TVA: {(product.price * 1.17).toFixed(2)} €</span>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </>
               ) : (
                 <div className="flex items-center gap-3 p-4 bg-white rounded border border-gray-200">
@@ -527,16 +560,6 @@ export default function ProductPage() {
               <div className="bg-white rounded-lg p-4 border border-gray-200">
                 <h2 className="text-sm font-semibold text-gray-900 mb-3">Description</h2>
                 <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">{product.description}</p>
-              </div>
-            )}
-
-            {/* Référence */}
-            {product.sku && (
-              <div className="bg-white rounded-lg p-4 border border-gray-200">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">Référence:</span>
-                  <span className="font-mono text-sm font-medium text-gray-900">{product.sku}</span>
-                </div>
               </div>
             )}
 
@@ -917,23 +940,25 @@ export default function ProductPage() {
                       
                       <div className="mt-auto pt-2 border-t border-gray-100">
                         {canSeePrice() ? (
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-base font-semibold text-gray-900">
-                              {recommendedProduct.discountedPrice 
-                                ? recommendedProduct.discountedPrice.toFixed(2)
-                                : recommendedProduct.price.toFixed(2)} €
-                            </span>
-                            {recommendedProduct.discountedPrice && recommendedProduct.discountedPrice !== recommendedProduct.price && (
-                              <span className="text-xs text-gray-400 line-through">
-                                {recommendedProduct.price.toFixed(2)} €
-                              </span>
-                            )}
+                          <>
+                            <div className="flex flex-col gap-0.5">
+                              {(() => {
+                                const priceHTVA = recommendedProduct.discountedPrice || recommendedProduct.price;
+                                const priceTVA = priceHTVA * 1.17;
+                                return (
+                                  <>
+                                    <div className="text-sm font-semibold text-gray-900">HTVA: {priceHTVA.toFixed(2)} €</div>
+                                    <div className="text-xs text-gray-500">TVA: {priceTVA.toFixed(2)} €</div>
+                                  </>
+                                );
+                              })()}
+                            </div>
                             {recommendedProduct.discountPercentage > 0 && (
-                              <span className="ml-auto bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-xs font-medium">
+                              <span className="inline-block bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-xs font-medium mt-1">
                                 -{recommendedProduct.discountPercentage}%
                               </span>
                             )}
-                          </div>
+                          </>
                         ) : (
                           <div className="text-xs text-gray-600">Prix sur demande</div>
                         )}

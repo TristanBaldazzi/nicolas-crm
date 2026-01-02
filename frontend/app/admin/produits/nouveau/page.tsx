@@ -120,7 +120,7 @@ export default function NewProductPage() {
       }
 
       if (!formData.price || formData.price === '') {
-        toast.error('Le prix du produit est obligatoire');
+        toast.error('Le prix HTVA du produit est obligatoire');
         setSaving(false);
         return;
       }
@@ -378,15 +378,17 @@ export default function NewProductPage() {
           {/* Ligne 3: Prix, Prix comparé, Stock */}
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block mb-1 text-xs font-semibold text-gray-700">Prix *</label>
+              <label className="block mb-1 text-xs font-semibold text-gray-700">Prix HTVA *</label>
               <input
                 type="number"
                 step="0.01"
                 required
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                placeholder="Prix hors taxes"
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-100 transition-all"
               />
+              <p className="mt-1 text-xs text-gray-500">Le prix TVA (17%) sera calculé automatiquement</p>
             </div>
             <div>
               <label className="block mb-1 text-xs font-semibold text-gray-700">Stock</label>

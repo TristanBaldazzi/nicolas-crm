@@ -382,12 +382,21 @@ export default function CommandesPage() {
                             )}
                           </div>
                           <div className="text-right md:text-left md:min-w-[120px]">
-                            <p className="text-2xl font-bold text-gray-900 mb-1">
-                              {totalPrice.toFixed(2)} €
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              {totalItems} {totalItems > 1 ? 'articles' : 'article'}
-                            </p>
+                            {(() => {
+                              const totalHTVA = totalPrice;
+                              const totalTVA = totalHTVA * 1.17;
+                              return (
+                                <>
+                                  <div className="text-xs text-gray-500 mb-0.5">HTVA: {totalHTVA.toFixed(2)} €</div>
+                                  <p className="text-2xl font-bold text-gray-900 mb-1">
+                                    TVA: {totalTVA.toFixed(2)} €
+                                  </p>
+                                  <p className="text-sm text-gray-500">
+                                    {totalItems} {totalItems > 1 ? 'articles' : 'article'}
+                                  </p>
+                                </>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>
@@ -421,7 +430,7 @@ export default function CommandesPage() {
                                   </Link>
                                   <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
                                     <span>Quantité: {quantity}</span>
-                                    <span>Prix unitaire: {price.toFixed(2)} €</span>
+                                    <span>Prix unitaire: {price.toFixed(2)} € HTVA ({(price * 1.17).toFixed(2)} € TVA)</span>
                                   </div>
                                   {item.reference && (
                                     <div className="mt-2">
@@ -436,9 +445,18 @@ export default function CommandesPage() {
                                   )}
                                 </div>
                                 <div className="text-right">
-                                  <p className="font-bold text-gray-900">
-                                    {subtotal.toFixed(2)} €
-                                  </p>
+                                  {(() => {
+                                    const subtotalHTVA = subtotal;
+                                    const subtotalTVA = subtotalHTVA * 1.17;
+                                    return (
+                                      <>
+                                        <div className="text-xs text-gray-500">HTVA: {subtotalHTVA.toFixed(2)} €</div>
+                                        <p className="font-bold text-gray-900">
+                                          TVA: {subtotalTVA.toFixed(2)} €
+                                        </p>
+                                      </>
+                                    );
+                                  })()}
                                 </div>
                               </div>
                             );

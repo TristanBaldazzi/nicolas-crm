@@ -1057,7 +1057,16 @@ export default function AdminProductsPage() {
 
                         {/* Prix */}
                         <div className="text-right">
-                          <p className="font-semibold text-sm text-green-600">{product.price.toFixed(2)} €</p>
+                          {(() => {
+                            const priceHTVA = product.price;
+                            const priceTVA = priceHTVA * 1.17;
+                            return (
+                              <>
+                                <div className="text-xs text-gray-500">HTVA: {priceHTVA.toFixed(2)} €</div>
+                                <p className="font-semibold text-sm text-green-600">TVA: {priceTVA.toFixed(2)} €</p>
+                              </>
+                            );
+                          })()}
                         </div>
                         
                         {/* Stock */}

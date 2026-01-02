@@ -516,7 +516,7 @@ export default function CartDetailPage() {
                           <div className="flex items-center gap-3 text-xs text-gray-600">
                             <span>Quantité: <span className="font-semibold text-gray-900">{itemQuantity}</span></span>
                             <span>•</span>
-                            <span>Prix unitaire: <span className="font-semibold text-gray-900">{itemPrice.toFixed(2)} €</span></span>
+                            <span>Prix unitaire: <span className="font-semibold text-gray-900">{itemPrice.toFixed(2)} € HTVA ({(itemPrice * 1.17).toFixed(2)} € TVA)</span></span>
                           </div>
                           {item.reference && (
                             <div>
@@ -533,12 +533,21 @@ export default function CartDetailPage() {
                       )}
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="text-xl font-black text-green-600">
-                        {(itemPrice * itemQuantity).toFixed(2)} €
-                      </p>
-                      {isEditing && (
-                        <p className="text-xs text-gray-500 mt-0.5">Sous-total</p>
-                      )}
+                      {(() => {
+                        const subtotalHTVA = itemPrice * itemQuantity;
+                        const subtotalTVA = subtotalHTVA * 1.17;
+                        return (
+                          <>
+                            <div className="text-xs text-gray-500 mb-0.5">HTVA: {subtotalHTVA.toFixed(2)} €</div>
+                            <p className="text-xl font-black text-green-600">
+                              TVA: {subtotalTVA.toFixed(2)} €
+                            </p>
+                            {isEditing && (
+                              <p className="text-xs text-gray-500 mt-0.5">Sous-total</p>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 );
@@ -560,10 +569,13 @@ export default function CartDetailPage() {
                 const discountAmount = subtotal * (discount / 100);
                 const total = subtotal - discountAmount;
                 
+                const totalHTVA = total;
+                const totalTVA = totalHTVA * 1.17;
+                
                 return (
                   <>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-600">Sous-total</span>
+                      <span className="text-gray-600">Sous-total HTVA</span>
                       <span className="font-semibold text-gray-900">{subtotal.toFixed(2)} €</span>
                     </div>
                     {discount > 0 && (
@@ -572,16 +584,23 @@ export default function CartDetailPage() {
                         <span className="font-semibold text-red-600">-{discountAmount.toFixed(2)} €</span>
                       </div>
                     )}
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-600">TVA (17%)</span>
+                      <span className="font-semibold text-gray-700">{(totalTVA - totalHTVA).toFixed(2)} €</span>
+                    </div>
                     <div className="flex justify-between items-center p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
                       <div>
-                        <span className="text-sm font-bold text-gray-700">Total du panier</span>
+                        <span className="text-sm font-bold text-gray-700">Total TVA</span>
                         {isEditing && (
                           <p className="text-xs text-gray-500 mt-0.5">Les modifications seront enregistrées</p>
                         )}
                       </div>
-                      <span className="text-2xl font-black text-green-700">
-                        {total.toFixed(2)} €
-                      </span>
+                      <div className="text-right">
+                        <div className="text-xs text-gray-500 mb-0.5">HTVA: {totalHTVA.toFixed(2)} €</div>
+                        <span className="text-2xl font-black text-green-700">
+                          {totalTVA.toFixed(2)} €
+                        </span>
+                      </div>
                     </div>
                   </>
                 );
@@ -655,19 +674,28 @@ export default function CartDetailPage() {
                     }, 0);
                     const discountAmount = subtotal * (editableDiscount / 100);
                     const total = subtotal - discountAmount;
+                    const totalHTVA = total;
+                    const totalTVA = totalHTVA * 1.17;
                     return (
                       <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
                         <div className="flex justify-between items-center text-sm mb-1">
-                          <span className="text-gray-600">Sous-total:</span>
+                          <span className="text-gray-600">Sous-total HTVA:</span>
                           <span className="font-semibold">{subtotal.toFixed(2)} €</span>
                         </div>
                         <div className="flex justify-between items-center text-sm mb-2">
                           <span className="text-orange-700">Réduction ({editableDiscount}%):</span>
                           <span className="font-semibold text-orange-700">-{discountAmount.toFixed(2)} €</span>
                         </div>
+                        <div className="flex justify-between items-center text-sm mb-2">
+                          <span className="text-gray-600">TVA (17%):</span>
+                          <span className="font-semibold text-gray-700">{(totalTVA - totalHTVA).toFixed(2)} €</span>
+                        </div>
                         <div className="flex justify-between items-center pt-2 border-t border-orange-300">
-                          <span className="font-bold text-gray-900">Total après réduction:</span>
-                          <span className="text-xl font-black text-green-700">{total.toFixed(2)} €</span>
+                          <span className="font-bold text-gray-900">Total TVA après réduction:</span>
+                          <div className="text-right">
+                            <div className="text-xs text-gray-500 mb-0.5">HTVA: {totalHTVA.toFixed(2)} €</div>
+                            <span className="text-xl font-black text-green-700">{totalTVA.toFixed(2)} €</span>
+                          </div>
                         </div>
                       </div>
                     );
@@ -687,19 +715,28 @@ export default function CartDetailPage() {
                           return sum + (price * (item.quantity || 0));
                         }, 0);
                         const discountAmount = subtotal * (cart.discount / 100);
+                        const totalHTVA = subtotal - discountAmount;
+                        const totalTVA = totalHTVA * 1.17;
                         return (
                           <>
                             <div className="flex justify-between items-center text-sm text-gray-600 mb-1">
-                              <span>Sous-total:</span>
+                              <span>Sous-total HTVA:</span>
                               <span>{subtotal.toFixed(2)} €</span>
                             </div>
                             <div className="flex justify-between items-center text-sm text-orange-700 mb-2">
                               <span>Montant de la réduction:</span>
                               <span className="font-semibold">-{discountAmount.toFixed(2)} €</span>
                             </div>
+                            <div className="flex justify-between items-center text-sm text-gray-600 mb-2">
+                              <span>TVA (17%):</span>
+                              <span className="font-semibold">{(totalTVA - totalHTVA).toFixed(2)} €</span>
+                            </div>
                             <div className="flex justify-between items-center pt-2 border-t border-orange-300">
-                              <span className="font-bold text-gray-900">Total:</span>
-                              <span className="text-lg font-black text-green-700">{(cart.total || 0).toFixed(2)} €</span>
+                              <span className="font-bold text-gray-900">Total TVA:</span>
+                              <div className="text-right">
+                                <div className="text-xs text-gray-500 mb-0.5">HTVA: {totalHTVA.toFixed(2)} €</div>
+                                <span className="text-lg font-black text-green-700">{totalTVA.toFixed(2)} €</span>
+                              </div>
                             </div>
                           </>
                         );
