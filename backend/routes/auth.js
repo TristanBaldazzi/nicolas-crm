@@ -221,6 +221,48 @@ router.put('/tracking-consent', authenticate, async (req, res) => {
   }
 });
 
+// Créer un utilisateur (admin uniquement - sans connexion automatique)
+router.post('/users', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const { email, password, firstName, lastName, role, isActive, company } = req.body;
+
+    // Vérifier si l'utilisateur existe déjà
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Cet email est déjà utilisé' });
+    }
+
+    // Créer un nouvel utilisateur
+    const user = new User({
+      email: email.toLowerCase(),
+      password,
+      firstName,
+      lastName,
+      role: role || 'user',
+      isActive: isActive !== undefined ? isActive : true,
+      company: company || null
+    });
+
+    await user.save();
+    await user.populate('company', 'name code');
+
+    res.status(201).json({
+      user: {
+        id: user._id,
+        _id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        isActive: user.isActive,
+        company: user.company
+      }
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 // Récupérer tous les utilisateurs (y compris les admins) - pour les admins
 router.get('/users', authenticate, requireAdmin, async (req, res) => {
   try {

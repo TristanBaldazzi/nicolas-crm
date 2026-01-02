@@ -3,13 +3,13 @@
 import AdminLayout from '@/components/AdminLayout';
 import CustomSelect from '@/components/CustomSelect';
 import { analyticsApi } from '@/lib/api';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useAuthStore } from '@/lib/store';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { getImageUrl } from '@/lib/config';
 
-export default function ProductStatisticsPage() {
+function ProductStatisticsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isAdmin } = useAuthStore();
@@ -253,6 +253,24 @@ export default function ProductStatisticsPage() {
     </AdminLayout>
   );
 }
+
+export default function ProductStatisticsPage() {
+  return (
+    <Suspense fallback={
+      <AdminLayout>
+        <div className="p-12 text-center">
+          <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-green-200 border-t-green-600 mb-4"></div>
+          <p className="text-gray-500 font-semibold">Chargement...</p>
+        </div>
+      </AdminLayout>
+    }>
+      <ProductStatisticsPageContent />
+    </Suspense>
+  );
+}
+
+
+
 
 
 

@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
-import { companiesApi, authApi, cartsApi } from '@/lib/api';
+import { companiesApi, authApi, cartsApi, uploadApi } from '@/lib/api';
+import { getImageUrl } from '@/lib/config';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import CustomSelect from '@/components/CustomSelect';
@@ -21,6 +22,8 @@ export default function CompanyDetailPage() {
   const [saving, setSaving] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState('');
+  const [logo, setLogo] = useState<string>('');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     code: '',
@@ -70,6 +73,7 @@ export default function CompanyDetailPage() {
           notes: companyRes.data.notes || '',
           isActive: companyRes.data.isActive !== undefined ? companyRes.data.isActive : true
         });
+        setLogo(companyRes.data.logo || '');
       }
       
       // Charger les commandes de l'entreprise
@@ -133,11 +137,26 @@ export default function CompanyDetailPage() {
     });
   };
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+
+    setUploadingLogo(true);
+    try {
+      const res = await uploadApi.uploadImage(e.target.files[0]);
+      setLogo(res.data.url);
+      toast.success('Logo uploadé avec succès');
+    } catch (error) {
+      toast.error('Erreur lors de l\'upload du logo');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
-      await companiesApi.update(id, formData);
+      await companiesApi.update(id, { ...formData, logo });
       toast.success('Entreprise modifiée avec succès');
       loadData();
     } catch (error: any) {
@@ -229,6 +248,58 @@ export default function CompanyDetailPage() {
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Informations de l'entreprise</h2>
             
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Logo */}
+              <div>
+                <label className="block mb-2 font-semibold text-gray-700">Logo de l'entreprise</label>
+                <div className="flex items-start gap-6">
+                  {logo && (
+                    <div className="flex-shrink-0">
+                      <div className="w-32 h-32 bg-gray-100 rounded-xl overflow-hidden border-2 border-gray-200 flex items-center justify-center">
+                        <img
+                          src={getImageUrl(logo)}
+                          alt="Logo"
+                          className="w-full h-full object-contain p-2"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      disabled={uploadingLogo}
+                      className="hidden"
+                      id="logo-upload"
+                    />
+                    <label
+                      htmlFor="logo-upload"
+                      className={`inline-flex items-center gap-2 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer transition-all ${
+                        uploadingLogo
+                          ? 'border-gray-200 bg-gray-50 cursor-not-allowed text-gray-400'
+                          : 'border-gray-300 bg-gray-50 hover:border-green-500 hover:bg-green-50 text-gray-700'
+                      }`}
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <span className="font-medium">
+                        {uploadingLogo ? 'Upload...' : logo ? 'Changer le logo' : 'Ajouter un logo'}
+                      </span>
+                    </label>
+                    {logo && (
+                      <button
+                        type="button"
+                        onClick={() => setLogo('')}
+                        className="mt-2 text-sm text-red-600 hover:text-red-700 font-semibold"
+                      >
+                        Supprimer le logo
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <label className="block mb-2 font-semibold text-gray-700">
@@ -584,11 +655,21 @@ export default function CompanyDetailPage() {
           {/* Carte entreprise */}
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
             <div className="text-center mb-6">
-              <div className="w-24 h-24 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-              </div>
+              {company.logo ? (
+                <div className="w-24 h-24 bg-gray-100 rounded-2xl overflow-hidden border-2 border-gray-200 flex items-center justify-center mx-auto mb-4 shadow-lg">
+                  <img
+                    src={getImageUrl(company.logo)}
+                    alt={company.name}
+                    className="w-full h-full object-contain p-2"
+                  />
+                </div>
+              ) : (
+                <div className="w-24 h-24 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                  <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                </div>
+              )}
               <h3 className="text-xl font-bold text-gray-900">
                 {company.name}
               </h3>

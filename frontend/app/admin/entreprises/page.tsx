@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AdminLayout from '@/components/AdminLayout';
 import { companiesApi } from '@/lib/api';
+import { getImageUrl } from '@/lib/config';
 import toast from 'react-hot-toast';
 import CustomSelect from '@/components/CustomSelect';
 
@@ -194,11 +195,21 @@ export default function AdminCompaniesPage() {
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-md">
-                          <span className="text-white font-bold text-sm">
-                            {company.name?.charAt(0)?.toUpperCase() || 'E'}
-                          </span>
-                        </div>
+                        {company.logo ? (
+                          <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 flex items-center justify-center flex-shrink-0 shadow-md">
+                            <img
+                              src={getImageUrl(company.logo)}
+                              alt={company.name}
+                              className="w-full h-full object-contain p-1"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-md">
+                            <span className="text-white font-bold text-sm">
+                              {company.name?.charAt(0)?.toUpperCase() || 'E'}
+                            </span>
+                          </div>
+                        )}
                         <span className="font-bold text-gray-900 group-hover:text-green-700 transition-colors">{company.name}</span>
                       </div>
                     </td>

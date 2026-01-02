@@ -49,6 +49,10 @@ const companySchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  logo: {
+    type: String,
+    trim: true
   }
 }, {
   timestamps: true

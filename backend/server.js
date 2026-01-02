@@ -43,9 +43,30 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
   crossOriginEmbedderPolicy: false
 }));
+
+// Configuration CORS avec support de plusieurs origines
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'http://localhost:3000',
+  'https://rcm.baldazzi.fr',
+  'http://rcm.baldazzi.fr',
+  'http://localhost:3000'
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
+  origin: (origin, callback) => {
+    // Autoriser les requêtes sans origine (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Autoriser toutes les origines en développement, ajuster en production si nécessaire
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range']
 }));
 
 // Rate limiting
@@ -69,9 +90,38 @@ app.use('/api/', limiter);
 // Cookie parser
 app.use(cookieParser());
 
-// Body parser
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+// Middleware pour ajouter CORS avant le body parser (pour gérer les erreurs 413)
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    'https://rcm.baldazzi.fr',
+    'http://rcm.baldazzi.fr',
+    'http://localhost:3000'
+  ].filter(Boolean);
+  
+  // Utiliser setHeader pour forcer l'envoi des headers
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (allowedOrigins.length > 0) {
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0]);
+  }
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.setHeader('Access-Control-Expose-Headers', 'Content-Range, X-Content-Range');
+  
+  // Répondre aux requêtes OPTIONS (preflight)
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
+
+// Body parser avec limites augmentées pour les uploads
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
 // Servir les fichiers statiques (images uploadées) avec headers CORS
 app.use('/uploads', (req, res, next) => {
@@ -127,6 +177,40 @@ app.use('/api/product-files', productFilesRoutes);
 // Route de santé
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'RCMPLAY-REPARATION API is running' });
+});
+
+// Middleware de gestion d'erreurs global avec CORS
+app.use((err, req, res, next) => {
+  // Ajouter les headers CORS même en cas d'erreur
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    'https://rcm.baldazzi.fr',
+    'http://rcm.baldazzi.fr',
+    'http://localhost:3000'
+  ].filter(Boolean);
+  
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (allowedOrigins.length > 0) {
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0]);
+  }
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  
+  // Gérer les erreurs de taille (413)
+  if (err.status === 413 || err.statusCode === 413 || err.type === 'entity.too.large' || err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({ 
+      error: 'Fichier ou payload trop volumineux. Taille maximale : 100MB' 
+    });
+  }
+  
+  // Autres erreurs
+  console.error('Error:', err);
+  res.status(err.status || err.statusCode || 500).json({ 
+    error: err.message || 'Erreur serveur' 
+  });
 });
 
 // Connexion MongoDB

@@ -361,8 +361,9 @@ export default function NewProductPage() {
               <textarea
                 value={formData.shortDescription}
                 onChange={(e) => setFormData({ ...formData, shortDescription: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-100 transition-all resize-none"
-                rows={2}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-100 transition-all resize-y min-h-[120px]"
+                rows={5}
+                placeholder="Description courte du produit (visible dans les listes)..."
               />
             </div>
             <div>
@@ -370,8 +371,9 @@ export default function NewProductPage() {
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-100 transition-all resize-none"
-                rows={2}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-100 transition-all resize-y min-h-[200px]"
+                rows={8}
+                placeholder="Décrivez votre produit en détail..."
               />
             </div>
           </div>
@@ -749,3 +751,7 @@ export default function NewProductPage() {
     </AdminLayout>
   );
 }
+
+
+
+

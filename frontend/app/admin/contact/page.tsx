@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
 import { contactApi } from '@/lib/api';
@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import { BACKEND_URL } from '@/lib/config';
 import Link from 'next/link';
 
-export default function AdminContactPage() {
+function AdminContactPageContent() {
   const searchParams = useSearchParams();
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -369,6 +369,23 @@ export default function AdminContactPage() {
         </div>
       </div>
     </AdminLayout>
+  );
+}
+
+export default function AdminContactPage() {
+  return (
+    <Suspense fallback={
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-green-200 border-t-green-600 mb-4"></div>
+            <p className="text-gray-600">Chargement...</p>
+          </div>
+        </div>
+      </AdminLayout>
+    }>
+      <AdminContactPageContent />
+    </Suspense>
   );
 }
 

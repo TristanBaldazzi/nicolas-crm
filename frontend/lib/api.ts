@@ -42,6 +42,8 @@ export const authApi = {
     api.put('/auth/profile', data),
   updateTrackingConsent: (consent: boolean) =>
     api.put('/auth/tracking-consent', { consent }),
+  createUser: (data: any) =>
+    api.post('/auth/users', data),
   getUsers: (params?: any) =>
     api.get('/auth/users', { params }),
   getUserById: (id: string) =>

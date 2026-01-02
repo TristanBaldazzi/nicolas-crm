@@ -17,6 +17,9 @@ export default function CartPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [notes, setNotes] = useState('');
+  const [showReferenceModal, setShowReferenceModal] = useState(false);
+  const [orderReference, setOrderReference] = useState('');
+  const [itemReferences, setItemReferences] = useState<Record<string, string>>({});
 
   // Charger depuis le storage au montage
   useEffect(() => {
@@ -74,6 +77,11 @@ export default function CartPage() {
       return;
     }
 
+    // Ouvrir le modal pour demander les références
+    setShowReferenceModal(true);
+  };
+
+  const handleConfirmOrder = async () => {
     setSubmitting(true);
     try {
       // Créer ou mettre à jour la commande en statut "demande"
@@ -81,9 +89,11 @@ export default function CartPage() {
       await cartsApi.create({
         items: items.map(item => ({
           product: item.product,
-          quantity: item.quantity
+          quantity: item.quantity,
+          reference: itemReferences[item.product] || ''
         })),
-        notes
+        notes,
+        orderReference: orderReference || ''
       });
       
       // Tracker les achats pour chaque produit
@@ -108,6 +118,9 @@ export default function CartPage() {
       // Vider le panier local sans synchroniser pour éviter de supprimer la commande qui vient d'être validée
       clearCartLocal();
       setNotes('');
+      setOrderReference('');
+      setItemReferences({});
+      setShowReferenceModal(false);
       router.push('/');
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Erreur lors de l\'envoi de la commande');
@@ -296,6 +309,120 @@ export default function CartPage() {
                 >
                   Continuer les achats
                 </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de référence commande */}
+        {showReferenceModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+              <div className="bg-gradient-to-r from-green-600 to-green-700 px-8 py-6 border-b border-green-500 flex-shrink-0">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-3xl font-black text-white flex items-center gap-3">
+                      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Référence commande
+                    </h2>
+                    <p className="text-green-100 mt-1">Ajoutez une référence pour votre commande (optionnel)</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowReferenceModal(false);
+                      setOrderReference('');
+                      setItemReferences({});
+                    }}
+                    className="text-white hover:bg-white/20 rounded-lg p-2 transition-all"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-6 flex-1 overflow-y-auto">
+                {/* Référence commande globale */}
+                <div className="mb-6">
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Référence commande (optionnel)
+                  </label>
+                  <input
+                    type="text"
+                    value={orderReference}
+                    onChange={(e) => setOrderReference(e.target.value)}
+                    placeholder="Ex: REF-2024-001, Commande client XYZ..."
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Cette référence sera associée à toute la commande</p>
+                </div>
+
+                {/* Références par produit */}
+                {products.length > 1 && (
+                  <div className="mb-6">
+                    <label className="block text-sm font-bold text-gray-700 mb-3">
+                      Références par produit (optionnel)
+                    </label>
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto">
+                      {products.map((product) => {
+                        const item = items.find(i => i.product === product._id);
+                        if (!item) return null;
+                        
+                        return (
+                          <div key={product._id} className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                            <div className="flex items-start gap-3 mb-2">
+                              {product.images?.[0] && (
+                                <img
+                                  src={getImageUrl(product.images[0].url)}
+                                  alt={product.name}
+                                  className="w-12 h-12 object-cover rounded-lg"
+                                />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-gray-900 truncate">{product.name}</h4>
+                                <p className="text-xs text-gray-500">Quantité: {item.quantity}</p>
+                              </div>
+                            </div>
+                            <input
+                              type="text"
+                              value={itemReferences[product._id] || ''}
+                              onChange={(e) => setItemReferences({
+                                ...itemReferences,
+                                [product._id]: e.target.value
+                              })}
+                              placeholder="Référence pour ce produit..."
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-all"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">Vous pouvez ajouter une référence différente pour chaque produit</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowReferenceModal(false);
+                    setOrderReference('');
+                    setItemReferences({});
+                  }}
+                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition-all"
+                >
+                  Ignorer
+                </button>
+                <button
+                  onClick={handleConfirmOrder}
+                  disabled={submitting}
+                  className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl font-bold hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? 'Envoi en cours...' : 'Valider la commande'}
+                </button>
               </div>
             </div>
           </div>

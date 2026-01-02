@@ -11,7 +11,7 @@ const router = express.Router();
 // Créer ou mettre à jour un panier (client)
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { items, notes } = req.body;
+    const { items, notes, orderReference } = req.body;
     
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'Le panier doit contenir au moins un produit' });
@@ -25,13 +25,14 @@ router.post('/', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Un ou plusieurs produits sont introuvables' });
     }
 
-    // Créer les items avec les prix actuels
+    // Créer les items avec les prix actuels et les références
     const cartItems = items.map(item => {
       const product = products.find(p => p._id.toString() === item.product);
       return {
         product: item.product,
         quantity: item.quantity,
-        price: product.price
+        price: product.price,
+        reference: item.reference || '' // Référence par produit
       };
     });
 
@@ -45,6 +46,7 @@ router.post('/', authenticate, async (req, res) => {
       // Mettre à jour le panier existant et passer en "demande" (validé)
       cart.items = cartItems;
       cart.notes = notes || cart.notes;
+      cart.orderReference = orderReference || cart.orderReference || '';
       cart.status = 'demande'; // Validation de la commande
       await cart.save();
     } else {
@@ -53,6 +55,7 @@ router.post('/', authenticate, async (req, res) => {
         user: req.user.id,
         items: cartItems,
         notes: notes,
+        orderReference: orderReference || '',
         status: 'demande'
       });
       await cart.save();
@@ -442,7 +445,7 @@ router.get('/user/:userId/active', authenticate, requireAdmin, async (req, res) 
 // Créer un panier pour un utilisateur spécifique (admin)
 router.post('/user/:userId', authenticate, requireAdmin, async (req, res) => {
   try {
-    const { items, notes, replaceActive = false } = req.body;
+    const { items, notes, replaceActive = false, orderReference } = req.body;
     const userId = req.params.userId;
     
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -463,13 +466,14 @@ router.post('/user/:userId', authenticate, requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Un ou plusieurs produits sont introuvables' });
     }
 
-    // Créer les items avec les prix actuels
+    // Créer les items avec les prix actuels et les références
     const cartItems = items.map(item => {
       const product = products.find(p => p._id.toString() === item.product);
       return {
         product: item.product,
         quantity: item.quantity,
-        price: product.price
+        price: product.price,
+        reference: item.reference || ''
       };
     });
 
@@ -490,6 +494,7 @@ router.post('/user/:userId', authenticate, requireAdmin, async (req, res) => {
       user: userId,
       items: cartItems,
       notes: notes || '',
+      orderReference: orderReference || '',
       status: 'en_cours'
     });
     await cart.save();
@@ -619,7 +624,7 @@ router.put('/:id', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Ce panier ne peut plus être modifié' });
     }
 
-    const { items, notes } = req.body;
+    const { items, notes, orderReference } = req.body;
 
     if (items && Array.isArray(items) && items.length > 0) {
       const productIds = items.map(item => item.product);
@@ -634,13 +639,18 @@ router.put('/:id', authenticate, async (req, res) => {
         return {
           product: item.product,
           quantity: item.quantity,
-          price: product.price
+          price: product.price,
+          reference: item.reference || ''
         };
       });
     }
 
     if (notes !== undefined) {
       cart.notes = notes;
+    }
+
+    if (orderReference !== undefined) {
+      cart.orderReference = orderReference || '';
     }
 
     await cart.save();

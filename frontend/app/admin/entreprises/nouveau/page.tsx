@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AdminLayout from '@/components/AdminLayout';
-import { companiesApi } from '@/lib/api';
+import { companiesApi, uploadApi } from '@/lib/api';
+import { getImageUrl } from '@/lib/config';
 import toast from 'react-hot-toast';
 
 export default function NewCompanyPage() {
@@ -26,6 +27,8 @@ export default function NewCompanyPage() {
   const [showAIModal, setShowAIModal] = useState(false);
   const [aiDescription, setAiDescription] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
+  const [logo, setLogo] = useState<string>('');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const handleAIGeneration = async () => {
     if (!aiDescription.trim()) {
@@ -64,11 +67,26 @@ export default function NewCompanyPage() {
     }
   };
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+
+    setUploadingLogo(true);
+    try {
+      const res = await uploadApi.uploadImage(e.target.files[0]);
+      setLogo(res.data.url);
+      toast.success('Logo uploadé avec succès');
+    } catch (error) {
+      toast.error('Erreur lors de l\'upload du logo');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await companiesApi.create(formData);
+      await companiesApi.create({ ...formData, logo });
       toast.success('Entreprise créée avec succès');
       router.push('/admin/entreprises');
     } catch (error: any) {
@@ -113,6 +131,58 @@ export default function NewCompanyPage() {
         {/* Formulaire */}
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Logo */}
+            <div>
+              <label className="block text-sm font-semibold mb-2">Logo de l'entreprise</label>
+              <div className="flex items-start gap-6">
+                {logo && (
+                  <div className="flex-shrink-0">
+                    <div className="w-32 h-32 bg-gray-100 rounded-xl overflow-hidden border-2 border-gray-200 flex items-center justify-center">
+                      <img
+                        src={getImageUrl(logo)}
+                        alt="Logo"
+                        className="w-full h-full object-contain p-2"
+                      />
+                    </div>
+                  </div>
+                )}
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    disabled={uploadingLogo}
+                    className="hidden"
+                    id="logo-upload"
+                  />
+                  <label
+                    htmlFor="logo-upload"
+                    className={`inline-flex items-center gap-2 px-4 py-3 border-2 border-dashed rounded-xl cursor-pointer transition-all ${
+                      uploadingLogo
+                        ? 'border-gray-200 bg-gray-50 cursor-not-allowed text-gray-400'
+                        : 'border-gray-300 bg-gray-50 hover:border-green-500 hover:bg-green-50 text-gray-700'
+                    }`}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span className="font-medium">
+                      {uploadingLogo ? 'Upload...' : logo ? 'Changer le logo' : 'Ajouter un logo'}
+                    </span>
+                  </label>
+                  {logo && (
+                    <button
+                      type="button"
+                      onClick={() => setLogo('')}
+                      className="mt-2 text-sm text-red-600 hover:text-red-700 font-semibold"
+                    >
+                      Supprimer le logo
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-semibold mb-2">Nom *</label>

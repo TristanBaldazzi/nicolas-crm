@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
 import { customQuotesApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 
-export default function AdminDemandesPersonnaliseesPage() {
+function AdminDemandesPersonnaliseesPageContent() {
   const searchParams = useSearchParams();
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -498,4 +498,24 @@ export default function AdminDemandesPersonnaliseesPage() {
     </AdminLayout>
   );
 }
+
+export default function AdminDemandesPersonnaliseesPage() {
+  return (
+    <Suspense fallback={
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-amber-200 border-t-amber-600 mb-4"></div>
+            <p className="text-gray-600">Chargement...</p>
+          </div>
+        </div>
+      </AdminLayout>
+    }>
+      <AdminDemandesPersonnaliseesPageContent />
+    </Suspense>
+  );
+}
+
+
+
 

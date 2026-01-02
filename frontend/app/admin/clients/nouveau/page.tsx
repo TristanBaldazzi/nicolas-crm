@@ -85,31 +85,16 @@ export default function NewClientPage() {
 
     setLoading(true);
     try {
-      const registerRes = await authApi.register({
+      // Utiliser createUser au lieu de register pour éviter la connexion automatique
+      const createRes = await authApi.createUser({
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
         password: formData.password,
         role: formData.role,
+        isActive: formData.isActive,
+        company: formData.company || null,
       });
-      
-      // Récupérer l'ID de l'utilisateur créé
-      const userId = registerRes.data.user?.id || registerRes.data.user?._id;
-      
-      // Si une entreprise est sélectionnée ou si le statut est inactif, mettre à jour l'utilisateur
-      if (formData.company || !formData.isActive) {
-        const updateData: any = {};
-        if (formData.company) {
-          updateData.company = formData.company;
-        }
-        if (!formData.isActive) {
-          updateData.isActive = formData.isActive;
-        }
-        
-        if (userId && Object.keys(updateData).length > 0) {
-          await authApi.updateUser(userId, updateData);
-        }
-      }
       
       toast.success('Client créé avec succès');
       router.push('/admin/clients');

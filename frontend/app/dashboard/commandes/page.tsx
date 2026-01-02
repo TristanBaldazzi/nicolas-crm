@@ -315,6 +315,19 @@ export default function CommandesPage() {
                               {formatDate(order.createdAt)}
                             </p>
                             
+                            {/* Référence commande */}
+                            {order.orderReference && (
+                              <div className="mb-4">
+                                <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-sm">
+                                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                  </svg>
+                                  <span className="font-semibold text-blue-900">Réf.:</span>
+                                  <span className="text-blue-700">{order.orderReference}</span>
+                                </span>
+                              </div>
+                            )}
+                            
                             {/* Indicateur de progression professionnel */}
                             {showProgress && (
                               <div className="mt-6">
@@ -406,10 +419,21 @@ export default function CommandesPage() {
                                   >
                                     {product?.name || 'Produit supprimé'}
                                   </Link>
-                                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                                  <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
                                     <span>Quantité: {quantity}</span>
                                     <span>Prix unitaire: {price.toFixed(2)} €</span>
                                   </div>
+                                  {item.reference && (
+                                    <div className="mt-2">
+                                      <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-purple-50 border border-purple-200 rounded text-xs">
+                                        <svg className="w-3.5 h-3.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                        </svg>
+                                        <span className="font-semibold text-purple-900">Réf. produit:</span>
+                                        <span className="text-purple-700">{item.reference}</span>
+                                      </span>
+                                    </div>
+                                  )}
                                 </div>
                                 <div className="text-right">
                                   <p className="font-bold text-gray-900">

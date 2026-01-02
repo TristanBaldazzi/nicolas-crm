@@ -20,6 +20,7 @@ export default function CartDetailPage() {
   const [saving, setSaving] = useState(false);
   const [editableItems, setEditableItems] = useState<any[]>([]);
   const [editableNotes, setEditableNotes] = useState('');
+  const [editableOrderReference, setEditableOrderReference] = useState('');
   const [products, setProducts] = useState<any[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [newProductId, setNewProductId] = useState('');
@@ -63,7 +64,8 @@ export default function CartDetailPage() {
           return {
             product: productId,
             quantity: item.quantity || 1,
-            price: item.price || 0
+            price: item.price || 0,
+            reference: item.reference || ''
           };
         }));
       } else {
@@ -71,6 +73,7 @@ export default function CartDetailPage() {
       }
       
       setEditableNotes(cartData.notes || '');
+      setEditableOrderReference(cartData.orderReference || '');
     } catch (error: any) {
       console.error('Error loading cart:', error);
       const errorMessage = error.response?.data?.error || error.message || 'Erreur lors du chargement';
@@ -149,7 +152,8 @@ export default function CartDetailPage() {
       setEditableItems([...editableItems, {
         product: newProductId,
         quantity: 1,
-        price: product.price
+        price: product.price,
+        reference: ''
       }]);
     }
     setNewProductId('');
@@ -166,9 +170,11 @@ export default function CartDetailPage() {
       await cartsApi.update(id, {
         items: editableItems.map(item => ({
           product: item.product,
-          quantity: item.quantity
+          quantity: item.quantity,
+          reference: item.reference || ''
         })),
-        notes: editableNotes
+        notes: editableNotes,
+        orderReference: editableOrderReference || ''
       });
       toast.success('Panier modifié avec succès');
       setIsEditing(false);
@@ -305,6 +311,17 @@ export default function CartDetailPage() {
               )}
             </div>
             <p className="text-gray-600 mt-2">Détails du panier de commande</p>
+            {cart.orderReference && (
+              <div className="mt-3">
+                <span className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-xl text-sm">
+                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                  </svg>
+                  <span className="font-semibold text-blue-900">Référence commande:</span>
+                  <span className="text-blue-700">{cart.orderReference}</span>
+                </span>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-4">
             {!isEditing ? (
@@ -376,7 +393,8 @@ export default function CartDetailPage() {
                           setEditableItems([...editableItems, {
                             product: value,
                             quantity: 1,
-                            price: product.price
+                            price: product.price,
+                            reference: ''
                           }]);
                         }
                         setNewProductId(''); // Réinitialiser le select
@@ -475,12 +493,39 @@ export default function CartDetailPage() {
                             <span className="text-gray-600">Prix unitaire:</span>
                             <span className="font-bold text-gray-900">{itemPrice.toFixed(2)} €</span>
                           </div>
+                          <div className="w-full">
+                            <label className="text-xs font-semibold text-gray-700 mb-1 block">Référence produit (optionnel):</label>
+                            <input
+                              type="text"
+                              value={item.reference || ''}
+                              onChange={(e) => {
+                                const updated = [...editableItems];
+                                updated[index].reference = e.target.value;
+                                setEditableItems(updated);
+                              }}
+                              placeholder="Référence pour ce produit..."
+                              className="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-100 transition-all"
+                            />
+                          </div>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-3 text-xs text-gray-600">
-                          <span>Quantité: <span className="font-semibold text-gray-900">{itemQuantity}</span></span>
-                          <span>•</span>
-                          <span>Prix unitaire: <span className="font-semibold text-gray-900">{itemPrice.toFixed(2)} €</span></span>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-3 text-xs text-gray-600">
+                            <span>Quantité: <span className="font-semibold text-gray-900">{itemQuantity}</span></span>
+                            <span>•</span>
+                            <span>Prix unitaire: <span className="font-semibold text-gray-900">{itemPrice.toFixed(2)} €</span></span>
+                          </div>
+                          {item.reference && (
+                            <div>
+                              <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-purple-50 border border-purple-200 rounded text-xs">
+                                <svg className="w-3.5 h-3.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                </svg>
+                                <span className="font-semibold text-purple-900">Réf. produit:</span>
+                                <span className="text-purple-700">{item.reference}</span>
+                              </span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -516,6 +561,29 @@ export default function CartDetailPage() {
                 </span>
               </div>
             </div>
+          </div>
+
+          {/* Référence commande */}
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+              Référence commande
+            </h2>
+            {isEditing ? (
+              <input
+                type="text"
+                value={editableOrderReference}
+                onChange={(e) => setEditableOrderReference(e.target.value)}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all"
+                placeholder="Référence commande (optionnel)..."
+              />
+            ) : (
+              <p className="text-gray-700 bg-purple-50 p-4 rounded-lg border border-purple-200">
+                {cart.orderReference || 'Aucune référence'}
+              </p>
+            )}
           </div>
 
           {/* Notes */}

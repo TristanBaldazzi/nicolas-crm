@@ -21,6 +21,11 @@ const cartSchema = new mongoose.Schema({
       type: Number,
       required: true,
       min: 0
+    },
+    reference: {
+      type: String,
+      trim: true,
+      default: ''
     }
   }],
   status: {
@@ -36,6 +41,11 @@ const cartSchema = new mongoose.Schema({
   notes: {
     type: String,
     trim: true
+  },
+  orderReference: {
+    type: String,
+    trim: true,
+    default: ''
   }
 }, {
   timestamps: true

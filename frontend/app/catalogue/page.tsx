@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { productsApi, categoriesApi, settingsApi, brandsApi } from '@/lib/api';
@@ -8,7 +8,10 @@ import { useAuthStore } from '@/lib/store';
 import { getImageUrl, getLinkWithRef } from '@/lib/config';
 import CustomSelect from '@/components/CustomSelect';
 
-export default function CataloguePage() {
+// Force dynamic rendering to avoid static generation issues with useSearchParams
+export const dynamic = 'force-dynamic';
+
+function CataloguePageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [products, setProducts] = useState<any[]>([]);
@@ -26,6 +29,7 @@ export default function CataloguePage() {
   });
   const [showFilters, setShowFilters] = useState(true);
   const [initialized, setInitialized] = useState(false);
+  const [brandsLoaded, setBrandsLoaded] = useState(false);
 
   // Charger les settings et les marques une seule fois au montage
   useEffect(() => {
@@ -36,36 +40,56 @@ export default function CataloguePage() {
 
   // Initialiser les filtres depuis l'URL une fois que les marques sont chargées
   useEffect(() => {
-    if (brands.length > 0 && !initialized) {
-      const brandParam = searchParams.get('brand');
-      if (brandParam) {
-        // Vérifier si c'est déjà un ID (format ObjectId)
-        const isObjectId = /^[0-9a-fA-F]{24}$/.test(brandParam);
-        
-        if (isObjectId) {
-          // C'est déjà un ID, vérifier qu'il existe
-          const foundBrand = brands.find((b) => b._id === brandParam);
-          if (foundBrand) {
-            setFilters((prev) => ({ ...prev, brand: brandParam }));
-          }
-        } else {
-          // C'est un nom, chercher la marque par son nom (insensible à la casse)
-          const foundBrand = brands.find(
-            (b) => b.name.toLowerCase() === brandParam.toLowerCase()
-          );
-          if (foundBrand) {
-            setFilters((prev) => ({ ...prev, brand: foundBrand._id }));
-            // Mettre à jour l'URL pour utiliser l'ID au lieu du nom
-            const params = new URLSearchParams(searchParams.toString());
-            params.set('brand', foundBrand._id);
-            router.replace(`/catalogue?${params.toString()}`, { scroll: false });
-          }
+    // Ne s'exécuter qu'une seule fois quand les marques sont chargées
+    if (initialized || !brandsLoaded) return;
+
+    const brandParam = searchParams.get('brand');
+    
+    // Si on a un paramètre brand dans l'URL et des marques chargées
+    if (brandParam && brands.length > 0) {
+      // Vérifier si c'est déjà un ID (format ObjectId)
+      const isObjectId = /^[0-9a-fA-F]{24}$/.test(brandParam);
+      
+      if (isObjectId) {
+        // C'est déjà un ID, vérifier qu'il existe
+        const foundBrand = brands.find((b) => b._id === brandParam);
+        if (foundBrand) {
+          setFilters((prev) => ({ ...prev, brand: brandParam }));
+        }
+      } else {
+        // C'est un nom, chercher la marque par son nom (insensible à la casse)
+        const foundBrand = brands.find(
+          (b) => b.name.toLowerCase() === brandParam.toLowerCase()
+        );
+        if (foundBrand) {
+          setFilters((prev) => ({ ...prev, brand: foundBrand._id }));
+          // Mettre à jour l'URL pour utiliser l'ID au lieu du nom
+          const params = new URLSearchParams(searchParams.toString());
+          params.set('brand', foundBrand._id);
+          router.replace(`/catalogue?${params.toString()}`, { scroll: false });
         }
       }
-      setInitialized(true);
     }
+    
+    // Marquer comme initialisé (même si pas de marque dans l'URL ou pas de marques chargées)
+    // Cela permet de charger les données même si l'API des marques échoue
+    setInitialized(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brands, initialized]);
+  }, [brands, brandsLoaded]);
+
+  const loadBrands = async () => {
+    try {
+      const brandsRes = await brandsApi.getAll();
+      setBrands(brandsRes.data || []);
+    } catch (error) {
+      console.error('Error loading brands:', error);
+      // En cas d'erreur, initialiser quand même avec un tableau vide
+      setBrands([]);
+    } finally {
+      // Marquer que le chargement est terminé (succès ou échec)
+      setBrandsLoaded(true);
+    }
+  };
 
   // Charger les données quand les filtres changent
   useEffect(() => {
@@ -81,15 +105,6 @@ export default function CataloguePage() {
       setSettings(res.data);
     } catch (error) {
       console.error('Error loading settings:', error);
-    }
-  };
-
-  const loadBrands = async () => {
-    try {
-      const brandsRes = await brandsApi.getAll();
-      setBrands(brandsRes.data || []);
-    } catch (error) {
-      console.error('Error loading brands:', error);
     }
   };
 
@@ -518,5 +533,20 @@ export default function CataloguePage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function CataloguePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-b from-white via-gray-50 to-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-green-200 border-t-green-600 mb-4"></div>
+          <p className="text-gray-600 text-lg font-medium">Chargement...</p>
+        </div>
+      </div>
+    }>
+      <CataloguePageContent />
+    </Suspense>
   );
 }
