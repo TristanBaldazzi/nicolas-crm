@@ -152,10 +152,12 @@ router.get('/', async (req, res) => {
       page = 1,
       limit = 20,
       sort = 'createdAt',
-      order = 'desc'
+      order = 'desc',
+      includeInactive = false // Pour les admins
     } = req.query;
 
-    const query = { isActive: true };
+    // Si includeInactive est true (pour les admins), ne pas filtrer par isActive
+    const query = includeInactive === 'true' ? {} : { isActive: true };
 
     if (subCategory) {
       // Si une sous-catégorie est spécifiée, filtrer uniquement par celle-ci

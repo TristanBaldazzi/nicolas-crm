@@ -42,6 +42,7 @@ export default function EditProductPage() {
     subCategory: '',
     stock: '',
     isInStock: true,
+    isActive: true,
     isFeatured: false,
     isBestSeller: false,
     images: [] as any[],
@@ -120,6 +121,7 @@ export default function EditProductPage() {
         subCategory: productData.subCategory?._id || productData.subCategory || '',
         stock: productData.stock.toString(),
         isInStock: productData.isInStock,
+        isActive: productData.isActive !== false, // Par défaut true si non défini
         isFeatured: productData.isFeatured,
         isBestSeller: productData.isBestSeller || false,
         images: productData.images || [],
@@ -738,6 +740,39 @@ export default function EditProductPage() {
                 </div>
                 <div className="ml-2 flex-1">
                   <span className="text-sm font-semibold text-gray-900">Best Seller</span>
+                </div>
+              </label>
+            </div>
+            
+            {/* Produit actif */}
+            <div className="mt-3">
+              <label className="flex items-center p-3 bg-white rounded-lg border cursor-pointer transition-all hover:border-blue-300 hover:bg-blue-50"
+                style={{
+                  borderColor: formData.isActive ? '#3b82f6' : '#e5e7eb',
+                  backgroundColor: formData.isActive ? '#eff6ff' : 'white'
+                }}>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={formData.isActive}
+                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                    className="sr-only"
+                  />
+                  <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${
+                    formData.isActive 
+                      ? 'bg-blue-600 border-blue-600' 
+                      : 'bg-white border-gray-300'
+                  }`}>
+                    {formData.isActive && (
+                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <div className="ml-2 flex-1">
+                  <span className="text-sm font-semibold text-gray-900">Produit actif</span>
+                  <p className="text-xs text-gray-500 mt-0.5">Le produit sera visible dans le catalogue</p>
                 </div>
               </label>
             </div>

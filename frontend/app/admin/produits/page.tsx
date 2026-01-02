@@ -26,6 +26,7 @@ export default function AdminProductsPage() {
   const [brandFilter, setBrandFilter] = useState('');
   const [stockFilter, setStockFilter] = useState('all');
   const [featuredFilter, setFeaturedFilter] = useState('all');
+  const [activeFilter, setActiveFilter] = useState('all');
   const [showSpecsManager, setShowSpecsManager] = useState(false);
   const [showBrandsManager, setShowBrandsManager] = useState(false);
   const [newSpecName, setNewSpecName] = useState('');
@@ -48,7 +49,7 @@ export default function AdminProductsPage() {
   const loadData = async () => {
     try {
       const [productsRes, categoriesRes, specsRes, brandsRes, statsRes] = await Promise.all([
-        productsApi.getAll({ limit: 1000 }),
+        productsApi.getAll({ limit: 1000, includeInactive: true }), // Inclure les produits inactifs pour les admins
         categoriesApi.getAll(),
         productSpecsApi.getAll(),
         brandsApi.getAll(),
@@ -70,7 +71,7 @@ export default function AdminProductsPage() {
 
   useEffect(() => {
     filterProducts();
-  }, [search, categoryFilter, brandFilter, stockFilter, featuredFilter, allProducts]);
+  }, [search, categoryFilter, brandFilter, stockFilter, featuredFilter, activeFilter, allProducts]);
 
   const filterProducts = () => {
     let filtered = [...allProducts];
@@ -117,6 +118,13 @@ export default function AdminProductsPage() {
       filtered = filtered.filter((p) => !p.isFeatured);
     }
 
+    // Filtre actif/inactif
+    if (activeFilter === 'active') {
+      filtered = filtered.filter((p) => p.isActive !== false);
+    } else if (activeFilter === 'inactive') {
+      filtered = filtered.filter((p) => p.isActive === false);
+    }
+
     setProducts(filtered);
   };
 
@@ -134,6 +142,17 @@ export default function AdminProductsPage() {
       loadData();
     } catch (error) {
       toast.error('Erreur lors de la suppression');
+    }
+  };
+
+  const handleToggleActive = async (product: any) => {
+    const newStatus = product.isActive === false;
+    try {
+      await productsApi.update(product._id, { isActive: newStatus });
+      toast.success(newStatus ? 'Produit activé' : 'Produit désactivé');
+      loadData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erreur lors de la modification');
     }
   };
 
@@ -836,6 +855,22 @@ export default function AdminProductsPage() {
               />
             </div>
 
+            {/* Filtre actif/inactif */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Statut</label>
+              <CustomSelect
+                options={[
+                  { value: 'all', label: 'Tous' },
+                  { value: 'active', label: 'Actifs' },
+                  { value: 'inactive', label: 'Inactifs' }
+                ]}
+                value={activeFilter}
+                onChange={setActiveFilter}
+                placeholder="Tous les statuts..."
+                searchable={false}
+              />
+            </div>
+
             {/* Filtre stock */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Stock</label>
@@ -872,7 +907,7 @@ export default function AdminProductsPage() {
               />
             </div>
 
-            {(search || categoryFilter || brandFilter || stockFilter !== 'all' || featuredFilter !== 'all') && (
+            {(search || categoryFilter || brandFilter || stockFilter !== 'all' || featuredFilter !== 'all' || activeFilter !== 'all') && (
               <button
                 onClick={() => {
                   setSearch('');
@@ -880,6 +915,7 @@ export default function AdminProductsPage() {
                   setBrandFilter('');
                   setStockFilter('all');
                   setFeaturedFilter('all');
+                  setActiveFilter('all');
                 }}
                 className="text-sm text-gray-600 hover:text-green-600 font-semibold flex items-center gap-1"
               >
@@ -955,10 +991,17 @@ export default function AdminProductsPage() {
                         <div className="flex items-center gap-2">
                           <Link 
                             href={getLinkWithRef(`/produit/${product.slug}`, user?.id)}
-                            className="font-semibold text-sm text-gray-900 hover:text-green-600 transition-colors truncate"
+                            className={`font-semibold text-sm hover:text-green-600 transition-colors truncate ${
+                              product.isActive === false ? 'text-gray-400 line-through' : 'text-gray-900'
+                            }`}
                           >
                             {product.name}
                           </Link>
+                          {product.isActive === false && (
+                            <span className="flex-shrink-0 px-1.5 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded border border-red-200" title="Produit inactif">
+                              Inactif
+                            </span>
+                          )}
                           {product.isImported && (
                             <span className="flex-shrink-0 px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded border border-blue-200 flex items-center gap-1" title="Produit importé depuis Excel">
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1041,6 +1084,25 @@ export default function AdminProductsPage() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-1 flex-shrink-0">
+                    <button
+                      onClick={() => handleToggleActive(product)}
+                      className={`p-1.5 rounded transition-colors ${
+                        product.isActive === false
+                          ? 'text-green-600 hover:bg-green-50'
+                          : 'text-orange-600 hover:bg-orange-50'
+                      }`}
+                      title={product.isActive === false ? 'Activer le produit' : 'Désactiver le produit'}
+                    >
+                      {product.isActive === false ? (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      )}
+                    </button>
                     <Link
                       href={`/admin/produits/${product._id}/stats`}
                       className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
