@@ -21,6 +21,7 @@ export default function CartDetailPage() {
   const [editableItems, setEditableItems] = useState<any[]>([]);
   const [editableNotes, setEditableNotes] = useState('');
   const [editableOrderReference, setEditableOrderReference] = useState('');
+  const [editableDiscount, setEditableDiscount] = useState(0);
   const [products, setProducts] = useState<any[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [newProductId, setNewProductId] = useState('');
@@ -74,6 +75,7 @@ export default function CartDetailPage() {
       
       setEditableNotes(cartData.notes || '');
       setEditableOrderReference(cartData.orderReference || '');
+      setEditableDiscount(cartData.discount || 0);
     } catch (error: any) {
       console.error('Error loading cart:', error);
       const errorMessage = error.response?.data?.error || error.message || 'Erreur lors du chargement';
@@ -174,7 +176,8 @@ export default function CartDetailPage() {
           reference: item.reference || ''
         })),
         notes: editableNotes,
-        orderReference: editableOrderReference || ''
+        orderReference: editableOrderReference || '',
+        discount: editableDiscount || 0
       });
       toast.success('Panier modifié avec succès');
       setIsEditing(false);
@@ -541,25 +544,48 @@ export default function CartDetailPage() {
                 );
               })}
             </div>
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="flex justify-between items-center p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-                <div>
-                  <span className="text-sm font-bold text-gray-700">Total du panier</span>
-                  {isEditing && (
-                    <p className="text-xs text-gray-500 mt-0.5">Les modifications seront enregistrées</p>
-                  )}
-                </div>
-                <span className="text-2xl font-black text-green-700">
-                  {isEditing 
-                    ? editableItems.reduce((sum, item) => {
-                        const product = products.find(p => p._id === item.product);
-                        const price = product?.price || item.price || 0;
-                        return sum + (price * (item.quantity || 1));
-                      }, 0).toFixed(2)
-                    : (cart.total || 0).toFixed(2)
-                  } €
-                </span>
-              </div>
+            <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
+              {(() => {
+                const subtotal = isEditing 
+                  ? editableItems.reduce((sum, item) => {
+                      const product = products.find(p => p._id === item.product);
+                      const price = product?.price || item.price || 0;
+                      return sum + (price * (item.quantity || 1));
+                    }, 0)
+                  : (cart.items || []).reduce((sum: number, item: any) => {
+                      const price = item.product?.price || item.price || 0;
+                      return sum + (price * (item.quantity || 0));
+                    }, 0);
+                const discount = isEditing ? editableDiscount : (cart.discount || 0);
+                const discountAmount = subtotal * (discount / 100);
+                const total = subtotal - discountAmount;
+                
+                return (
+                  <>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-600">Sous-total</span>
+                      <span className="font-semibold text-gray-900">{subtotal.toFixed(2)} €</span>
+                    </div>
+                    {discount > 0 && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-600">Réduction ({discount}%)</span>
+                        <span className="font-semibold text-red-600">-{discountAmount.toFixed(2)} €</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                      <div>
+                        <span className="text-sm font-bold text-gray-700">Total du panier</span>
+                        {isEditing && (
+                          <p className="text-xs text-gray-500 mt-0.5">Les modifications seront enregistrées</p>
+                        )}
+                      </div>
+                      <span className="text-2xl font-black text-green-700">
+                        {total.toFixed(2)} €
+                      </span>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
 
@@ -585,6 +611,109 @@ export default function CartDetailPage() {
               </p>
             )}
           </div>
+
+          {/* Réduction (uniquement pour les paniers générés par l'IA) */}
+          {cart.createdByAI && (
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Réduction
+              </h2>
+              {isEditing ? (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Pourcentage de réduction (0-100%)
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={editableDiscount}
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value) || 0;
+                          setEditableDiscount(Math.max(0, Math.min(100, value)));
+                        }}
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all"
+                        placeholder="0"
+                      />
+                      <span className="text-lg font-semibold text-gray-700">%</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      La réduction sera appliquée au sous-total du panier
+                    </p>
+                  </div>
+                  {editableDiscount > 0 && (() => {
+                    const subtotal = editableItems.reduce((sum, item) => {
+                      const product = products.find(p => p._id === item.product);
+                      const price = product?.price || item.price || 0;
+                      return sum + (price * (item.quantity || 1));
+                    }, 0);
+                    const discountAmount = subtotal * (editableDiscount / 100);
+                    const total = subtotal - discountAmount;
+                    return (
+                      <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                        <div className="flex justify-between items-center text-sm mb-1">
+                          <span className="text-gray-600">Sous-total:</span>
+                          <span className="font-semibold">{subtotal.toFixed(2)} €</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm mb-2">
+                          <span className="text-orange-700">Réduction ({editableDiscount}%):</span>
+                          <span className="font-semibold text-orange-700">-{discountAmount.toFixed(2)} €</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-2 border-t border-orange-300">
+                          <span className="font-bold text-gray-900">Total après réduction:</span>
+                          <span className="text-xl font-black text-green-700">{total.toFixed(2)} €</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {cart.discount && cart.discount > 0 ? (
+                    <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-semibold text-gray-700">Réduction appliquée:</span>
+                        <span className="text-lg font-bold text-orange-700">{cart.discount}%</span>
+                      </div>
+                      {(() => {
+                        const subtotal = (cart.items || []).reduce((sum: number, item: any) => {
+                          const price = item.product?.price || item.price || 0;
+                          return sum + (price * (item.quantity || 0));
+                        }, 0);
+                        const discountAmount = subtotal * (cart.discount / 100);
+                        return (
+                          <>
+                            <div className="flex justify-between items-center text-sm text-gray-600 mb-1">
+                              <span>Sous-total:</span>
+                              <span>{subtotal.toFixed(2)} €</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm text-orange-700 mb-2">
+                              <span>Montant de la réduction:</span>
+                              <span className="font-semibold">-{discountAmount.toFixed(2)} €</span>
+                            </div>
+                            <div className="flex justify-between items-center pt-2 border-t border-orange-300">
+                              <span className="font-bold text-gray-900">Total:</span>
+                              <span className="text-lg font-black text-green-700">{(cart.total || 0).toFixed(2)} €</span>
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  ) : (
+                    <p className="text-gray-700 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                      Aucune réduction appliquée
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Notes */}
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">

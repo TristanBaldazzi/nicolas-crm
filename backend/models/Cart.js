@@ -46,6 +46,12 @@ const cartSchema = new mongoose.Schema({
     type: String,
     trim: true,
     default: ''
+  },
+  discount: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 100
   }
 }, {
   timestamps: true
@@ -54,9 +60,15 @@ const cartSchema = new mongoose.Schema({
 // Calculer le total avant de sauvegarder
 cartSchema.pre('save', function(next) {
   if (this.items && this.items.length > 0) {
-    this.total = this.items.reduce((sum, item) => {
+    const subtotal = this.items.reduce((sum, item) => {
       return sum + (item.price * item.quantity);
     }, 0);
+    // Appliquer la réduction si elle existe
+    if (this.discount && this.discount > 0) {
+      this.total = subtotal * (1 - this.discount / 100);
+    } else {
+      this.total = subtotal;
+    }
   } else {
     this.total = 0;
   }

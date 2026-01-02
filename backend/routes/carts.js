@@ -624,7 +624,7 @@ router.put('/:id', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Ce panier ne peut plus être modifié' });
     }
 
-    const { items, notes, orderReference } = req.body;
+    const { items, notes, orderReference, discount } = req.body;
 
     if (items && Array.isArray(items) && items.length > 0) {
       const productIds = items.map(item => item.product);
@@ -651,6 +651,15 @@ router.put('/:id', authenticate, async (req, res) => {
 
     if (orderReference !== undefined) {
       cart.orderReference = orderReference || '';
+    }
+
+    if (discount !== undefined) {
+      // Vérifier que la réduction est valide (0-100)
+      const discountValue = parseFloat(discount) || 0;
+      if (discountValue < 0 || discountValue > 100) {
+        return res.status(400).json({ error: 'La réduction doit être entre 0 et 100%' });
+      }
+      cart.discount = discountValue;
     }
 
     await cart.save();
