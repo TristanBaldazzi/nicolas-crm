@@ -1047,9 +1047,6 @@ export default function AdminProductsPage() {
                         {/* Prix */}
                         <div className="text-right">
                           <p className="font-semibold text-sm text-green-600">{product.price.toFixed(2)} €</p>
-                          {product.compareAtPrice && (
-                            <p className="text-xs text-gray-400 line-through">{product.compareAtPrice.toFixed(2)} €</p>
-                          )}
                         </div>
                         
                         {/* Stock */}
@@ -1421,7 +1418,6 @@ export default function AdminProductsPage() {
                           { value: 'shortDescription', label: 'Description courte' },
                           { value: 'sku', label: 'Code barre / SKU' },
                           { value: 'price', label: 'Prix *' },
-                          { value: 'compareAtPrice', label: 'Prix comparé' },
                           { value: 'brand', label: 'Marque' },
                           { value: 'category', label: 'Catégorie *' },
                           { value: 'subCategory', label: 'Sous-catégorie' },

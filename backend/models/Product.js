@@ -32,11 +32,6 @@ const productSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
-  compareAtPrice: {
-    type: Number,
-    min: 0,
-    default: null
-  },
   brand: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Brand',

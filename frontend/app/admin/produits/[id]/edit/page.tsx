@@ -36,7 +36,6 @@ export default function EditProductPage() {
     shortDescription: '',
     sku: '',
     price: '',
-    compareAtPrice: '',
     brand: '',
     category: '',
     subCategory: '',
@@ -115,7 +114,6 @@ export default function EditProductPage() {
         shortDescription: productData.shortDescription || '',
         sku: productData.sku || '',
         price: productData.price.toString(),
-        compareAtPrice: productData.compareAtPrice?.toString() || '',
         brand: productData.brand?._id || productData.brand || '',
         category: productData.category?._id || productData.category || '',
         subCategory: productData.subCategory?._id || productData.subCategory || '',
@@ -309,7 +307,6 @@ export default function EditProductPage() {
       const data = {
         ...formData,
         price: parseFloat(formData.price),
-        compareAtPrice: formData.compareAtPrice ? parseFloat(formData.compareAtPrice) : null,
         stock: parseInt(formData.stock) || 0,
         brand: formData.brand || null,
         subCategory: formData.subCategory || null,
@@ -512,16 +509,6 @@ export default function EditProductPage() {
                 required
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-100 transition-all"
-              />
-            </div>
-            <div>
-              <label className="block mb-1 text-xs font-semibold text-gray-700">Prix comparé</label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.compareAtPrice}
-                onChange={(e) => setFormData({ ...formData, compareAtPrice: e.target.value })}
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-100 transition-all"
               />
             </div>

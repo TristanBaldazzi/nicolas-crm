@@ -28,7 +28,6 @@ export default function NewProductPage() {
     shortDescription: '',
     sku: '',
     price: '',
-    compareAtPrice: '',
     brand: '',
     category: '',
     subCategory: '',
@@ -135,7 +134,6 @@ export default function NewProductPage() {
       const data = {
         ...formData,
         price: parseFloat(formData.price),
-        compareAtPrice: formData.compareAtPrice ? parseFloat(formData.compareAtPrice) : null,
         stock: parseInt(formData.stock) || 0,
         brand: formData.brand || null,
         subCategory: formData.subCategory || null,
@@ -178,7 +176,6 @@ export default function NewProductPage() {
       shortDescription: '',
       sku: '',
       price: '',
-      compareAtPrice: '',
       brand: '',
       category: '',
       subCategory: '',
@@ -258,7 +255,6 @@ export default function NewProductPage() {
         shortDescription: generatedData.shortDescription || '',
         sku: generatedData.sku || '',
         price: generatedData.price?.toString() || '',
-        compareAtPrice: generatedData.compareAtPrice?.toString() || '',
         brand: generatedData.brand || '',
         category: generatedData.category || '',
         subCategory: generatedData.subCategory || '',
@@ -389,16 +385,6 @@ export default function NewProductPage() {
                 required
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-100 transition-all"
-              />
-            </div>
-            <div>
-              <label className="block mb-1 text-xs font-semibold text-gray-700">Prix comparé</label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.compareAtPrice}
-                onChange={(e) => setFormData({ ...formData, compareAtPrice: e.target.value })}
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-100 transition-all"
               />
             </div>

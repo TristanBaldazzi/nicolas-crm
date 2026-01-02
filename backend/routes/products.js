@@ -539,7 +539,6 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
       shortDescription,
       sku,
       price,
-      compareAtPrice,
       brand,
       category,
       subCategory,
@@ -638,7 +637,6 @@ router.post('/', authenticate, requireAdmin, async (req, res) => {
       shortDescription,
       sku,
       price,
-      compareAtPrice,
       brand: brand || null,
       category,
       subCategory: subCategory || null,
@@ -713,7 +711,6 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
       shortDescription,
       sku,
       price,
-      compareAtPrice,
       brand,
       category,
       subCategory,
@@ -776,7 +773,6 @@ router.put('/:id', authenticate, requireAdmin, async (req, res) => {
     if (description !== undefined) product.description = description;
     if (shortDescription !== undefined) product.shortDescription = shortDescription;
     if (sku !== undefined) product.sku = sku;
-    if (compareAtPrice !== undefined) product.compareAtPrice = compareAtPrice;
     
     if (brand !== undefined) {
       if (brand && brand !== null && brand !== '') {
@@ -971,7 +967,6 @@ Retourne UNIQUEMENT un objet JSON valide avec cette structure exacte (sans markd
   "shortDescription": "Description courte (max 200 caractères)",
   "description": "Description complète et détaillée",
   "price": nombre ou null,
-  "compareAtPrice": nombre ou null,
   "sku": "référence produit" ou null,
   "brand": "nom de la marque exacte si trouvée dans la liste" ou null,
   "category": "nom de la catégorie principale exacte si trouvée" ou null,
@@ -1075,7 +1070,6 @@ Retourne UNIQUEMENT un objet JSON valide avec cette structure exacte (sans markd
       shortDescription: generatedData.shortDescription || '',
       description: generatedData.description || '',
       price: generatedData.price || '',
-      compareAtPrice: generatedData.compareAtPrice || '',
       sku: generatedData.sku || '',
       brand: brandId || '',
       category: categoryId || '',
@@ -1494,7 +1488,6 @@ function detectColumnMapping(headers, categories, brands) {
     shortDescription: ['description courte', 'short description', 'résumé', 'resume', 'synopsis'],
     sku: ['sku', 'code', 'référence', 'reference', 'ref', 'code barre', 'codebarre', 'ean'],
     price: ['prix', 'price', 'tarif', 'tariff', 'coût', 'cost'],
-    compareAtPrice: ['prix comparé', 'compare price', 'ancien prix', 'old price', 'prix avant', 'prix barré'],
     brand: ['marque', 'brand', 'fabricant', 'manufacturer', 'maker'],
     category: ['catégorie', 'category', 'cat', 'type', 'famille'],
     subCategory: ['sous-catégorie', 'subcategory', 'sous categorie', 'sous-categorie', 'sous cat'],
@@ -1683,9 +1676,6 @@ router.post('/import', authenticate, requireAdmin, excelUpload.single('file'), a
           } else if (field === 'price') {
             const price = parseFloat(value.replace(',', '.').replace(/\s/g, ''));
             if (!isNaN(price)) productData.price = price;
-          } else if (field === 'compareAtPrice') {
-            const price = parseFloat(value.replace(',', '.').replace(/\s/g, ''));
-            if (!isNaN(price)) productData.compareAtPrice = price;
           } else if (field === 'brand') {
             const brandLower = value.toLowerCase();
             const brandId = brandMap.get(brandLower);

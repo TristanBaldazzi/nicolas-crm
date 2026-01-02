@@ -496,11 +496,6 @@ export default function ProductPage() {
                         {product.price.toFixed(2)} €
                       </span>
                     )}
-                    {!product.discountedPrice && !product.originalPrice && product.compareAtPrice && (
-                      <span className="text-lg text-gray-400 line-through">
-                        {product.compareAtPrice.toFixed(2)} €
-                      </span>
-                    )}
                   </div>
                   {product.discountPercentage > 0 && (
                     <div className="inline-block bg-gray-900 text-white px-2 py-1 rounded text-xs font-medium">
