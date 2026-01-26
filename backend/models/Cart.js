@@ -82,3 +82,4 @@ cartSchema.index({ createdAt: -1 });
 
 export default mongoose.model('Cart', cartSchema);
 
+

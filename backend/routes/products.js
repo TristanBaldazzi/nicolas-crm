@@ -6,7 +6,6 @@ import fs from 'fs';
 import https from 'https';
 import http from 'http';
 import { fileURLToPath } from 'url';
-import XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import sharp from 'sharp';
 import Product from '../models/Product.js';
@@ -1534,13 +1533,51 @@ router.post('/import/preview', authenticate, requireAdmin, excelUpload.single('f
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
 
-    // Lire le fichier Excel
-    const workbook = XLSX.readFile(req.file.path);
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
+    // Lire le fichier Excel avec ExcelJS
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(req.file.path);
+    const worksheet = workbook.worksheets[0];
     
-    // Convertir en JSON (première ligne = headers)
-    const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+    if (!worksheet) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: 'Le fichier Excel est vide' });
+    }
+
+    // Convertir en tableau de tableaux (comme XLSX.utils.sheet_to_json avec header: 1)
+    const data = [];
+    let maxColumn = 0;
+    
+    // D'abord, trouver le nombre maximum de colonnes
+    worksheet.eachRow((row) => {
+      row.eachCell({ includeEmpty: false }, (cell) => {
+        maxColumn = Math.max(maxColumn, cell.col);
+      });
+    });
+    
+    // Maintenant, convertir toutes les lignes
+    worksheet.eachRow((row, rowNumber) => {
+      const rowData = [];
+      // Itérer sur toutes les colonnes jusqu'au maximum trouvé
+      for (let colNumber = 1; colNumber <= maxColumn; colNumber++) {
+        const cell = row.getCell(colNumber);
+        let value = cell.value;
+        // Convertir les valeurs selon leur type
+        if (value === null || value === undefined) {
+          value = '';
+        } else if (typeof value === 'object' && value.text !== undefined) {
+          // Cellule avec formatage
+          value = value.text;
+        } else if (typeof value === 'object' && value.result !== undefined) {
+          // Formule calculée
+          value = value.result;
+        } else if (typeof value === 'object' && value.richText) {
+          // Rich text
+          value = value.richText.map(rt => rt.text).join('');
+        }
+        rowData.push(String(value || ''));
+      }
+      data.push(rowData);
+    });
     
     if (data.length === 0) {
       // Supprimer le fichier
@@ -1607,13 +1644,51 @@ router.post('/import', authenticate, requireAdmin, excelUpload.single('file'), a
 
     const mapping = JSON.parse(columnMapping);
 
-    // Lire le fichier Excel avec XLSX pour les données
-    const workbook = XLSX.readFile(req.file.path);
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
+    // Lire le fichier Excel avec ExcelJS pour les données
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(req.file.path);
+    const worksheet = workbook.worksheets[0];
     
-    // Convertir en JSON (ignorer la première ligne)
-    const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+    if (!worksheet) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: 'Le fichier Excel est vide' });
+    }
+
+    // Convertir en tableau de tableaux (comme XLSX.utils.sheet_to_json avec header: 1)
+    const data = [];
+    let maxColumn = 0;
+    
+    // D'abord, trouver le nombre maximum de colonnes
+    worksheet.eachRow((row) => {
+      row.eachCell({ includeEmpty: false }, (cell) => {
+        maxColumn = Math.max(maxColumn, cell.col);
+      });
+    });
+    
+    // Maintenant, convertir toutes les lignes
+    worksheet.eachRow((row, rowNumber) => {
+      const rowData = [];
+      // Itérer sur toutes les colonnes jusqu'au maximum trouvé
+      for (let colNumber = 1; colNumber <= maxColumn; colNumber++) {
+        const cell = row.getCell(colNumber);
+        let value = cell.value;
+        // Convertir les valeurs selon leur type
+        if (value === null || value === undefined) {
+          value = '';
+        } else if (typeof value === 'object' && value.text !== undefined) {
+          // Cellule avec formatage
+          value = value.text;
+        } else if (typeof value === 'object' && value.result !== undefined) {
+          // Formule calculée
+          value = value.result;
+        } else if (typeof value === 'object' && value.richText) {
+          // Rich text
+          value = value.richText.map(rt => rt.text).join('');
+        }
+        rowData.push(String(value || ''));
+      }
+      data.push(rowData);
+    });
     
     if (data.length <= 1) {
       fs.unlinkSync(req.file.path);

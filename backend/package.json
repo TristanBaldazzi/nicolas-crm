@@ -28,8 +28,7 @@
     "openai": "^6.10.0",
     "sharp": "^0.33.1",
     "uuid": "^13.0.0",
-    "validator": "^13.11.0",
-    "xlsx": "^0.18.5"
+    "validator": "^13.11.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
