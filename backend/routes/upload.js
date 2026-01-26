@@ -56,7 +56,11 @@ const corsHeaders = (req, res, next) => {
     process.env.FRONTEND_URL || 'http://localhost:3000',
     'https://rcm.baldazzi.fr',
     'http://rcm.baldazzi.fr',
-    'http://localhost:3000'
+    'http://localhost:3000',
+    'http://dev.rcmplay-reparation.lu',
+    'https://dev.rcmplay-reparation.lu',
+    'http://rcmplay-reparation.lu',
+    'https://rcmplay-reparation.lu'
   ].filter(Boolean);
   
   // Utiliser setHeader pour forcer l'envoi des headers
@@ -86,7 +90,11 @@ const handleUploadError = (err, req, res, next) => {
     process.env.FRONTEND_URL || 'http://localhost:3000',
     'https://rcm.baldazzi.fr',
     'http://rcm.baldazzi.fr',
-    'http://localhost:3000'
+    'http://localhost:3000',
+    'http://dev.rcmplay-reparation.lu',
+    'https://dev.rcmplay-reparation.lu',
+    'http://rcmplay-reparation.lu',
+    'https://rcmplay-reparation.lu'
   ].filter(Boolean);
   
   if (origin && allowedOrigins.includes(origin)) {
@@ -101,7 +109,7 @@ const handleUploadError = (err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {
       return res.status(413).json({ 
-        error: 'Fichier trop volumineux. Taille maximale : 20MB' 
+        error: 'Fichier trop volumineux. Taille maximale : 50MB' 
       });
     }
     if (err.code === 'LIMIT_FILE_COUNT') {

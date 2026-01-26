@@ -381,7 +381,10 @@ export default function PromotionDetailPage() {
                               borderRadius: '8px',
                               boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                             }}
-                            formatter={(value: number) => [`${value.toFixed(2)} €`, 'Réduction']}
+                            formatter={(value: any) => {
+                              const numValue = typeof value === 'number' ? value : parseFloat(value) || 0;
+                              return [`${numValue.toFixed(2)} €`, 'Réduction'];
+                            }}
                           />
                           <Bar 
                             dataKey="discount" 

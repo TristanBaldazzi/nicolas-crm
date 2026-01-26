@@ -354,7 +354,10 @@ export default function CartStatsPage() {
                     padding: '8px 12px',
                     fontSize: '12px'
                   }}
-                  formatter={(value: number) => `${value.toFixed(2)} €`}
+                  formatter={(value: any) => {
+                    const numValue = typeof value === 'number' ? value : parseFloat(value) || 0;
+                    return `${numValue.toFixed(2)} €`;
+                  }}
                 />
                 <Bar dataKey="total" fill="#3B82F6" radius={[8, 8, 0, 0]} />
               </BarChart>

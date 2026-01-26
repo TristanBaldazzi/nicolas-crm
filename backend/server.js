@@ -49,7 +49,11 @@ const allowedOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:3000',
   'https://rcm.baldazzi.fr',
   'http://rcm.baldazzi.fr',
-  'http://localhost:3000'
+  'http://localhost:3000',
+  'http://dev.rcmplay-reparation.lu',
+  'https://dev.rcmplay-reparation.lu',
+  'http://rcmplay-reparation.lu',
+  'https://rcmplay-reparation.lu'
 ].filter(Boolean);
 
 app.use(cors({
@@ -97,7 +101,11 @@ app.use((req, res, next) => {
     process.env.FRONTEND_URL || 'http://localhost:3000',
     'https://rcm.baldazzi.fr',
     'http://rcm.baldazzi.fr',
-    'http://localhost:3000'
+    'http://localhost:3000',
+    'http://dev.rcmplay-reparation.lu',
+    'https://dev.rcmplay-reparation.lu',
+    'http://rcmplay-reparation.lu',
+    'https://rcmplay-reparation.lu'
   ].filter(Boolean);
   
   // Utiliser setHeader pour forcer l'envoi des headers
@@ -119,13 +127,119 @@ app.use((req, res, next) => {
   next();
 });
 
+// Middleware pour intercepter les erreurs 413 avant le body parser
+app.use((req, res, next) => {
+  // Sauvegarder la fonction send originale
+  const originalSend = res.send;
+  
+  // Intercepter les réponses d'erreur
+  res.send = function(body) {
+    // Si c'est une erreur 413, ajouter les headers CORS
+    if (res.statusCode === 413) {
+      const origin = req.headers.origin;
+      const allowedOrigins = [
+        process.env.FRONTEND_URL || 'http://localhost:3000',
+        'https://rcm.baldazzi.fr',
+        'http://rcm.baldazzi.fr',
+        'http://localhost:3000',
+        'http://dev.rcmplay-reparation.lu',
+        'https://dev.rcmplay-reparation.lu',
+        'http://rcmplay-reparation.lu',
+        'https://rcmplay-reparation.lu'
+      ].filter(Boolean);
+      
+      if (origin && allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+      } else if (allowedOrigins.length > 0) {
+        res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0]);
+      }
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    }
+    return originalSend.call(this, body);
+  };
+  
+  next();
+});
+
 // Body parser avec limites augmentées pour les uploads
-app.use(express.json({ limit: '100mb' }));
-app.use(express.urlencoded({ extended: true, limit: '100mb' }));
+// Intercepter les erreurs 413 du body parser
+const jsonParser = express.json({ limit: '100mb' });
+const urlencodedParser = express.urlencoded({ extended: true, limit: '100mb' });
+
+app.use((req, res, next) => {
+  jsonParser(req, res, (err) => {
+    if (err && (err.status === 413 || err.statusCode === 413 || err.type === 'entity.too.large')) {
+      // Ajouter les headers CORS avant de renvoyer l'erreur
+      const origin = req.headers.origin;
+      const allowedOrigins = [
+        process.env.FRONTEND_URL || 'http://localhost:3000',
+        'https://rcm.baldazzi.fr',
+        'http://rcm.baldazzi.fr',
+        'http://localhost:3000',
+        'http://dev.rcmplay-reparation.lu',
+        'https://dev.rcmplay-reparation.lu',
+        'http://rcmplay-reparation.lu',
+        'https://rcmplay-reparation.lu'
+      ].filter(Boolean);
+      
+      if (origin && allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+      } else if (allowedOrigins.length > 0) {
+        res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0]);
+      }
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+      
+      return res.status(413).json({ 
+        error: 'Fichier ou payload trop volumineux. Taille maximale : 100MB' 
+      });
+    }
+    if (err) return next(err);
+    urlencodedParser(req, res, (err2) => {
+      if (err2 && (err2.status === 413 || err2.statusCode === 413 || err2.type === 'entity.too.large')) {
+        // Ajouter les headers CORS avant de renvoyer l'erreur
+        const origin = req.headers.origin;
+        const allowedOrigins = [
+          process.env.FRONTEND_URL || 'http://localhost:3000',
+          'https://rcm.baldazzi.fr',
+          'http://rcm.baldazzi.fr',
+          'http://localhost:3000',
+          'http://dev.rcmplay-reparation.lu',
+          'https://dev.rcmplay-reparation.lu',
+          'http://rcmplay-reparation.lu',
+          'https://rcmplay-reparation.lu'
+        ].filter(Boolean);
+        
+        if (origin && allowedOrigins.includes(origin)) {
+          res.setHeader('Access-Control-Allow-Origin', origin);
+        } else if (allowedOrigins.length > 0) {
+          res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0]);
+        }
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+        
+        return res.status(413).json({ 
+          error: 'Fichier ou payload trop volumineux. Taille maximale : 100MB' 
+        });
+      }
+      if (err2) return next(err2);
+      next();
+    });
+  });
+});
 
 // Servir les fichiers statiques (images uploadées) avec headers CORS
 app.use('/uploads', (req, res, next) => {
-  res.header('Access-Control-Allow-Origin', process.env.FRONTEND_URL || 'http://localhost:3000');
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else if (allowedOrigins.length > 0) {
+    res.header('Access-Control-Allow-Origin', allowedOrigins[0]);
+  }
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Cross-Origin-Resource-Policy', 'cross-origin');
   next();
@@ -133,7 +247,12 @@ app.use('/uploads', (req, res, next) => {
 
 // Servir les fichiers de contact
 app.use('/uploads/contact', (req, res, next) => {
-  res.header('Access-Control-Allow-Origin', process.env.FRONTEND_URL || 'http://localhost:3000');
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else if (allowedOrigins.length > 0) {
+    res.header('Access-Control-Allow-Origin', allowedOrigins[0]);
+  }
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Cross-Origin-Resource-Policy', 'cross-origin');
   next();
@@ -141,7 +260,12 @@ app.use('/uploads/contact', (req, res, next) => {
 
 // Servir les fichiers clients
 app.use('/uploads/client-files', (req, res, next) => {
-  res.header('Access-Control-Allow-Origin', process.env.FRONTEND_URL || 'http://localhost:3000');
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else if (allowedOrigins.length > 0) {
+    res.header('Access-Control-Allow-Origin', allowedOrigins[0]);
+  }
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Cross-Origin-Resource-Policy', 'cross-origin');
   next();
@@ -149,7 +273,12 @@ app.use('/uploads/client-files', (req, res, next) => {
 
 // Servir les fichiers produits
 app.use('/uploads/product-files', (req, res, next) => {
-  res.header('Access-Control-Allow-Origin', process.env.FRONTEND_URL || 'http://localhost:3000');
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else if (allowedOrigins.length > 0) {
+    res.header('Access-Control-Allow-Origin', allowedOrigins[0]);
+  }
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Cross-Origin-Resource-Policy', 'cross-origin');
   next();
@@ -187,7 +316,11 @@ app.use((err, req, res, next) => {
     process.env.FRONTEND_URL || 'http://localhost:3000',
     'https://rcm.baldazzi.fr',
     'http://rcm.baldazzi.fr',
-    'http://localhost:3000'
+    'http://localhost:3000',
+    'http://dev.rcmplay-reparation.lu',
+    'https://dev.rcmplay-reparation.lu',
+    'http://rcmplay-reparation.lu',
+    'https://rcmplay-reparation.lu'
   ].filter(Boolean);
   
   if (origin && allowedOrigins.includes(origin)) {
