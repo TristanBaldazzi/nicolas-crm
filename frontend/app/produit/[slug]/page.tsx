@@ -355,8 +355,23 @@ export default function ProductPage() {
                   <div className="flex items-center gap-1.5">
                     <span className="text-gray-500 font-normal">Catégorie:</span>
                     <span className="font-bold text-gray-900">
-                      {product.category.name}
-                      {product.subCategory && ` / ${product.subCategory.name}`}
+                      <Link
+                        href={`/catalogue?category=${product.category._id}`}
+                        className="text-gray-900 hover:text-gray-600 hover:underline transition-colors"
+                      >
+                        {product.category.name}
+                      </Link>
+                      {product.subCategory && (
+                        <>
+                          <span className="text-gray-400 mx-0.5">/</span>
+                          <Link
+                            href={`/catalogue?subCategory=${product.subCategory._id}`}
+                            className="text-gray-900 hover:text-gray-600 hover:underline transition-colors"
+                          >
+                            {product.subCategory.name}
+                          </Link>
+                        </>
+                      )}
                     </span>
                   </div>
                 )}

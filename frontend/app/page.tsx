@@ -447,8 +447,8 @@ export default function HomePage() {
                       <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-green-600 transition-colors line-clamp-2">
                         {product.name}
                       </h3>
-                      <p className="text-gray-600 mb-6 line-clamp-2 leading-relaxed">
-                        {product.shortDescription}
+                      <p className="text-gray-600 mb-6 line-clamp-4 leading-relaxed">
+                        {product.shortDescription || (product.description && product.description.slice(0, 200) + (product.description.length > 200 ? '…' : ''))}
                       </p>
                       <div className="flex items-center justify-between pt-6 border-t border-gray-100">
                         <div className="flex flex-col gap-0.5">

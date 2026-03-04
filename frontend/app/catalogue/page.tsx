@@ -43,32 +43,42 @@ function CataloguePageContent() {
     // Ne s'exécuter qu'une seule fois quand les marques sont chargées
     if (initialized || !brandsLoaded) return;
 
+    const categoryParam = searchParams.get('category');
+    const subCategoryParam = searchParams.get('subCategory');
     const brandParam = searchParams.get('brand');
-    
+
+    const updates: Partial<typeof filters> = {};
+
+    if (categoryParam && /^[0-9a-fA-F]{24}$/.test(categoryParam)) {
+      updates.category = categoryParam;
+    }
+    if (subCategoryParam && /^[0-9a-fA-F]{24}$/.test(subCategoryParam)) {
+      updates.subCategory = subCategoryParam;
+    }
+
     // Si on a un paramètre brand dans l'URL et des marques chargées
     if (brandParam && brands.length > 0) {
-      // Vérifier si c'est déjà un ID (format ObjectId)
       const isObjectId = /^[0-9a-fA-F]{24}$/.test(brandParam);
-      
       if (isObjectId) {
-        // C'est déjà un ID, vérifier qu'il existe
         const foundBrand = brands.find((b) => b._id === brandParam);
         if (foundBrand) {
-          setFilters((prev) => ({ ...prev, brand: brandParam }));
+          updates.brand = brandParam;
         }
       } else {
-        // C'est un nom, chercher la marque par son nom (insensible à la casse)
         const foundBrand = brands.find(
           (b) => b.name.toLowerCase() === brandParam.toLowerCase()
         );
         if (foundBrand) {
-          setFilters((prev) => ({ ...prev, brand: foundBrand._id }));
-          // Mettre à jour l'URL pour utiliser l'ID au lieu du nom
+          updates.brand = foundBrand._id;
           const params = new URLSearchParams(searchParams.toString());
           params.set('brand', foundBrand._id);
           router.replace(`/catalogue?${params.toString()}`, { scroll: false });
         }
       }
+    }
+
+    if (Object.keys(updates).length > 0) {
+      setFilters((prev) => ({ ...prev, ...updates }));
     }
     
     // Marquer comme initialisé (même si pas de marque dans l'URL ou pas de marques chargées)
@@ -458,9 +468,9 @@ function CataloguePageContent() {
                       <h3 className="font-bold text-xl text-gray-900 mb-3 line-clamp-2 group-hover:text-green-600 transition-colors leading-tight">
                         {product.name}
                       </h3>
-                      {product.shortDescription && (
-                        <p className="text-sm text-gray-600 mb-6 line-clamp-2 leading-relaxed flex-1">
-                          {product.shortDescription}
+                      {(product.shortDescription || product.description) && (
+                        <p className="text-sm text-gray-600 mb-6 line-clamp-4 leading-relaxed flex-1">
+                          {product.shortDescription || (product.description?.slice(0, 250) + (product.description?.length > 250 ? '…' : ''))}
                         </p>
                       )}
                       

@@ -82,6 +82,13 @@ export const productsApi = {
     api.delete(`/products/${id}`),
   generateAI: (description: string) =>
     api.post('/products/generate-ai', { description }),
+  createFromDocument: (file: File) => {
+    const formData = new FormData();
+    formData.append('document', file);
+    return api.post('/products/from-document', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
   aiSearch: (query: string) =>
     api.post('/products/ai-search', { query }),
   importPreview: (file: File) => {
@@ -97,6 +104,14 @@ export const productsApi = {
     formData.append('columnMapping', JSON.stringify(columnMapping));
     return api.post('/products/import', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  export: (params?: { category?: string; subCategory?: string; brand?: string; search?: string; includeInactive?: boolean }) => {
+    const p = { ...params };
+    if (p.includeInactive) (p as any).includeInactive = 'true';
+    return api.get('/products/export', {
+      params: p,
+      responseType: 'blob',
     });
   },
 };
@@ -260,6 +275,8 @@ export const productSpecsApi = {
     api.get('/product-specs'),
   create: (data: any) =>
     api.post('/product-specs', data),
+  update: (id: string, data: { name?: string; type?: string; order?: number }) =>
+    api.put(`/product-specs/${id}`, data),
   delete: (id: string) =>
     api.delete(`/product-specs/${id}`),
   updateOrder: (id: string, order: number) =>

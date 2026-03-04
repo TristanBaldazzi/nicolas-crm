@@ -33,6 +33,8 @@ export default function AdminProductsPage() {
   const [newBrandName, setNewBrandName] = useState('');
   const [specSearch, setSpecSearch] = useState('');
   const [brandSearch, setBrandSearch] = useState('');
+  const [editingSpecId, setEditingSpecId] = useState<string | null>(null);
+  const [editingSpecName, setEditingSpecName] = useState('');
   const [showImportModal, setShowImportModal] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importPreview, setImportPreview] = useState<any>(null);
@@ -42,6 +44,7 @@ export default function AdminProductsPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [importResults, setImportResults] = useState<any>(null);
   const [selectedImage, setSelectedImage] = useState<{ url: string; alt: string } | null>(null);
+  const [exportLoading, setExportLoading] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -219,6 +222,32 @@ export default function AdminProductsPage() {
     }
   };
 
+  const handleStartEditSpec = (spec: { _id: string; name: string }) => {
+    setEditingSpecId(spec._id);
+    setEditingSpecName(spec.name);
+  };
+
+  const handleCancelEditSpec = () => {
+    setEditingSpecId(null);
+    setEditingSpecName('');
+  };
+
+  const handleSaveSpecName = async () => {
+    if (!editingSpecId || !editingSpecName.trim()) {
+      toast.error('Le nom ne peut pas être vide');
+      return;
+    }
+    try {
+      await productSpecsApi.update(editingSpecId, { name: editingSpecName.trim() });
+      toast.success('Nom modifié');
+      setEditingSpecId(null);
+      setEditingSpecName('');
+      loadData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erreur lors de la modification');
+    }
+  };
+
   const handleAddBrand = async () => {
     if (!newBrandName.trim()) {
       toast.error('Le nom de la marque est requis');
@@ -389,6 +418,31 @@ export default function AdminProductsPage() {
     }
   };
 
+  const handleExport = async () => {
+    setExportLoading(true);
+    try {
+      const params: Record<string, string | boolean> = { includeInactive: true };
+      if (categoryFilter) params.category = categoryFilter;
+      if (brandFilter) params.brand = brandFilter;
+      if (search) params.search = search;
+      const response = await productsApi.export(params);
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `produits-export-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      toast.success('Export Excel téléchargé');
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Erreur lors de l'export");
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
   const resetImport = () => {
     setImportFile(null);
     setImportPreview(null);
@@ -414,53 +468,71 @@ export default function AdminProductsPage() {
             <p className="text-gray-600 mt-1">{allProducts.length} produit{allProducts.length > 1 ? 's' : ''} au total</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200 p-1 shadow-sm">
-            <button
-              onClick={() => {
-                setShowSpecsManager(true);
-                loadData();
-              }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-50 text-blue-700 hover:text-blue-800 transition-all"
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200 p-1 shadow-sm">
+              <button
+                onClick={() => {
+                  setShowSpecsManager(true);
+                  loadData();
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-50 text-blue-700 hover:text-blue-800 transition-all"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Caractéristiques
+              </button>
+              <div className="w-px h-6 bg-gray-200"></div>
+              <button
+                onClick={() => {
+                  setShowBrandsManager(true);
+                  loadData();
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-purple-50 text-purple-700 hover:text-purple-800 transition-all"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+                Marques
+              </button>
+            </div>
+            <Link
+              href="/admin/produits/nouveau"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:from-green-700 hover:to-green-800 transition-all shadow-md hover:shadow-lg"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
-              Caractéristiques
+              Nouveau produit
+            </Link>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:from-blue-700 hover:to-blue-800 transition-all shadow-md hover:shadow-lg"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              Importer Excel
             </button>
-            <div className="w-px h-6 bg-gray-200"></div>
             <button
-              onClick={() => {
-                setShowBrandsManager(true);
-                loadData();
-              }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-purple-50 text-purple-700 hover:text-purple-800 transition-all"
+              onClick={handleExport}
+              disabled={exportLoading || allProducts.length === 0}
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:from-emerald-700 hover:to-emerald-800 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-              </svg>
-              Marques
+              {exportLoading ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              )}
+              Exporter Excel
             </button>
           </div>
-          <button
-            onClick={() => setShowImportModal(true)}
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:from-blue-700 hover:to-blue-800 transition-all shadow-md hover:shadow-lg"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-            </svg>
-            Importer Excel
-          </button>
-          <Link
-            href="/admin/produits/nouveau"
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:from-green-700 hover:to-green-800 transition-all shadow-md hover:shadow-lg"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Nouveau produit
-          </Link>
         </div>
       </div>
 
@@ -594,20 +666,68 @@ export default function AdminProductsPage() {
                                 </svg>
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="font-semibold text-gray-900 truncate">{spec.name}</div>
-                                <div className="text-xs text-gray-500">Type: {spec.type || 'text'}</div>
+                                {editingSpecId === spec._id ? (
+                                  <div className="flex flex-col gap-2">
+                                    <input
+                                      type="text"
+                                      value={editingSpecName}
+                                      onChange={(e) => setEditingSpecName(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveSpecName();
+                                        if (e.key === 'Escape') handleCancelEditSpec();
+                                      }}
+                                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-100"
+                                      autoFocus
+                                    />
+                                    <div className="flex gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={handleSaveSpecName}
+                                        className="text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 px-2.5 py-1 rounded"
+                                      >
+                                        Enregistrer
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={handleCancelEditSpec}
+                                        className="text-xs font-semibold text-gray-600 bg-gray-200 hover:bg-gray-300 px-2.5 py-1 rounded"
+                                      >
+                                        Annuler
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <div className="font-semibold text-gray-900 truncate">{spec.name}</div>
+                                    <div className="text-xs text-gray-500">Type: {spec.type || 'text'}</div>
+                                  </>
+                                )}
                               </div>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteSpec(spec._id, spec.name)}
-                              className="text-red-600 hover:bg-red-50 p-2 rounded-lg transition-all flex-shrink-0 opacity-0 group-hover:opacity-100"
-                              title="Supprimer cette caractéristique"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
+                            {editingSpecId !== spec._id && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleStartEditSpec(spec)}
+                                  className="text-blue-600 hover:bg-blue-50 p-2 rounded-lg transition-all flex-shrink-0 opacity-0 group-hover:opacity-100"
+                                  title="Modifier le nom"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteSpec(spec._id, spec.name)}
+                                  className="text-red-600 hover:bg-red-50 p-2 rounded-lg transition-all flex-shrink-0 opacity-0 group-hover:opacity-100"
+                                  title="Supprimer cette caractéristique"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -625,6 +745,8 @@ export default function AdminProductsPage() {
                 onClick={() => {
                   setShowSpecsManager(false);
                   setSpecSearch('');
+                  setEditingSpecId(null);
+                  setEditingSpecName('');
                 }}
                 className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 transition-all"
               >

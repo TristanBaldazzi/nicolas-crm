@@ -15,6 +15,7 @@ import Brand from '../models/Brand.js';
 import ProductSpec from '../models/ProductSpec.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
 import OpenAI from 'openai';
+import { PDFParse } from 'pdf-parse';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -53,6 +54,40 @@ const excelUpload = multer({
       cb(null, true);
     } else {
       cb(new Error('Seuls les fichiers Excel (.xlsx, .xls) ou CSV sont autorisés'));
+    }
+  }
+});
+
+// Dossier pour uploads document (PDF / image) → création produit IA
+const documentUploadsDir = path.join(__dirname, '../uploads/product-documents');
+if (!fs.existsSync(documentUploadsDir)) {
+  fs.mkdirSync(documentUploadsDir, { recursive: true });
+}
+
+const documentStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, documentUploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const documentUpload = multer({
+  storage: documentStorage,
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const allowedImages = ['.jpg', '.jpeg', '.png', '.webp'];
+    const allowedPdf = ['.pdf'];
+    const isImage = allowedImages.includes(ext);
+    const isPdf = allowedPdf.includes(ext);
+    const mimetypeOk = isImage || (isPdf && file.mimetype === 'application/pdf');
+    if ((isImage || isPdf) && mimetypeOk) {
+      cb(null, true);
+    } else {
+      cb(new Error('Seuls les fichiers PDF ou images (JPEG, PNG, WebP) sont autorisés'));
     }
   }
 });
@@ -312,6 +347,134 @@ router.get('/specifications/unique', async (req, res) => {
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Exporter les produits en Excel (admin)
+router.get('/export', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const {
+      category,
+      subCategory,
+      brand,
+      search,
+      includeInactive = 'false'
+    } = req.query;
+
+    const query = includeInactive === 'true' ? {} : { isActive: true };
+
+    if (subCategory) {
+      query.category = subCategory;
+    } else if (category) {
+      const categoryDoc = await Category.findById(category);
+      if (categoryDoc && !categoryDoc.parentCategory) {
+        const subCategories = await Category.find({ parentCategory: category, isActive: true }).select('_id');
+        const subCategoryIds = subCategories.map(sub => sub._id);
+        query.category = { $in: [category, ...subCategoryIds] };
+      } else {
+        query.category = category;
+      }
+    }
+    if (brand) {
+      query.brand = brand;
+    }
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { sku: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const [products, productSpecs] = await Promise.all([
+      Product.find(query)
+        .populate('category', 'name')
+        .populate('subCategory', 'name')
+        .populate('brand', 'name')
+        .sort({ createdAt: -1 })
+        .lean(),
+      ProductSpec.find().sort({ order: 1, name: 1 }).select('name').lean()
+    ]);
+
+    const baseUrl = process.env.API_URL || process.env.FRONTEND_URL || 'http://localhost:5000';
+    const getImageUrls = (images) => {
+      if (!images || !Array.isArray(images) || images.length === 0) return '';
+      return images
+        .sort((a, b) => (a.order || 0) - (b.order || 0))
+        .map(img => {
+          const url = img.url || '';
+          return url.startsWith('http') ? url : `${baseUrl.replace(/\/$/, '')}${url.startsWith('/') ? '' : '/'}${url}`;
+        })
+        .join('; ');
+    };
+
+    const headers = [
+      'Nom',
+      'Description courte',
+      'Description',
+      'Code barre',
+      'Prix HTVA',
+      'Marque',
+      'Catégorie',
+      'Sous-catégorie',
+      'Stock',
+      'En stock',
+      'En vedette',
+      'Best Seller',
+      ...productSpecs.map(s => s.name),
+      'Images'
+    ];
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Produits', {
+      headerFooter: { firstHeader: 'Produits exportés' }
+    });
+
+    worksheet.addRow(headers);
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4472C4' }
+    };
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+
+    for (const p of products) {
+      const specs = p.specifications instanceof Map
+        ? Object.fromEntries(p.specifications)
+        : (p.specifications || {});
+      const row = [
+        p.name || '',
+        p.shortDescription || '',
+        p.description || '',
+        p.sku || '',
+        p.price ?? '',
+        p.brand?.name || '',
+        p.category?.name || '',
+        p.subCategory?.name || '',
+        p.stock ?? 0,
+        p.isInStock ? 'Oui' : 'Non',
+        p.isFeatured ? 'Oui' : 'Non',
+        p.isBestSeller ? 'Oui' : 'Non',
+        ...productSpecs.map(s => specs[s.name] !== undefined && specs[s.name] !== null && specs[s.name] !== '' ? String(specs[s.name]) : ''),
+        getImageUrls(p.images)
+      ];
+      worksheet.addRow(row);
+    }
+
+    worksheet.columns.forEach((col, i) => {
+      col.width = Math.min(Math.max(headers[i]?.length || 10, 12), 50);
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="produits-export-${new Date().toISOString().slice(0, 10)}.xlsx"`);
+    res.send(Buffer.from(buffer));
+  } catch (error) {
+    console.error('Erreur export Excel:', error);
+    res.status(500).json({ error: error.message || 'Erreur lors de l\'export' });
   }
 });
 
@@ -1084,6 +1247,314 @@ Retourne UNIQUEMENT un objet JSON valide avec cette structure exacte (sans markd
   } catch (error) {
     console.error('Erreur génération IA:', error);
     res.status(500).json({ error: error.message || 'Erreur lors de la génération IA' });
+  }
+});
+
+// Créer un produit à partir d'un document (PDF ou image) avec l'IA
+router.post('/from-document', authenticate, requireAdmin, documentUpload.single('document'), async (req, res) => {
+  let filePathToClean = null;
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Aucun fichier fourni. Envoyez un PDF ou une image (JPEG, PNG, WebP).' });
+    }
+
+    filePathToClean = req.file.path;
+    const ext = path.extname(req.file.originalname).toLowerCase();
+    const isImage = ['.jpg', '.jpeg', '.png', '.webp'].includes(ext);
+    const isPdf = ext === '.pdf';
+
+    if (!process.env.OPENAI_API_KEY) {
+      if (fs.existsSync(filePathToClean)) fs.unlinkSync(filePathToClean);
+      return res.status(500).json({ error: 'OpenAI API key non configurée' });
+    }
+
+    const [categories, brands, specs] = await Promise.all([
+      Category.find({ isActive: true }).select('name slug parentCategory isMainCategory'),
+      Brand.find().select('name'),
+      ProductSpec.find().select('name type')
+    ]);
+
+    const mainCategories = categories.filter(c => c.isMainCategory || !c.parentCategory);
+    const subCategories = categories.filter(c => !c.isMainCategory && c.parentCategory);
+    const brandNames = brands.map(b => b.name);
+    const specNames = specs.map(s => s.name);
+
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    const systemPrompt = 'Tu es un assistant expert en création de fiches produits e-commerce. Tu retournes UNIQUEMENT du JSON valide, sans markdown, sans code blocks, sans explications. Réponds toujours avec un objet JSON valide.';
+    const jsonSchemaPrompt = `
+Retourne UNIQUEMENT un objet JSON valide avec cette structure exacte (sans markdown, sans code blocks):
+{
+  "name": "Nom du produit",
+  "shortDescription": "Description courte (max 200 caractères)",
+  "description": "Description complète et détaillée",
+  "price": nombre ou null,
+  "sku": "référence produit" ou null,
+  "brand": "nom de la marque exacte si trouvée dans la liste" ou null,
+  "category": "nom de la catégorie principale exacte si trouvée" ou null,
+  "subCategory": "nom de la sous-catégorie exacte si trouvée" ou null,
+  "stock": nombre ou null,
+  "isInStock": true ou false,
+  "isFeatured": false,
+  "isBestSeller": false,
+  "specifications": {
+    "nom_caracteristique": "valeur" ou nombre ou boolean selon le type
+  }
+}
+
+Règles: Si une catégorie ou marque correspond exactement (ou très proche) à une option disponible, utilise-la. Sinon laisse null. Remplis UNIQUEMENT les caractéristiques dans la liste disponible. Pour type number retourne un nombre.`;
+
+    let generatedData;
+
+    if (isImage) {
+      const imageBuffer = fs.readFileSync(req.file.path);
+      const base64Image = imageBuffer.toString('base64');
+      const mimeType = req.file.mimetype || 'image/jpeg';
+
+      const userContent = [
+        {
+          type: 'text',
+          text: `Analyse cette image de fiche produit ou de produit et extrais toutes les informations visibles (nom, description, prix, référence, caractéristiques, marque, etc.).
+
+Catégories principales disponibles: ${mainCategories.map(c => c.name).join(', ') || 'Aucune'}
+Sous-catégories disponibles: ${subCategories.map(c => c.name).join(', ') || 'Aucune'}
+Marques disponibles: ${brandNames.join(', ') || 'Aucune'}
+Caractéristiques disponibles: ${specNames.join(', ') || 'Aucune'}
+
+${jsonSchemaPrompt}`
+        },
+        {
+          type: 'image_url',
+          image_url: {
+            url: `data:${mimeType};base64,${base64Image}`,
+            detail: 'high'
+          }
+        }
+      ];
+
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userContent }
+        ],
+        temperature: 0.3,
+        response_format: { type: 'json_object' },
+        max_tokens: 4096
+      });
+
+      const content = completion.choices[0].message.content;
+      const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      generatedData = JSON.parse(cleanedContent);
+    } else if (isPdf) {
+      const buffer = fs.readFileSync(req.file.path);
+      const parser = new PDFParse({ data: buffer });
+      const result = await parser.getText();
+      await parser.destroy();
+      const text = (result.text || '').trim();
+      if (!text) {
+        if (fs.existsSync(filePathToClean)) fs.unlinkSync(filePathToClean);
+        return res.status(400).json({ error: 'Impossible d\'extraire du texte de ce PDF. Vérifiez que le fichier n\'est pas scanné (image) ou protégé.' });
+      }
+
+      const prompt = `Tu es un assistant expert en création de fiches produits e-commerce. À partir du texte extrait d'un document produit (PDF), génère une fiche produit complète au format JSON strict.
+
+Texte extrait du document:
+${text.slice(0, 12000)}
+
+Catégories principales disponibles: ${mainCategories.map(c => c.name).join(', ') || 'Aucune'}
+Sous-catégories disponibles: ${subCategories.map(c => c.name).join(', ') || 'Aucune'}
+Marques disponibles: ${brandNames.join(', ') || 'Aucune'}
+Caractéristiques disponibles: ${specNames.join(', ') || 'Aucune'}
+
+${jsonSchemaPrompt}`;
+
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.3,
+        response_format: { type: 'json_object' }
+      });
+
+      const content = completion.choices[0].message.content;
+      const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      generatedData = JSON.parse(cleanedContent);
+    } else {
+      if (fs.existsSync(filePathToClean)) fs.unlinkSync(filePathToClean);
+      return res.status(400).json({ error: 'Type de fichier non supporté' });
+    }
+
+    // Mapper catégorie, sous-catégorie, marque vers IDs
+    let categoryId = null;
+    let subCategoryId = null;
+    let brandId = null;
+
+    if (generatedData.category) {
+      const matched = mainCategories.find(
+        c => c.name.toLowerCase() === generatedData.category.toLowerCase()
+      );
+      if (matched) categoryId = matched._id.toString();
+    }
+    if (!categoryId && mainCategories.length > 0) {
+      categoryId = mainCategories[0]._id.toString();
+    }
+
+    if (generatedData.subCategory) {
+      const matched = subCategories.find(
+        c => c.name.toLowerCase() === generatedData.subCategory.toLowerCase()
+      );
+      if (matched) subCategoryId = matched._id.toString();
+    }
+
+    if (generatedData.brand) {
+      const matched = brands.find(
+        b => b.name.toLowerCase() === generatedData.brand.toLowerCase()
+      );
+      if (matched) brandId = matched._id.toString();
+    }
+
+    const cleanedSpecs = {};
+    if (generatedData.specifications && typeof generatedData.specifications === 'object') {
+      specs.forEach(spec => {
+        const specName = spec.name;
+        if (generatedData.specifications[specName] !== undefined &&
+            generatedData.specifications[specName] !== null &&
+            generatedData.specifications[specName] !== '') {
+          if (spec.type === 'number') {
+            const numValue = parseFloat(generatedData.specifications[specName]);
+            if (!isNaN(numValue)) cleanedSpecs[specName] = numValue;
+          } else if (spec.type === 'boolean') {
+            cleanedSpecs[specName] = Boolean(generatedData.specifications[specName]);
+          } else {
+            cleanedSpecs[specName] = String(generatedData.specifications[specName]);
+          }
+        }
+      });
+    }
+
+    const uploadsDir = path.join(__dirname, '../uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    let productImages = [];
+    if (isImage) {
+      const imageBuffer = fs.readFileSync(req.file.path);
+      const extName = path.extname(req.file.originalname).replace('.', '') || 'jpg';
+      const imageInfo = await saveImageFromBuffer(imageBuffer, extName, uploadsDir);
+      productImages = [{
+        url: imageInfo.url,
+        alt: generatedData.name || '',
+        order: 0,
+        isPrimary: true
+      }];
+    }
+
+    const name = (generatedData.name || '').trim() || 'Produit importé (à compléter)';
+    const priceNum = typeof generatedData.price === 'number' && !isNaN(generatedData.price)
+      ? generatedData.price
+      : parseFloat(generatedData.price);
+    const price = (typeof priceNum === 'number' && !isNaN(priceNum) && priceNum >= 0) ? priceNum : 0;
+
+    if (!categoryId) {
+      if (fs.existsSync(filePathToClean)) fs.unlinkSync(filePathToClean);
+      return res.status(400).json({
+        error: 'Catégorie obligatoire',
+        extracted: {
+          name,
+          description: generatedData.description || '',
+          shortDescription: generatedData.shortDescription || '',
+          sku: generatedData.sku || '',
+          price: price.toString(),
+          brand: brandId || '',
+          category: '',
+          subCategory: subCategoryId || '',
+          stock: (generatedData.stock != null ? generatedData.stock : '').toString(),
+          isInStock: generatedData.isInStock !== undefined ? generatedData.isInStock : true,
+          isFeatured: generatedData.isFeatured || false,
+          isBestSeller: generatedData.isBestSeller || false,
+          specifications: cleanedSpecs,
+          images: productImages
+        }
+      });
+    }
+
+    const baseSlug = name.toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+    const slug = await generateUniqueSlug(baseSlug);
+
+    const product = new Product({
+      name,
+      slug,
+      description: generatedData.description || '',
+      shortDescription: (generatedData.shortDescription || '').slice(0, 200),
+      sku: generatedData.sku || undefined,
+      price,
+      brand: brandId || null,
+      category: categoryId,
+      subCategory: subCategoryId || null,
+      images: productImages,
+      stock: generatedData.stock != null ? Number(generatedData.stock) : 0,
+      isInStock: generatedData.isInStock !== undefined ? generatedData.isInStock : true,
+      isFeatured: generatedData.isFeatured || false,
+      metaTitle: null,
+      metaDescription: null,
+      tags: [],
+      specifications: cleanedSpecs
+    });
+
+    await product.save();
+
+    if (isPdf) {
+      const productFilesDir = path.join(__dirname, '../uploads/product-files');
+      if (!fs.existsSync(productFilesDir)) {
+        fs.mkdirSync(productFilesDir, { recursive: true });
+      }
+      const newFilename = `${product._id}-${path.basename(req.file.filename)}`;
+      const destPath = path.join(productFilesDir, newFilename);
+      fs.renameSync(req.file.path, destPath);
+      const ProductFile = (await import('../models/ProductFile.js')).default;
+      const productFile = new ProductFile({
+        product: product._id,
+        filename: newFilename,
+        originalName: req.file.originalname,
+        path: `/uploads/product-files/${newFilename}`,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+        uploadedBy: req.user.id
+      });
+      await productFile.save();
+    } else {
+      if (fs.existsSync(filePathToClean)) fs.unlinkSync(filePathToClean);
+    }
+
+    const populatedProduct = await Product.findById(product._id)
+      .populate('category', 'name slug')
+      .populate('subCategory', 'name slug');
+
+    const productObj = populatedProduct.toObject();
+    if (productObj.specifications && productObj.specifications instanceof Map) {
+      const specsObj = {};
+      productObj.specifications.forEach((value, key) => { specsObj[key] = value; });
+      productObj.specifications = specsObj;
+    }
+
+    res.status(201).json(productObj);
+  } catch (error) {
+    if (filePathToClean && fs.existsSync(filePathToClean)) {
+      try { fs.unlinkSync(filePathToClean); } catch (_) {}
+    }
+    console.error('Erreur création produit depuis document:', error);
+    if (error.message && error.message.includes('OpenAI')) {
+      return res.status(502).json({ error: 'Erreur lors de l\'analyse par l\'IA. Réessayez.' });
+    }
+    res.status(500).json({ error: error.message || 'Erreur lors de la création du produit depuis le document' });
   }
 });
 

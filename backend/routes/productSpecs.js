@@ -63,6 +63,64 @@ router.delete('/:id', authenticate, requireAdmin, async (req, res) => {
   }
 });
 
+// Modifier une caractéristique (admin) - nom, type, ordre. Si le nom change, met à jour les clés dans tous les produits.
+router.put('/:id', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const { name, type, order } = req.body;
+    const spec = await ProductSpec.findById(req.params.id);
+    if (!spec) {
+      return res.status(404).json({ error: 'Caractéristique non trouvée' });
+    }
+
+    const oldName = spec.name;
+    const updates = {};
+
+    if (name !== undefined && typeof name === 'string') {
+      const trimmed = name.trim();
+      if (!trimmed) {
+        return res.status(400).json({ error: 'Le nom ne peut pas être vide' });
+      }
+      if (trimmed !== oldName) {
+        const existing = await ProductSpec.findOne({ name: trimmed, _id: { $ne: spec._id } });
+        if (existing) {
+          return res.status(400).json({ error: 'Une autre caractéristique porte déjà ce nom' });
+        }
+        updates.name = trimmed;
+      }
+    }
+    if (type !== undefined && ['text', 'number', 'boolean'].includes(type)) {
+      updates.type = type;
+    }
+    if (order !== undefined && typeof order === 'number' && !isNaN(order)) {
+      updates.order = order;
+    }
+
+    if (updates.name && updates.name !== oldName) {
+      const products = await Product.find({ [`specifications.${oldName}`]: { $exists: true } });
+      for (const product of products) {
+        const value = product.specifications?.get?.(oldName);
+        if (value !== undefined) {
+          product.specifications.set(updates.name, value);
+          product.specifications.delete(oldName);
+          await product.save();
+        }
+      }
+    }
+
+    if (Object.keys(updates).length > 0) {
+      Object.assign(spec, updates);
+      await spec.save();
+    }
+
+    res.json(spec);
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ error: 'Cette caractéristique existe déjà' });
+    }
+    res.status(400).json({ error: error.message });
+  }
+});
+
 // Modifier l'ordre d'une caractéristique (admin)
 router.put('/:id/order', authenticate, requireAdmin, async (req, res) => {
   try {
@@ -84,8 +142,6 @@ router.put('/:id/order', authenticate, requireAdmin, async (req, res) => {
 });
 
 export default router;
-
-
 
 
 

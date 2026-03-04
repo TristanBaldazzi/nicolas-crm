@@ -22,6 +22,8 @@ export default function NewProductPage() {
   const [showAIModal, setShowAIModal] = useState(false);
   const [aiDescription, setAiDescription] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
+  const [documentUploading, setDocumentUploading] = useState(false);
+  const [documentDragOver, setDocumentDragOver] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -238,6 +240,50 @@ export default function NewProductPage() {
     }
   };
 
+  const handleDocumentUpload = async (file: File) => {
+    const ext = (file.name || '').toLowerCase();
+    const isPdf = ext.endsWith('.pdf');
+    const isImage = ['.jpg', '.jpeg', '.png', '.webp'].some((e) => ext.endsWith(e));
+    if (!isPdf && !isImage) {
+      toast.error('Format non supporté. Utilisez un PDF ou une image (JPEG, PNG, WebP).');
+      return;
+    }
+    setDocumentUploading(true);
+    try {
+      const res = await productsApi.createFromDocument(file);
+      const product = res.data;
+      toast.success('Produit créé à partir du document avec succès.');
+      router.push(`/admin/produits/${product._id}/edit`);
+    } catch (error: any) {
+      const msg = error.response?.data?.error || error.message || "Erreur lors de l'analyse du document.";
+      const extracted = error.response?.data?.extracted;
+      if (extracted) {
+        setFormData({
+          name: extracted.name || '',
+          description: extracted.description || '',
+          shortDescription: extracted.shortDescription || '',
+          sku: extracted.sku || '',
+          price: extracted.price?.toString() || '',
+          brand: extracted.brand || '',
+          category: extracted.category || '',
+          subCategory: extracted.subCategory || '',
+          stock: extracted.stock?.toString() || '',
+          isInStock: extracted.isInStock !== undefined ? extracted.isInStock : true,
+          isActive: true,
+          isFeatured: extracted.isFeatured || false,
+          isBestSeller: extracted.isBestSeller || false,
+          images: extracted.images || [],
+          specifications: extracted.specifications || {},
+        });
+        toast.error('Sélectionnez une catégorie puis cliquez sur "Créer le produit".');
+      } else {
+        toast.error(msg, { duration: 6000 });
+      }
+    } finally {
+      setDocumentUploading(false);
+    }
+  };
+
   const handleAIGeneration = async () => {
     if (!aiDescription.trim()) {
       toast.error('Veuillez entrer une description du produit');
@@ -324,6 +370,65 @@ export default function NewProductPage() {
         </button>
       </div>
 
+      {/* Zone d'upload document (PDF / image) → création produit par IA */}
+      <div className="mb-8 bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl border-2 border-dashed border-slate-200 overflow-hidden">
+        <div className="p-6">
+          <h2 className="text-lg font-bold text-slate-800 mb-1 flex items-center gap-2">
+            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Ajouter un produit depuis un document
+          </h2>
+          <p className="text-sm text-slate-600 mb-4">
+            Envoyez une fiche produit en PDF ou une image (photo, capture d&apos;écran). L&apos;IA extrait les infos et crée le produit automatiquement.
+          </p>
+          <input
+            type="file"
+            accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleDocumentUpload(file);
+              e.target.value = '';
+            }}
+            disabled={documentUploading}
+            className="hidden"
+            id="document-upload"
+          />
+          <label
+            htmlFor="document-upload"
+            onDragOver={(e) => { e.preventDefault(); setDocumentDragOver(true); }}
+            onDragLeave={() => setDocumentDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDocumentDragOver(false);
+              const file = e.dataTransfer.files?.[0];
+              if (file) handleDocumentUpload(file);
+            }}
+            className={`flex flex-col items-center justify-center gap-3 w-full min-h-[140px] rounded-xl border-2 border-dashed transition-all cursor-pointer ${
+              documentUploading
+                ? 'bg-slate-100 border-slate-200 cursor-not-allowed'
+                : documentDragOver
+                  ? 'bg-blue-100 border-blue-400'
+                  : 'bg-white/80 border-slate-300 hover:border-blue-400 hover:bg-blue-50/50'
+            }`}
+          >
+            {documentUploading ? (
+              <>
+                <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm font-medium text-slate-600">Analyse en cours par l&apos;IA...</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-12 h-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <span className="text-sm font-semibold text-slate-700">Glissez un PDF ou une image ici, ou cliquez pour parcourir</span>
+                <span className="text-xs text-slate-500">PDF, JPEG, PNG, WebP — max 20 Mo</span>
+              </>
+            )}
+          </label>
+        </div>
+      </div>
       {/* Formulaire */}
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-200">
